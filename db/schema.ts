@@ -10,8 +10,8 @@ export const students = pgTable("students", {
 
 export const phoneStatus = pgTable("phone_status", {
   id: serial("id").primaryKey(),
-  student_id: integer("student_id").references(() => students.id).notNull(),
+  studentId: integer("student_id").references(() => students.id).notNull(),
   status: text("status").notNull(), // IN, OUT
-  last_updated: timestamp("last_updated").defaultNow(),
-  updated_by: text("updated_by"),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  updatedBy: text("updated_by"),
 });

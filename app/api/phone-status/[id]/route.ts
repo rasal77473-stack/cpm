@@ -1,32 +1,27 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-// Mock phone status database (shared state for demo)
-const PHONE_STATUS_DB: Record<
-  number,
-  {
-    student_id: number
-    status: string
-    last_updated: string
-  }
-> = {
-  1: { student_id: 1, status: "OUT", last_updated: new Date(Date.now() - 86400000).toISOString() },
-  2: { student_id: 2, status: "IN", last_updated: new Date(Date.now() - 43200000).toISOString() },
-  3: { student_id: 3, status: "OUT", last_updated: new Date(Date.now() - 172800000).toISOString() },
-  4: { student_id: 4, status: "IN", last_updated: new Date(Date.now() - 3600000).toISOString() },
-  5: { student_id: 5, status: "IN", last_updated: new Date().toISOString() },
-}
+import { db } from "@/db"
+import { phoneStatus } from "@/db/schema"
+import { eq, desc } from "drizzle-orm"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const studentId = Number.parseInt(params.id)
-    const status = PHONE_STATUS_DB[studentId]
+    const status = await db.query.phoneStatus.findFirst({
+      where: eq(phoneStatus.studentId, studentId),
+      orderBy: [desc(phoneStatus.lastUpdated)]
+    })
 
     if (!status) {
       return NextResponse.json({ message: "Status not found" }, { status: 404 })
     }
 
-    return NextResponse.json(status)
+    return NextResponse.json({
+      student_id: status.studentId,
+      status: status.status,
+      last_updated: status.lastUpdated?.toISOString()
+    })
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ message: "Failed to fetch phone status" }, { status: 500 })
   }
 }
@@ -40,17 +35,22 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ message: "Status is required" }, { status: 400 })
     }
 
-    PHONE_STATUS_DB[studentId] = {
-      student_id: studentId,
-      status: status,
-      last_updated: new Date().toISOString(),
-    }
+    const updated = await db.insert(phoneStatus).values({
+      studentId,
+      status,
+      updatedBy: staffId,
+    }).returning()
 
     return NextResponse.json({
       message: "Status updated successfully",
-      status: PHONE_STATUS_DB[studentId],
+      status: {
+        student_id: updated[0].studentId,
+        status: updated[0].status,
+        last_updated: updated[0].lastUpdated?.toISOString()
+      },
     })
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ message: "Failed to update phone status" }, { status: 500 })
   }
 }
