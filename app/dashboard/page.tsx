@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,7 +25,6 @@ export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [phoneStatus, setPhoneStatus] = useState<Record<number, PhoneStatus>>({})
   const [searchQuery, setSearchQuery] = useState("")
-  const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [staffName, setStaffName] = useState("")
   const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
@@ -52,7 +51,6 @@ export default function DashboardPage() {
 
       setStudents(studentsData)
       setPhoneStatus(statusData)
-      setFilteredStudents(studentsData)
       setLoading(false)
     } catch (error) {
       console.error("Failed to fetch data:", error)
@@ -60,22 +58,19 @@ export default function DashboardPage() {
     }
   }
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query)
+  }, [])
 
-    if (!query.trim()) {
-      setFilteredStudents(students)
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/students/search?q=${encodeURIComponent(query)}`)
-      const data = await response.json()
-      setFilteredStudents(data)
-    } catch (error) {
-      console.error("Search failed:", error)
-    }
-  }
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery.trim()) return students
+    const q = searchQuery.toLowerCase()
+    return students.filter(s => 
+      s.name.toLowerCase().includes(q) || 
+      s.admission_number.toLowerCase().includes(q) || 
+      s.locker_number.toLowerCase().includes(q)
+    )
+  }, [students, searchQuery])
 
   const handleTogglePhoneStatus = async (studentId: number, currentStatus: string) => {
     setTogglingStudentId(studentId)
