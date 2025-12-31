@@ -12,7 +12,7 @@ export default function SystemSettings() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
   const [settings, setSettings] = useState({
-    systemName: "Hostel Phone Management",
+    systemName: "Caliph Phone Management",
     maintenanceMode: false,
     emailNotifications: true,
     phoneLogRetention: 90,

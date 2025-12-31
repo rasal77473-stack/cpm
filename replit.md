@@ -1,8 +1,8 @@
-# Hostel Phone Management System
+# Caliph Phone Management System
 
 ## Overview
 
-This is a Next.js 16 web application for managing student phone deposits and withdrawals in a hostel environment. Staff members can track when students check their phones in or out, view transaction history, and administrators have access to student management, reports, and system settings.
+This is a Next.js 16 web application for managing student phone deposits and withdrawals in a caliph environment. Staff members can track when students check their phones in or out, view transaction history, and administrators have access to student management, reports, and system settings.
 
 The application uses a role-based authentication system with two roles: admin and staff. Admins have full access to student management and system configuration, while staff members can manage phone check-in/check-out operations.
 

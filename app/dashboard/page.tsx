@@ -107,7 +107,7 @@ export default function DashboardPage() {
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Hostel Phone Management</h1>
+            <h1 className="text-2xl font-bold text-foreground">Caliph Phone Management</h1>
             <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
           </div>
           <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">

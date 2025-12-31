@@ -57,7 +57,7 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Hostel Phone Management</CardTitle>
+          <CardTitle>Caliph Phone Management</CardTitle>
           <CardDescription>Security Staff Login</CardDescription>
         </CardHeader>
         <CardContent>

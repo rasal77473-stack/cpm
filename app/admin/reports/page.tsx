@@ -81,7 +81,7 @@ export default function ReportsPage() {
 
   const handleDownloadReport = () => {
     const reportContent = `
-Hostel Phone Management - System Report
+Caliph Phone Management - System Report
 Generated: ${new Date().toLocaleString()}
 
 === SYSTEM STATISTICS ===
