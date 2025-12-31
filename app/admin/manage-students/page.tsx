@@ -157,12 +157,23 @@ export default function ManageStudents() {
     }
   }
 
-  const handleDeleteStudent = (id: number) => {
+  const handleDeleteStudent = async (id: number) => {
     if (confirm("Are you sure you want to delete this student?")) {
-      const updated = students.filter((s) => s.id !== id)
-      setStudents(updated)
-      setFilteredStudents(updated)
-      alert("Student deleted successfully!")
+      try {
+        const response = await fetch(`/api/students?id=${id}`, {
+          method: "DELETE",
+        })
+
+        if (!response.ok) throw new Error("Failed to delete student")
+
+        const updated = students.filter((s) => s.id !== id)
+        setStudents(updated)
+        setFilteredStudents(updated)
+        alert("Student deleted successfully!")
+      } catch (error) {
+        console.error(error)
+        alert("Failed to delete student")
+      }
     }
   }
 
