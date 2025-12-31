@@ -127,12 +127,10 @@ export default function ManageStudents() {
         }
 
         // Parse Excel data
-        let newId = Math.max(...students.map((s) => s.id), 0)
-        const importedStudents: Student[] = data.map((row) => ({
-          id: ++newId,
-          admission_number: row.admission_number || row["Admission Number"] || row["admission_number"] || "",
-          name: row.name || row["Name"] || row["name"] || "",
-          locker_number: row.locker_number || row["Locker Number"] || row["locker_number"] || "",
+        const importedStudents = data.map((row) => ({
+          admission_number: String(row.admission_number || row["Admission Number"] || row["admission_number"] || "").trim(),
+          name: String(row.name || row["Name"] || row["name"] || "").trim(),
+          locker_number: String(row.locker_number || row["Locker Number"] || row["locker_number"] || "").trim(),
         })).filter(s => s.admission_number && s.name && s.locker_number)
 
         if (importedStudents.length === 0) {
@@ -140,10 +138,26 @@ export default function ManageStudents() {
           return
         }
 
-        setStudents([...students, ...importedStudents])
-        setFilteredStudents([...students, ...importedStudents])
+        // Send to backend in chunks or one by one
+        let successCount = 0
+        const promises = importedStudents.map(async (student) => {
+          try {
+            const response = await fetch("/api/students", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(student),
+            })
+            if (response.ok) successCount++
+          } catch (err) {
+            console.error("Failed to import student:", student.name, err)
+          }
+        })
+
+        await Promise.all(promises)
+        
+        fetchStudents() // Refresh list from DB
         setShowBulkModal(false)
-        alert(`Successfully imported ${importedStudents.length} students!`)
+        alert(`Successfully imported ${successCount} out of ${importedStudents.length} students!`)
       }
       fileReader.readAsArrayBuffer(file)
     } catch (error) {
