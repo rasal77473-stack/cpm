@@ -17,10 +17,12 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
 
-  const { data: students = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
+  const { data: studentsData = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 10000,
   })
+
+  const students = Array.isArray(studentsData) ? studentsData : []
 
   const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", fetcher, {
     refreshInterval: 5000,
