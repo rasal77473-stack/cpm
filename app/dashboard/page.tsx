@@ -172,9 +172,12 @@ export default function DashboardPage() {
                     >
                       <div className="flex-1">
                         <div className="text-lg font-semibold text-foreground tracking-tight">{student.name}</div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Adm: {student.admission_number}</span>
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Locker: {student.locker_number}</span>
+                          <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Class: {student.class_name || "-"}</span>
+                          <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Roll: {student.roll_no || "-"}</span>
+                          {student.phone && <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Ph: {student.phone}</span>}
                         </div>
                       </div>
 

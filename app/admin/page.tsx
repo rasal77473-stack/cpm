@@ -13,6 +13,9 @@ interface Student {
   admission_number: string
   name: string
   locker_number: string
+  phone?: string
+  class_name?: string
+  roll_no?: string
 }
 
 interface PhoneHistory {
@@ -313,7 +316,9 @@ export default function AdminPanel() {
               >
                 <div>
                   <p className="font-medium">{student.name}</p>
-                  <p className="text-sm text-muted-foreground">Admission: {student.admission_number} | Locker: {student.locker_number}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Adm: {student.admission_number} | Locker: {student.locker_number} | Class: {student.class_name || "-"} | Roll: {student.roll_no || "-"}
+                  </p>
                 </div>
                 <ChevronRight className="w-4 h-4" />
               </div>
@@ -374,8 +379,8 @@ export default function AdminPanel() {
               phoneInDetails.map((student) => (
                 <div key={student.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
                   <p className="font-medium">{student.name}</p>
-                  <p className="text-sm text-muted-foreground">Admission: {student.admission_number}</p>
-                  <p className="text-sm text-muted-foreground">Locker: {student.locker_number}</p>
+                  <p className="text-sm text-muted-foreground">Adm: {student.admission_number} | Locker: {student.locker_number}</p>
+                  <p className="text-sm text-muted-foreground">Class: {student.class_name || "-"} | Roll: {student.roll_no || "-"}</p>
                   <p className="text-xs text-green-600 dark:text-green-400 mt-2">
                     Last updated: {new Date(phoneStatus[student.id]?.last_updated).toLocaleDateString()}
                   </p>
@@ -400,8 +405,8 @@ export default function AdminPanel() {
               phoneOutDetails.map((student) => (
                 <div key={student.id} className="p-4 border rounded-lg bg-orange-50 dark:bg-orange-900/20">
                   <p className="font-medium">{student.name}</p>
-                  <p className="text-sm text-muted-foreground">Admission: {student.admission_number}</p>
-                  <p className="text-sm text-muted-foreground">Locker: {student.locker_number}</p>
+                  <p className="text-sm text-muted-foreground">Adm: {student.admission_number} | Locker: {student.locker_number}</p>
+                  <p className="text-sm text-muted-foreground">Class: {student.class_name || "-"} | Roll: {student.roll_no || "-"}</p>
                   <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
                     Last updated: {new Date(phoneStatus[student.id]?.last_updated).toLocaleDateString()}
                   </p>
