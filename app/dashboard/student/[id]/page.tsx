@@ -11,9 +11,10 @@ interface Student {
   id: number
   admission_number: string
   name: string
-  room_number: string
-  phone_number: string
-  email: string
+  locker_number: string
+  phone: string
+  class_name: string
+  roll_no: string
 }
 
 interface PhoneStatus {
@@ -142,12 +143,20 @@ export default function StudentDetailPage() {
                 <p className="font-medium">{student.admission_number}</p>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">Room No.</label>
-                <p className="font-medium">{student.room_number}</p>
+                <label className="text-sm text-muted-foreground">Locker No.</label>
+                <p className="font-medium">{student.locker_number}</p>
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">Phone</label>
-                <p className="font-medium">{student.phone_number}</p>
+                <p className="font-medium">{student.phone || "-"}</p>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">Class</label>
+                <p className="font-medium">{student.class_name || "-"}</p>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">Roll No.</label>
+                <p className="font-medium">{student.roll_no || "-"}</p>
               </div>
             </div>
           </CardContent>

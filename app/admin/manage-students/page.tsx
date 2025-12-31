@@ -14,6 +14,9 @@ interface Student {
   admission_number: string
   name: string
   locker_number: string
+  phone?: string
+  class_name?: string
+  roll_no?: string
 }
 
 export default function ManageStudents() {
@@ -30,6 +33,9 @@ export default function ManageStudents() {
     admission_number: "",
     name: "",
     locker_number: "",
+    phone: "",
+    class_name: "",
+    roll_no: "",
   })
 
   // Bulk Import
@@ -80,7 +86,7 @@ export default function ManageStudents() {
 
   const handleAddStudent = async () => {
     if (!newStudent.admission_number || !newStudent.name || !newStudent.locker_number) {
-      alert("Please fill in all fields")
+      alert("Please fill in required fields (Name, Admission No, Locker No)")
       return
     }
 
@@ -100,6 +106,9 @@ export default function ManageStudents() {
         admission_number: "",
         name: "",
         locker_number: "",
+        phone: "",
+        class_name: "",
+        roll_no: "",
       })
       setShowAddModal(false)
       alert("Student added successfully!")
@@ -131,10 +140,13 @@ export default function ManageStudents() {
           admission_number: String(row.admission_number || row["Admission Number"] || row["admission_number"] || "").trim(),
           name: String(row.name || row["Name"] || row["name"] || "").trim(),
           locker_number: String(row.locker_number || row["Locker Number"] || row["locker_number"] || "").trim(),
+          phone: String(row.phone || row["Phone"] || row["phone"] || "").trim(),
+          class_name: String(row.class_name || row["Class"] || row["class"] || "").trim(),
+          roll_no: String(row.roll_no || row["Roll No"] || row["roll_no"] || "").trim(),
         })).filter(s => s.admission_number && s.name && s.locker_number)
 
         if (importedStudents.length === 0) {
-          alert("No valid students found in Excel. Make sure columns are: admission_number, name, locker_number")
+          alert("No valid students found in Excel. Make sure columns are: admission_number, name, locker_number, phone, class, roll_no")
           return
         }
 
@@ -294,8 +306,10 @@ export default function ManageStudents() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-4 font-medium">Name</th>
-                      <th className="text-left py-3 px-4 font-medium">Admission Number</th>
-                      <th className="text-left py-3 px-4 font-medium">Locker Number</th>
+                      <th className="text-left py-3 px-4 font-medium">Admission No.</th>
+                      <th className="text-left py-3 px-4 font-medium">Locker No.</th>
+                      <th className="text-left py-3 px-4 font-medium">Class</th>
+                      <th className="text-left py-3 px-4 font-medium">Roll No.</th>
                       <th className="text-left py-3 px-4 font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -305,6 +319,8 @@ export default function ManageStudents() {
                         <td className="py-3 px-4">{student.name}</td>
                         <td className="py-3 px-4">{student.admission_number}</td>
                         <td className="py-3 px-4">{student.locker_number}</td>
+                        <td className="py-3 px-4">{student.class_name || "-"}</td>
+                        <td className="py-3 px-4">{student.roll_no || "-"}</td>
                         <td className="py-3 px-4">
                           <Button
                             variant="destructive"
@@ -358,6 +374,30 @@ export default function ManageStudents() {
                 onChange={(e) => setNewStudent({ ...newStudent, locker_number: e.target.value })}
               />
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Phone</label>
+              <Input
+                placeholder="Enter phone number"
+                value={newStudent.phone}
+                onChange={(e) => setNewStudent({ ...newStudent, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Class</label>
+              <Input
+                placeholder="Enter class"
+                value={newStudent.class_name}
+                onChange={(e) => setNewStudent({ ...newStudent, class_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Roll No</label>
+              <Input
+                placeholder="Enter roll number"
+                value={newStudent.roll_no}
+                onChange={(e) => setNewStudent({ ...newStudent, roll_no: e.target.value })}
+              />
+            </div>
             <div className="flex gap-2 pt-4">
               <Button onClick={handleAddStudent} className="flex-1">
                 Add Student
@@ -386,6 +426,9 @@ export default function ManageStudents() {
                 <li>admission_number</li>
                 <li>name</li>
                 <li>locker_number</li>
+                <li>phone (optional)</li>
+                <li>class (optional)</li>
+                <li>roll_no (optional)</li>
               </ul>
             </div>
 
