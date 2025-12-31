@@ -6,100 +6,88 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { LogOut, Search, Phone, Loader2 } from "lucide-react"
+import useSWR, { mutate } from "swr"
+import { toast } from "sonner"
 
-interface Student {
-  id: number
-  admission_number: string
-  name: string
-  locker_number: string
-}
-
-interface PhoneStatus {
-  student_id: number
-  status: string
-  last_updated: string
-}
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [students, setStudents] = useState<Student[]>([])
-  const [phoneStatus, setPhoneStatus] = useState<Record<number, PhoneStatus>>({})
-  const [searchQuery, setSearchQuery] = useState("")
-  const [loading, setLoading] = useState(true)
   const [staffName, setStaffName] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
+
+  const { data: students = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 10000,
+  })
+
+  const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", fetcher, {
+    refreshInterval: 5000,
+    dedupingInterval: 2000,
+  })
 
   useEffect(() => {
     const token = localStorage.getItem("token")
-    const name = localStorage.getItem("staffName")
-
     if (!token) {
       router.push("/login")
       return
     }
-
-    setStaffName(name || "Staff")
-    fetchStudentsAndStatus()
+    setStaffName(localStorage.getItem("staffName") || "Staff")
   }, [router])
 
-  const fetchStudentsAndStatus = async () => {
-    try {
-      const [studentsRes, statusRes] = await Promise.all([fetch("/api/students"), fetch("/api/phone-status")])
-
-      const studentsData = await studentsRes.json()
-      const statusData = await statusRes.json()
-
-      setStudents(studentsData)
-      setPhoneStatus(statusData)
-      setLoading(false)
-    } catch (error) {
-      console.error("Failed to fetch data:", error)
-      setLoading(false)
-    }
-  }
-
-  const handleSearch = useCallback(async (query: string) => {
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query)
   }, [])
 
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return students
     const q = searchQuery.toLowerCase()
-    return students.filter(s => 
+    return students.filter((s: any) => 
       s.name.toLowerCase().includes(q) || 
       s.admission_number.toLowerCase().includes(q) || 
       s.locker_number.toLowerCase().includes(q)
     )
   }, [students, searchQuery])
 
-  const handleTogglePhoneStatus = async (studentId: number, currentStatus: string) => {
+  const handleTogglePhoneStatus = useCallback(async (studentId: number, currentStatus: string) => {
     setTogglingStudentId(studentId)
     const newStatus = currentStatus === "IN" ? "OUT" : "IN"
+    
+    // Optimistic Update
+    const oldStatus = { ...phoneStatus }
+    const optimisticStatus = { 
+      ...phoneStatus, 
+      [studentId]: { 
+        status: newStatus, 
+        last_updated: new Date().toISOString() 
+      } 
+    }
+    
+    mutate("/api/phone-status", optimisticStatus, false)
 
     try {
       const response = await fetch(`/api/phone-status/${studentId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify({ 
           status: newStatus,
           staffId: localStorage.getItem("staffId"),
-          notes: "",
+          notes: ""
         }),
       })
 
-      if (response.ok) {
-        const updatedStatus = await response.json()
-        setPhoneStatus((prev) => ({
-          ...prev,
-          [studentId]: updatedStatus.status,
-        }))
-      }
+      if (!response.ok) throw new Error("Failed to update status")
+      
+      toast.success(`Phone marked as ${newStatus}`)
+      mutate("/api/phone-status")
     } catch (error) {
-      console.error("Failed to toggle phone status:", error)
+      toast.error("Update failed. Reverting...")
+      mutate("/api/phone-status", oldStatus, false)
     } finally {
       setTogglingStudentId(null)
     }
-  }
+  }, [phoneStatus])
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -107,6 +95,8 @@ export default function DashboardPage() {
     localStorage.removeItem("staffName")
     router.push("/login")
   }
+
+  const loading = loadingStudents || (loadingStatus && students.length === 0)
 
   return (
     <div className="min-h-screen bg-background">
@@ -163,7 +153,7 @@ export default function DashboardPage() {
               <div className="text-center py-8 text-muted-foreground">No students found</div>
             ) : (
               <div className="space-y-3">
-                {filteredStudents.map((student) => {
+                {filteredStudents.map((student: any) => {
                   const status = phoneStatus[student.id]
                   const isPhoneIn = status?.status === "IN"
                   const isToggling = togglingStudentId === student.id

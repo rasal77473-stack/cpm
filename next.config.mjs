@@ -13,6 +13,12 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     optimizeCss: true,
+    scrollRestoration: true,
+    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+  },
+  onDemandEntries: {
+    maxInactiveAge: 60 * 60 * 1000,
+    pagesBufferLength: 5,
   },
 }
 
