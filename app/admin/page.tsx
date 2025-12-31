@@ -229,10 +229,10 @@ export default function AdminPanel() {
             </CardHeader>
             <CardContent>
               <Button 
-                onClick={() => router.push("/dashboard")} 
+                onClick={() => router.push("/admin/manage-students")} 
                 className="w-full"
               >
-                Go to Dashboard
+                Manage Students
               </Button>
             </CardContent>
           </Card>
