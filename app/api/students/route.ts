@@ -1,37 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-const STUDENTS_DB = [
-  {
-    id: 1,
-    admission_number: "ADM001",
-    name: "Rajesh Kumar",
-    locker_number: "L-101",
-  },
-  {
-    id: 2,
-    admission_number: "ADM002",
-    name: "Priya Singh",
-    locker_number: "L-102",
-  },
-  {
-    id: 3,
-    admission_number: "ADM003",
-    name: "Amit Patel",
-    locker_number: "L-103",
-  },
-  {
-    id: 4,
-    admission_number: "ADM004",
-    name: "Neha Sharma",
-    locker_number: "L-104",
-  },
-  {
-    id: 5,
-    admission_number: "ADM005",
-    name: "Rohan Verma",
-    locker_number: "L-105",
-  },
-]
+import { db } from "@/db"
+import { students } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,15 +9,35 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get("id")
 
     if (id) {
-      const student = STUDENTS_DB.find((s) => s.id === Number.parseInt(id))
+      const student = await db.query.students.findFirst({
+        where: eq(students.id, Number.parseInt(id))
+      })
       if (!student) {
         return NextResponse.json({ message: "Student not found" }, { status: 404 })
       }
       return NextResponse.json(student)
     }
 
-    return NextResponse.json(STUDENTS_DB)
+    const allStudents = await db.select().from(students)
+    return NextResponse.json(allStudents)
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ message: "Failed to fetch students" }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const data = await request.json()
+    const newStudent = await db.insert(students).values({
+      admission_number: data.admission_number,
+      name: data.name,
+      locker_number: data.locker_number,
+    }).returning()
+    
+    return NextResponse.json(newStudent[0])
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ message: "Failed to create student" }, { status: 500 })
   }
 }

@@ -84,22 +84,29 @@ export default function ManageStudents() {
       return
     }
 
-    // In a real app, this would save to a database
-    const newId = Math.max(...students.map((s) => s.id), 0) + 1
-    const student: Student = {
-      id: newId,
-      ...newStudent,
-    }
+    try {
+      const response = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newStudent),
+      })
 
-    setStudents([...students, student])
-    setFilteredStudents([...students, student])
-    setNewStudent({
-      admission_number: "",
-      name: "",
-      locker_number: "",
-    })
-    setShowAddModal(false)
-    alert("Student added successfully!")
+      if (!response.ok) throw new Error("Failed to add student")
+
+      const savedStudent = await response.json()
+      setStudents([...students, savedStudent])
+      setFilteredStudents([...students, savedStudent])
+      setNewStudent({
+        admission_number: "",
+        name: "",
+        locker_number: "",
+      })
+      setShowAddModal(false)
+      alert("Student added successfully!")
+    } catch (error) {
+      console.error(error)
+      alert("Failed to add student")
+    }
   }
 
   const handleBulkImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
