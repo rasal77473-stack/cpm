@@ -38,7 +38,13 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token)
       localStorage.setItem("staffId", data.staffId)
       localStorage.setItem("staffName", data.staffName)
-      router.push("/dashboard")
+      localStorage.setItem("role", data.role)
+      
+      if (data.role === "admin") {
+        router.push("/admin")
+      } else {
+        router.push("/dashboard")
+      }
     } catch (err) {
       setError("An error occurred. Please try again.")
       console.error(err)
@@ -99,7 +105,7 @@ export default function LoginPage() {
           <div className="mt-4 p-3 bg-muted rounded-lg text-sm text-muted-foreground">
             <p className="font-medium mb-1">Demo Credentials:</p>
             <p>Username: admin</p>
-            <p>Password: demo123</p>
+            <p>Password: caliph786786</p>
           </div>
         </CardContent>
       </Card>

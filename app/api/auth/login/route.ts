@@ -5,7 +5,8 @@ const STAFF_DB = {
   admin: {
     id: 1,
     name: "Admin User",
-    password: "demo123", // In production, this would be hashed
+    password: "caliph786786", // In production, this would be hashed
+    role: "admin",
   },
 }
 
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
       token,
       staffId: staff.id,
       staffName: staff.name,
+      role: (staff as any).role || "staff",
       message: "Login successful",
     })
   } catch (error) {
