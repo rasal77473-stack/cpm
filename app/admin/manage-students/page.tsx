@@ -26,6 +26,7 @@ export default function ManageStudents() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedClass, setSelectedClass] = useState("all")
+  const [selectedLocker, setSelectedLocker] = useState("all")
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
 
   // Add Student Modal
@@ -71,22 +72,32 @@ export default function ManageStudents() {
     }
   }
 
-  const classes = useMemo(() => {
+  const { lockers, classes } = useMemo(() => {
     const classSet = new Set<string>()
+    const lockerSet = new Set<string>()
     students.forEach((s) => {
       if (s.class_name) classSet.add(s.class_name)
+      if (s.locker_number) lockerSet.add(s.locker_number)
     })
-    return ["all", ...Array.from(classSet).sort()]
+    return {
+      classes: ["all", ...Array.from(classSet).sort()],
+      lockers: ["all", ...Array.from(lockerSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))]
+    }
   }, [students])
 
-  const handleSearch = (query: string, className: string = selectedClass) => {
+  const handleSearch = (query: string, className: string = selectedClass, lockerNo: string = selectedLocker) => {
     setSearchQuery(query)
     setSelectedClass(className)
+    setSelectedLocker(lockerNo)
     
     let filtered = students
 
     if (className !== "all") {
       filtered = filtered.filter((s) => s.class_name === className)
+    }
+
+    if (lockerNo !== "all") {
+      filtered = filtered.filter((s) => s.locker_number === lockerNo)
     }
 
     if (query.trim()) {
@@ -278,7 +289,7 @@ export default function ManageStudents() {
                 />
                 <select
                   value={selectedClass}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSearch(searchQuery, e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSearch(searchQuery, e.target.value, selectedLocker)}
                   className="w-full md:w-48 h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="all">All Classes</option>
@@ -286,10 +297,20 @@ export default function ManageStudents() {
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
-                {(searchQuery || selectedClass !== "all") && (
+                <select
+                  value={selectedLocker}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSearch(searchQuery, selectedClass, e.target.value)}
+                  className="w-full md:w-48 h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">All Lockers</option>
+                  {lockers.filter((l: string) => l !== "all").map((l: string) => (
+                    <option key={l} value={l}>Locker {l}</option>
+                  ))}
+                </select>
+                {(searchQuery || selectedClass !== "all" || selectedLocker !== "all") && (
                   <Button
                     variant="outline"
-                    onClick={() => handleSearch("", "all")}
+                    onClick={() => handleSearch("", "all", "all")}
                   >
                     Clear
                   </Button>

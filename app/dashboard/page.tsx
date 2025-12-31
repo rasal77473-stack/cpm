@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [staffName, setStaffName] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedClass, setSelectedClass] = useState("all")
+  const [selectedLocker, setSelectedLocker] = useState("all")
   const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
 
   const { data: studentsData = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
@@ -43,12 +44,17 @@ export default function DashboardPage() {
     setSearchQuery(query)
   }, [])
 
-  const classes = useMemo(() => {
+  const { lockers, classes } = useMemo(() => {
     const classSet = new Set<string>()
+    const lockerSet = new Set<string>()
     students.forEach((s: any) => {
       if (s.class_name) classSet.add(s.class_name)
+      if (s.locker_number) lockerSet.add(s.locker_number)
     })
-    return ["all", ...Array.from(classSet).sort()]
+    return {
+      classes: ["all", ...Array.from(classSet).sort()],
+      lockers: ["all", ...Array.from(lockerSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))]
+    }
   }, [students])
 
   const filteredStudents = useMemo(() => {
@@ -56,6 +62,10 @@ export default function DashboardPage() {
     
     if (selectedClass !== "all") {
       filtered = filtered.filter((s: any) => s.class_name === selectedClass)
+    }
+
+    if (selectedLocker !== "all") {
+      filtered = filtered.filter((s: any) => s.locker_number === selectedLocker)
     }
 
     if (!searchQuery.trim()) return filtered
@@ -67,7 +77,7 @@ export default function DashboardPage() {
       s.locker_number.toLowerCase().includes(q) ||
       (s.roll_no && s.roll_no.toLowerCase().includes(q))
     )
-  }, [students, searchQuery, selectedClass])
+  }, [students, searchQuery, selectedClass, selectedLocker])
 
   const handleTogglePhoneStatus = useCallback(async (studentId: number, currentStatus: string) => {
     setTogglingStudentId(studentId)
@@ -155,19 +165,33 @@ export default function DashboardPage() {
                   className="pl-10"
                 />
               </div>
-              <div className="w-full md:w-48">
-                <select
-                  value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                  className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="all">All Classes</option>
-                  {classes.filter(c => c !== "all").map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+              <div className="flex-1 flex flex-col md:flex-row gap-2">
+                <div className="w-full md:w-48">
+                  <select
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="all">All Classes</option>
+                    {classes.filter(c => c !== "all").map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-full md:w-48">
+                  <select
+                    value={selectedLocker}
+                    onChange={(e) => setSelectedLocker(e.target.value)}
+                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="all">All Lockers</option>
+                    {lockers.filter(l => l !== "all").map(l => (
+                      <option key={l} value={l}>Locker {l}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <Button onClick={() => { handleSearch(""); setSelectedClass("all"); }} variant="outline">
+              <Button onClick={() => { setSearchQuery(""); setSelectedClass("all"); setSelectedLocker("all"); }} variant="outline">
                 Clear
               </Button>
             </div>
