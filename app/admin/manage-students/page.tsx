@@ -60,8 +60,9 @@ export default function ManageStudents() {
     try {
       const response = await fetch("/api/students")
       const data = await response.json()
-      setStudents(data)
-      setFilteredStudents(data)
+      const studentList = Array.isArray(data) ? data : []
+      setStudents(studentList)
+      setFilteredStudents(studentList)
       setLoading(false)
     } catch (error) {
       console.error("Failed to fetch students:", error)
@@ -100,8 +101,9 @@ export default function ManageStudents() {
       if (!response.ok) throw new Error("Failed to add student")
 
       const savedStudent = await response.json()
-      setStudents([...students, savedStudent])
-      setFilteredStudents([...students, savedStudent])
+      const updatedStudents = [...students, savedStudent]
+      setStudents(updatedStudents)
+      setFilteredStudents(updatedStudents)
       setNewStudent({
         admission_number: "",
         name: "",
