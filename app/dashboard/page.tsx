@@ -171,45 +171,48 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={student.id}
-                      className={`flex items-center justify-between p-4 rounded-lg hover:bg-muted/50 transition-colors ${
+                      className={`flex items-center justify-between p-5 rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-300 ${
                         isPhoneIn ? "led-in" : "led-out"
                       }`}
                     >
                       <div className="flex-1">
-                        <div className="font-medium text-foreground">{student.name}</div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          <div>Admission: {student.admission_number}</div>
-                          <div>Locker: {student.locker_number}</div>
+                        <div className="text-lg font-semibold text-foreground tracking-tight">{student.name}</div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                          <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Adm: {student.admission_number}</span>
+                          <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Locker: {student.locker_number}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-6">
                         <div className="text-right">
                           <div
-                            className={`font-medium px-2 py-1 rounded-lg text-sm ${
+                            className={`font-bold px-3 py-1 rounded-full text-xs tracking-wider uppercase shadow-inner ${
                               isPhoneIn
-                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
-                                : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200"
+                                ? "bg-green-100/80 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                                : "bg-orange-100/80 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
                             }`}
                           >
                             {status?.status || "UNKNOWN"}
                           </div>
                           {status?.last_updated && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {new Date(status.last_updated).toLocaleDateString()}
+                            <div className="text-[10px] font-medium text-muted-foreground mt-1.5 opacity-70 italic">
+                              {new Date(status.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           )}
                         </div>
 
                         <Button
                           onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
-                          size="sm"
-                          className="gap-1"
+                          size="lg"
+                          className={`rounded-xl px-6 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 ${
+                            isPhoneIn 
+                              ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
+                              : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                          }`}
                           disabled={isToggling}
-                          variant={isPhoneIn ? "destructive" : "default"}
                         >
-                          {isToggling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone className="w-4 h-4" />}
-                          {isPhoneIn ? "Submit OUT" : "Submit IN"}
+                          {isToggling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
+                          <span className="ml-2">{isPhoneIn ? "Submit OUT" : "Submit IN"}</span>
                         </Button>
                       </div>
                     </div>
