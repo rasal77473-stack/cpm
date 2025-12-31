@@ -115,7 +115,7 @@ export default function ManageStudents() {
 
     try {
       const fileReader = new FileReader()
-      fileReader.onload = (e) => {
+      fileReader.onload = async (e) => {
         const buffer = e.target?.result
         const workbook = XLSX.read(buffer, { type: "array" })
         const worksheet = workbook.Sheets[workbook.SheetNames[0]]
