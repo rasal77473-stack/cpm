@@ -3,6 +3,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@layer base {
+  /* Force hide Next.js Dev Indicators and other platform overlays */
+  #core-dev-indicators,
+  #nextjs-dev-indicator,
+  [data-nextjs-toast-wrapper],
+  .nextjs-toast-errors-parent,
+  next-route-announcer {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+  }
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
