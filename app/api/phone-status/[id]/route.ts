@@ -3,9 +3,10 @@ import { db } from "@/db"
 import { phoneStatus } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const studentId = Number.parseInt(params.id)
+    const { id } = await params
+    const studentId = Number.parseInt(id)
     const status = await db.query.phoneStatus.findFirst({
       where: eq(phoneStatus.studentId, studentId),
       orderBy: [desc(phoneStatus.lastUpdated)]
@@ -26,9 +27,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const studentId = Number.parseInt(params.id)
+    const { id } = await params
+    const studentId = Number.parseInt(id)
     const { status, staffId, notes } = await request.json()
 
     if (!status) {
