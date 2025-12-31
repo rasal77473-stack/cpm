@@ -146,3 +146,22 @@
 .led-in {
   animation: led-flow-green 1.5s ease-in-out infinite;
 }
+
+@keyframes pulse-yellow {
+  0% {
+    background-color: var(--card);
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(250, 204, 21, 0.05);
+    transform: scale(1.005);
+  }
+  100% {
+    background-color: var(--card);
+    transform: scale(1);
+  }
+}
+
+.animate-pulse-yellow {
+  animation: pulse-yellow 2s ease-in-out infinite;
+}

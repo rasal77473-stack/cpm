@@ -191,22 +191,28 @@ export default function DashboardPage() {
                   const status = phoneStatus[student.id]
                   const isPhoneIn = status?.status === "IN"
                   const isToggling = togglingStudentId === student.id
+                  const hasNoPhone = !student.phone || student.phone.toLowerCase() === "nill" || student.phone.toLowerCase() === "nil" || student.phone.toLowerCase() === "none"
 
                   return (
                     <div
                       key={student.id}
                       className={`flex items-center justify-between p-5 rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-300 ${
-                        isPhoneIn ? "led-in" : "led-out"
+                        hasNoPhone ? "animate-pulse-yellow border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)]" : isPhoneIn ? "led-in" : "led-out"
                       }`}
                     >
                       <div className="flex-1">
-                        <div className="text-lg font-semibold text-foreground tracking-tight">{student.name}</div>
+                        <div className="text-lg font-semibold text-foreground tracking-tight">
+                          {student.name}
+                          {hasNoPhone && <span className="ml-2 text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest bg-yellow-100 dark:bg-yellow-900/50 px-2 py-0.5 rounded-full border border-yellow-200 dark:border-yellow-800">No Phone (Nill)</span>}
+                        </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Adm: {student.admission_number}</span>
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Locker: {student.locker_number}</span>
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Class: {student.class_name || "-"}</span>
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Roll: {student.roll_no || "-"}</span>
-                          {student.phone && <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Ph: {student.phone}</span>}
+                          <span className={`bg-secondary px-2 py-0.5 rounded-full border border-border/50 ${hasNoPhone ? "text-yellow-600 dark:text-yellow-400 font-bold" : ""}`}>
+                            Ph: {student.phone || "Nill"}
+                          </span>
                         </div>
                       </div>
 
@@ -214,33 +220,37 @@ export default function DashboardPage() {
                         <div className="text-right">
                           <div
                             className={`font-bold px-3 py-1 rounded-full text-xs tracking-wider uppercase shadow-inner ${
-                              isPhoneIn
+                              hasNoPhone
+                                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
+                                : isPhoneIn
                                 ? "bg-green-100/80 text-green-700 dark:bg-green-900/40 dark:text-green-300"
                                 : "bg-orange-100/80 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
                             }`}
                           >
-                            {status?.status || "UNKNOWN"}
+                            {hasNoPhone ? "NO PHONE" : status?.status || "UNKNOWN"}
                           </div>
-                          {status?.last_updated && (
+                          {status?.last_updated && !hasNoPhone && (
                             <div className="text-[10px] font-medium text-muted-foreground mt-1.5 opacity-70 italic">
                               {new Date(status.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           )}
                         </div>
 
-                        <Button
-                          onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
-                          size="lg"
-                          className={`rounded-xl px-6 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 ${
-                            isPhoneIn 
-                              ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
-                              : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                          }`}
-                          disabled={isToggling}
-                        >
-                          {isToggling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
-                          <span className="ml-2">{isPhoneIn ? "Submit OUT" : "Submit IN"}</span>
-                        </Button>
+                        {!hasNoPhone && (
+                          <Button
+                            onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
+                            size="lg"
+                            className={`rounded-xl px-6 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 ${
+                              isPhoneIn 
+                                ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
+                                : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                            }`}
+                            disabled={isToggling}
+                          >
+                            {isToggling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
+                            <span className="ml-2">{isPhoneIn ? "Submit OUT" : "Submit IN"}</span>
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )
