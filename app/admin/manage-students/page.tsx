@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +25,7 @@ export default function ManageStudents() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedClass, setSelectedClass] = useState("all")
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
 
   // Add Student Modal
@@ -70,21 +71,37 @@ export default function ManageStudents() {
     }
   }
 
-  const handleSearch = (query: string) => {
+  const classes = useMemo(() => {
+    const classSet = new Set<string>()
+    students.forEach((s) => {
+      if (s.class_name) classSet.add(s.class_name)
+    })
+    return ["all", ...Array.from(classSet).sort()]
+  }, [students])
+
+  const handleSearch = (query: string, className: string = selectedClass) => {
     setSearchQuery(query)
-    if (!query.trim()) {
-      setFilteredStudents(students)
-    } else {
-      const filtered = students.filter(
-        (student) =>
-          student.name.toLowerCase().includes(query.toLowerCase()) ||
-          student.admission_number.toLowerCase().includes(query.toLowerCase()) ||
-          student.locker_number.toLowerCase().includes(query.toLowerCase()) ||
-          (student.class_name && student.class_name.toLowerCase().includes(query.toLowerCase())) ||
-          (student.roll_no && student.roll_no.toLowerCase().includes(query.toLowerCase()))
-      )
-      setFilteredStudents(filtered)
+    setSelectedClass(className)
+    
+    let filtered = students
+
+    if (className !== "all") {
+      filtered = filtered.filter((s) => s.class_name === className)
     }
+
+    if (query.trim()) {
+      const q = query.toLowerCase()
+      filtered = filtered.filter(
+        (student) =>
+          student.name.toLowerCase().includes(q) ||
+          student.admission_number.toLowerCase().includes(q) ||
+          student.locker_number.toLowerCase().includes(q) ||
+          (student.class_name && student.class_name.toLowerCase().includes(q)) ||
+          (student.roll_no && student.roll_no.toLowerCase().includes(q))
+      )
+    }
+    
+    setFilteredStudents(filtered)
   }
 
   const handleAddStudent = async () => {
@@ -251,18 +268,28 @@ export default function ManageStudents() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Search */}
-              <div className="flex gap-2">
+              {/* Search and Filter */}
+              <div className="flex flex-col md:flex-row gap-2">
                 <Input
-                  placeholder="Search by name, admission number, or locker number..."
+                  placeholder="Search by name, admission, locker, or roll..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="flex-1"
                 />
-                {searchQuery && (
+                <select
+                  value={selectedClass}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSearch(searchQuery, e.target.value)}
+                  className="w-full md:w-48 h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">All Classes</option>
+                  {classes.filter((c: string) => c !== "all").map((c: string) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {(searchQuery || selectedClass !== "all") && (
                   <Button
                     variant="outline"
-                    onClick={() => handleSearch("")}
+                    onClick={() => handleSearch("", "all")}
                   >
                     Clear
                   </Button>

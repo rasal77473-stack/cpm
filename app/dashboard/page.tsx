@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedClass, setSelectedClass] = useState("all")
   const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
 
   const { data: studentsData = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
@@ -42,15 +43,31 @@ export default function DashboardPage() {
     setSearchQuery(query)
   }, [])
 
+  const classes = useMemo(() => {
+    const classSet = new Set<string>()
+    students.forEach((s: any) => {
+      if (s.class_name) classSet.add(s.class_name)
+    })
+    return ["all", ...Array.from(classSet).sort()]
+  }, [students])
+
   const filteredStudents = useMemo(() => {
-    if (!searchQuery.trim()) return students
+    let filtered = students
+    
+    if (selectedClass !== "all") {
+      filtered = filtered.filter((s: any) => s.class_name === selectedClass)
+    }
+
+    if (!searchQuery.trim()) return filtered
+    
     const q = searchQuery.toLowerCase()
-    return students.filter((s: any) => 
+    return filtered.filter((s: any) => 
       s.name.toLowerCase().includes(q) || 
       s.admission_number.toLowerCase().includes(q) || 
-      s.locker_number.toLowerCase().includes(q)
+      s.locker_number.toLowerCase().includes(q) ||
+      (s.roll_no && s.roll_no.toLowerCase().includes(q))
     )
-  }, [students, searchQuery])
+  }, [students, searchQuery, selectedClass])
 
   const handleTogglePhoneStatus = useCallback(async (studentId: number, currentStatus: string) => {
     setTogglingStudentId(studentId)
@@ -128,17 +145,29 @@ export default function DashboardPage() {
             <CardDescription>Find students by name, admission number, or room number</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2">
+            <div className="flex flex-col md:flex-row gap-2">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, admission number, or room..."
+                  placeholder="Search by name, admission number, or roll..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              <Button onClick={() => handleSearch("")} variant="outline">
+              <div className="w-full md:w-48">
+                <select
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">All Classes</option>
+                  {classes.filter(c => c !== "all").map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <Button onClick={() => { handleSearch(""); setSelectedClass("all"); }} variant="outline">
                 Clear
               </Button>
             </div>
