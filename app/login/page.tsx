@@ -103,9 +103,19 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-4 p-3 bg-muted rounded-lg text-sm text-muted-foreground">
-            <p className="font-medium mb-1">Demo Credentials:</p>
-            <p>Username: admin</p>
-            <p>Password: caliph786786</p>
+            <p className="font-medium mb-2">Demo Credentials:</p>
+            <div className="space-y-2">
+              <div>
+                <p className="font-medium text-foreground">Admin:</p>
+                <p>Username: admin</p>
+                <p>Password: caliph786786</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Staff:</p>
+                <p>Username: user</p>
+                <p>Password: caliph</p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

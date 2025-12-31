@@ -8,6 +8,12 @@ const STAFF_DB = {
     password: "caliph786786", // In production, this would be hashed
     role: "admin",
   },
+  user: {
+    id: 2,
+    name: "Staff User",
+    password: "caliph", // In production, this would be hashed
+    role: "staff",
+  },
 }
 
 export async function POST(request: NextRequest) {
