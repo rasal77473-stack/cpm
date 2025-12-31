@@ -78,11 +78,15 @@ export default function AdminPanel() {
       const statusData = await statusRes.json()
       const historyData = await historyRes.json()
 
-      setStudents(studentsData)
-      setPhoneHistory(historyData)
-      setPhoneStatus(statusData)
+      const studentList = Array.isArray(studentsData) ? studentsData : []
+      const historyList = Array.isArray(historyData) ? historyData : []
+      const statusMap = statusData && typeof statusData === 'object' ? statusData : {}
 
-      setTotalStudents(studentsData.length)
+      setStudents(studentList)
+      setPhoneHistory(historyList)
+      setPhoneStatus(statusMap)
+
+      setTotalStudents(studentList.length)
 
       // Count phone in and out
       let inCount = 0
@@ -125,13 +129,13 @@ export default function AdminPanel() {
     router.push("/login")
   }
 
-  const phoneInDetails = students.filter(
-    (s) => phoneStatus[s.id] && phoneStatus[s.id].status === "IN"
-  )
+  const phoneInDetails = Array.isArray(students) 
+    ? students.filter((s) => phoneStatus[s.id] && phoneStatus[s.id].status === "IN")
+    : []
 
-  const phoneOutDetails = students.filter(
-    (s) => phoneStatus[s.id] && phoneStatus[s.id].status === "OUT"
-  )
+  const phoneOutDetails = Array.isArray(students)
+    ? students.filter((s) => phoneStatus[s.id] && phoneStatus[s.id].status === "OUT")
+    : []
 
   return (
     <div className="min-h-screen bg-background">
