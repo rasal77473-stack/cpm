@@ -64,6 +64,8 @@ export default function DashboardPage() {
       } 
     }
     
+    // Use mutate with the new data immediately, and set revalidate to false 
+    // to prevent an immediate network refresh from overwriting our optimistic state
     mutate("/api/phone-status", optimisticStatus, false)
 
     try {
@@ -80,6 +82,7 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error("Failed to update status")
       
       toast.success(`Phone marked as ${newStatus}`)
+      // Trigger a silent revalidation in the background
       mutate("/api/phone-status")
     } catch (error) {
       toast.error("Update failed. Reverting...")
