@@ -41,6 +41,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       studentId,
       status,
       updatedBy: staffId,
+      notes: notes || "",
     }).returning()
 
     return NextResponse.json({

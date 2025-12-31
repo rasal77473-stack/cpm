@@ -14,4 +14,5 @@ export const phoneStatus = pgTable("phone_status", {
   status: text("status").notNull(), // IN, OUT
   lastUpdated: timestamp("last_updated").defaultNow(),
   updatedBy: text("updated_by"),
+  notes: text("notes"),
 });
