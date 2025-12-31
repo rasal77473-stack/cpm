@@ -4,24 +4,53 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { LogOut, Users, Phone, Settings, BarChart3 } from "lucide-react"
+import { LogOut, Users, Phone, Settings, BarChart3, X, ChevronRight } from "lucide-react"
 
-interface AdminStats {
-  totalStudents: number
-  totalPhoneCheckins: number
-  activeLogins: number
+interface Student {
+  id: number
+  admission_number: string
+  name: string
+  locker_number: string
+}
+
+interface PhoneHistory {
+  id: number
+  student_id: number
+  student_name: string
+  staff_id: number
+  staff_name: string
+  action: string
+  notes: string
+  timestamp: string
+}
+
+interface PhoneStatus {
+  student_id: number
+  status: string
+  last_updated: string
 }
 
 export default function AdminPanel() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
-  const [stats, setStats] = useState<AdminStats>({
-    totalStudents: 0,
-    totalPhoneCheckins: 0,
-    activeLogins: 0,
-  })
+  const [students, setStudents] = useState<Student[]>([])
+  const [phoneHistory, setPhoneHistory] = useState<PhoneHistory[]>([])
+  const [phoneStatus, setPhoneStatus] = useState<Record<number, PhoneStatus>>({})
   const [loading, setLoading] = useState(true)
+
+  // Modal states
+  const [showStudentsModal, setShowStudentsModal] = useState(false)
+  const [showPhoneInModal, setShowPhoneInModal] = useState(false)
+  const [showPhoneOutModal, setShowPhoneOutModal] = useState(false)
+  const [showStudentDetail, setShowStudentDetail] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  const [selectedStudentHistory, setSelectedStudentHistory] = useState<PhoneHistory[]>([])
+
+  const [totalStudents, setTotalStudents] = useState(0)
+  const [phoneInCount, setPhoneInCount] = useState(0)
+  const [phoneOutCount, setPhoneOutCount] = useState(0)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -34,31 +63,58 @@ export default function AdminPanel() {
     }
 
     setStaffName(name || "Admin")
-    fetchAdminStats()
+    fetchAllData()
   }, [router])
 
-  const fetchAdminStats = async () => {
+  const fetchAllData = async () => {
     try {
-      const [studentsRes, statusRes] = await Promise.all([
+      const [studentsRes, statusRes, historyRes] = await Promise.all([
         fetch("/api/students"),
         fetch("/api/phone-status"),
+        fetch("/api/phone-history"),
       ])
 
       const studentsData = await studentsRes.json()
       const statusData = await statusRes.json()
+      const historyData = await historyRes.json()
 
-      const totalPhoneCheckins = Object.values(statusData).length
+      setStudents(studentsData)
+      setPhoneHistory(historyData)
+      setPhoneStatus(statusData)
 
-      setStats({
-        totalStudents: studentsData.length,
-        totalPhoneCheckins: totalPhoneCheckins,
-        activeLogins: 1,
+      setTotalStudents(studentsData.length)
+
+      // Count phone in and out
+      let inCount = 0
+      let outCount = 0
+      Object.values(statusData).forEach((status: any) => {
+        if (status.status === "IN") inCount++
+        if (status.status === "OUT") outCount++
       })
+      setPhoneInCount(inCount)
+      setPhoneOutCount(outCount)
+
       setLoading(false)
     } catch (error) {
-      console.error("Failed to fetch stats:", error)
+      console.error("Failed to fetch data:", error)
       setLoading(false)
     }
+  }
+
+  const handleStudentClick = (student: Student) => {
+    setSelectedStudent(student)
+    const history = phoneHistory.filter((h) => h.student_id === student.id)
+    setSelectedStudentHistory(history)
+    setShowStudentsModal(false)
+    setShowStudentDetail(true)
+  }
+
+  const handlePhoneInClick = () => {
+    setShowPhoneInModal(true)
+  }
+
+  const handlePhoneOutClick = () => {
+    setShowPhoneOutModal(true)
   }
 
   const handleLogout = () => {
@@ -68,6 +124,14 @@ export default function AdminPanel() {
     localStorage.removeItem("role")
     router.push("/login")
   }
+
+  const phoneInDetails = students.filter(
+    (s) => phoneStatus[s.id] && phoneStatus[s.id].status === "IN"
+  )
+
+  const phoneOutDetails = students.filter(
+    (s) => phoneStatus[s.id] && phoneStatus[s.id].status === "OUT"
+  )
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,9 +151,13 @@ export default function AdminPanel() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Dashboard Stats */}
+        {/* Dashboard Stats - Clickable Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
+          {/* Total Students Card */}
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow hover:border-blue-500"
+            onClick={() => setShowStudentsModal(true)}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Students</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
@@ -99,38 +167,52 @@ export default function AdminPanel() {
                 <div className="text-2xl font-bold">Loading...</div>
               ) : (
                 <>
-                  <div className="text-2xl font-bold">{stats.totalStudents}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Registered in system</p>
+                  <div className="text-2xl font-bold">{totalStudents}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view all students</p>
                 </>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          {/* Phone In Card */}
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow hover:border-green-500"
+            onClick={handlePhoneInClick}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Phone Check-ins</CardTitle>
-              <Phone className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Phone In</CardTitle>
+              <Phone className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="text-2xl font-bold">Loading...</div>
               ) : (
                 <>
-                  <div className="text-2xl font-bold">{stats.totalPhoneCheckins}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Total status updates</p>
+                  <div className="text-2xl font-bold text-green-600">{phoneInCount}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view details</p>
                 </>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          {/* Phone Out Card */}
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow hover:border-orange-500"
+            onClick={handlePhoneOutClick}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Status</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Phone Out</CardTitle>
+              <Phone className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">Active</div>
-              <p className="text-xs text-muted-foreground mt-1">All systems operational</p>
+              {loading ? (
+                <div className="text-2xl font-bold">Loading...</div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-orange-600">{phoneOutCount}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view details</p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -143,7 +225,7 @@ export default function AdminPanel() {
                 <Users className="w-5 h-5" />
                 Manage Students
               </CardTitle>
-              <CardDescription>View, add, or update student records</CardDescription>
+              <CardDescription>View and manage student records</CardDescription>
             </CardHeader>
             <CardContent>
               <Button 
@@ -182,8 +264,11 @@ export default function AdminPanel() {
               <CardDescription>Configure system preferences and security</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button disabled className="w-full">
-                Coming Soon
+              <Button 
+                onClick={() => router.push("/admin/settings")} 
+                className="w-full"
+              >
+                Open Settings
               </Button>
             </CardContent>
           </Card>
@@ -197,26 +282,131 @@ export default function AdminPanel() {
               <CardDescription>Generate and view system reports</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button disabled className="w-full">
-                Coming Soon
+              <Button 
+                onClick={() => router.push("/admin/reports")} 
+                className="w-full"
+              >
+                View Reports
               </Button>
             </CardContent>
           </Card>
         </div>
-
-        {/* Welcome Message */}
-        <Card className="mt-8 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-          <CardHeader>
-            <CardTitle className="text-blue-900 dark:text-blue-100">Welcome to Admin Panel</CardTitle>
-          </CardHeader>
-          <CardContent className="text-blue-800 dark:text-blue-200">
-            <p>
-              You have full access to the Hostel Phone Management System. Use the options above to manage 
-              students, view phone history, and configure system settings. All actions are logged for security purposes.
-            </p>
-          </CardContent>
-        </Card>
       </main>
+
+      {/* Students List Modal */}
+      <Dialog open={showStudentsModal} onOpenChange={setShowStudentsModal}>
+        <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>All Students</DialogTitle>
+            <DialogDescription>Click on a student to view their transaction history</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {students.map((student) => (
+              <div
+                key={student.id}
+                onClick={() => handleStudentClick(student)}
+                className="p-4 border rounded-lg cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors flex items-center justify-between"
+              >
+                <div>
+                  <p className="font-medium">{student.name}</p>
+                  <p className="text-sm text-muted-foreground">Admission: {student.admission_number} | Locker: {student.locker_number}</p>
+                </div>
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Student Detail Modal */}
+      <Dialog open={showStudentDetail} onOpenChange={setShowStudentDetail}>
+        <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedStudent?.name} - Transaction History</DialogTitle>
+            <DialogDescription>
+              Admission: {selectedStudent?.admission_number} | Locker: {selectedStudent?.locker_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {selectedStudentHistory.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No transaction history</p>
+            ) : (
+              selectedStudentHistory.map((history) => (
+                <div key={history.id} className="p-3 border rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className={`font-medium px-2 py-1 rounded text-sm ${
+                        history.action === "IN"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
+                          : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200"
+                      }`}>
+                        {history.action}
+                      </span>
+                      <p className="text-sm text-muted-foreground mt-1">{history.notes}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{new Date(history.timestamp).toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(history.timestamp).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phone In Modal */}
+      <Dialog open={showPhoneInModal} onOpenChange={setShowPhoneInModal}>
+        <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Phones Currently IN</DialogTitle>
+            <DialogDescription>Students who have their phones checked in</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {phoneInDetails.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No phones checked in</p>
+            ) : (
+              phoneInDetails.map((student) => (
+                <div key={student.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
+                  <p className="font-medium">{student.name}</p>
+                  <p className="text-sm text-muted-foreground">Admission: {student.admission_number}</p>
+                  <p className="text-sm text-muted-foreground">Locker: {student.locker_number}</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                    Last updated: {new Date(phoneStatus[student.id]?.last_updated).toLocaleDateString()}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phone Out Modal */}
+      <Dialog open={showPhoneOutModal} onOpenChange={setShowPhoneOutModal}>
+        <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Phones Currently OUT</DialogTitle>
+            <DialogDescription>Students who have their phones checked out</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {phoneOutDetails.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No phones checked out</p>
+            ) : (
+              phoneOutDetails.map((student) => (
+                <div key={student.id} className="p-4 border rounded-lg bg-orange-50 dark:bg-orange-900/20">
+                  <p className="font-medium">{student.name}</p>
+                  <p className="text-sm text-muted-foreground">Admission: {student.admission_number}</p>
+                  <p className="text-sm text-muted-foreground">Locker: {student.locker_number}</p>
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
+                    Last updated: {new Date(phoneStatus[student.id]?.last_updated).toLocaleDateString()}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
