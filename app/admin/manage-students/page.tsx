@@ -79,7 +79,9 @@ export default function ManageStudents() {
         (student) =>
           student.name.toLowerCase().includes(query.toLowerCase()) ||
           student.admission_number.toLowerCase().includes(query.toLowerCase()) ||
-          student.locker_number.toLowerCase().includes(query.toLowerCase())
+          student.locker_number.toLowerCase().includes(query.toLowerCase()) ||
+          (student.class_name && student.class_name.toLowerCase().includes(query.toLowerCase())) ||
+          (student.roll_no && student.roll_no.toLowerCase().includes(query.toLowerCase()))
       )
       setFilteredStudents(filtered)
     }
