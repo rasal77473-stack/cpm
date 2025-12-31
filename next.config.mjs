@@ -7,6 +7,11 @@ const nextConfig = {
     unoptimized: true,
   },
   allowedDevOrigins: ['*.replit.dev', '*.picard.replit.dev'],
+  devIndicators: {
+    appIsrStatus: false,
+    buildActivity: false,
+    buildActivityPosition: 'bottom-right',
+  },
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
