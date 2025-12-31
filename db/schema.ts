@@ -5,7 +5,7 @@ export const students = pgTable("students", {
   admission_number: text("admission_number").notNull().unique(),
   name: text("name").notNull(),
   locker_number: text("locker_number").notNull(),
-  phone: text("phone"),
+  phone_name: text("phone_name"),
   class_name: text("class_name"),
   roll_no: text("roll_no"),
   createdAt: timestamp("created_at").defaultNow(),

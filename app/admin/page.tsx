@@ -13,7 +13,7 @@ interface Student {
   admission_number: string
   name: string
   locker_number: string
-  phone?: string
+  phone_name?: string
   class_name?: string
   roll_no?: string
 }

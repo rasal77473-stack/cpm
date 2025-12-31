@@ -14,7 +14,7 @@ interface Student {
   admission_number: string
   name: string
   locker_number: string
-  phone?: string
+  phone_name?: string
   class_name?: string
   roll_no?: string
 }
@@ -34,7 +34,7 @@ export default function ManageStudents() {
     admission_number: "",
     name: "",
     locker_number: "",
-    phone: "",
+    phone_name: "",
     class_name: "",
     roll_no: "",
   })
@@ -127,7 +127,7 @@ export default function ManageStudents() {
         admission_number: "",
         name: "",
         locker_number: "",
-        phone: "",
+        phone_name: "",
         class_name: "",
         roll_no: "",
       })
@@ -161,7 +161,7 @@ export default function ManageStudents() {
           admission_number: String(row.admission_number || row["Admission Number"] || row["admission_number"] || "").trim(),
           name: String(row.name || row["Name"] || row["name"] || "").trim(),
           locker_number: String(row.locker_number || row["Locker Number"] || row["locker_number"] || "").trim(),
-          phone: String(row.phone || row["Phone"] || row["phone"] || "").trim(),
+          phone_name: String(row.phone_name || row["Phone Name"] || row["phone_name"] || row.phone || row["Phone"] || "").trim(),
           class_name: String(row.class_name || row["Class"] || row["class"] || "").trim(),
           roll_no: String(row.roll_no || row["Roll No"] || row["roll_no"] || "").trim(),
         })).filter(s => s.admission_number && s.name && s.locker_number)
@@ -406,11 +406,11 @@ export default function ManageStudents() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Phone</label>
+              <label className="text-sm font-medium">Phone Name</label>
               <Input
-                placeholder="Enter phone number"
-                value={newStudent.phone}
-                onChange={(e) => setNewStudent({ ...newStudent, phone: e.target.value })}
+                placeholder="Enter phone name"
+                value={newStudent.phone_name}
+                onChange={(e) => setNewStudent({ ...newStudent, phone_name: e.target.value })}
               />
             </div>
             <div className="space-y-2">
@@ -457,7 +457,7 @@ export default function ManageStudents() {
                 <li>admission_number</li>
                 <li>name</li>
                 <li>locker_number</li>
-                <li>phone (optional)</li>
+                <li>phone_name (optional)</li>
                 <li>class (optional)</li>
                 <li>roll_no (optional)</li>
               </ul>

@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       admission_number: data.admission_number,
       name: data.name,
       locker_number: data.locker_number,
-      phone: data.phone,
+      phone_name: data.phone_name,
       class_name: data.class_name,
       roll_no: data.roll_no,
     }).returning()

@@ -191,7 +191,7 @@ export default function DashboardPage() {
                   const status = phoneStatus[student.id]
                   const isPhoneIn = status?.status === "IN"
                   const isToggling = togglingStudentId === student.id
-                  const hasNoPhone = !student.phone || student.phone.toLowerCase() === "nill" || student.phone.toLowerCase() === "nil" || student.phone.toLowerCase() === "none"
+                  const hasNoPhone = !student.phone_name || student.phone_name.toLowerCase() === "nill" || student.phone_name.toLowerCase() === "nil" || student.phone_name.toLowerCase() === "none"
 
                   return (
                     <div
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Class: {student.class_name || "-"}</span>
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Roll: {student.roll_no || "-"}</span>
                           <span className={`bg-secondary px-2 py-0.5 rounded-full border border-border/50 ${hasNoPhone ? "text-yellow-600 dark:text-yellow-400 font-bold" : ""}`}>
-                            Ph: {student.phone || "Nill"}
+                            Ph: {student.phone_name || "Nill"}
                           </span>
                         </div>
                       </div>

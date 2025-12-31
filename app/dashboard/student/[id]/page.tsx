@@ -12,7 +12,7 @@ interface Student {
   admission_number: string
   name: string
   locker_number: string
-  phone: string
+  phone_name: string
   class_name: string
   roll_no: string
 }
@@ -147,8 +147,8 @@ export default function StudentDetailPage() {
                 <p className="font-medium">{student.locker_number}</p>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">Phone</label>
-                <p className="font-medium">{student.phone || "-"}</p>
+                <label className="text-sm text-muted-foreground">Phone Name</label>
+                <p className="font-medium">{student.phone_name || "-"}</p>
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">Class</label>
