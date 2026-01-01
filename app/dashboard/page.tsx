@@ -215,13 +215,14 @@ export default function DashboardPage() {
                   const status = phoneStatus[student.id]
                   const isPhoneIn = status?.status === "IN"
                   const isToggling = togglingStudentId === student.id
-                  const hasNoPhone = !student.phone_name || student.phone_name.toLowerCase() === "nill" || student.phone_name.toLowerCase() === "nil" || student.phone_name.toLowerCase() === "none"
+                  const phoneVal = (student.phone_name || "").toLowerCase().trim()
+                  const hasNoPhone = !phoneVal || phoneVal === "nill" || phoneVal === "nil" || phoneVal === "none" || phoneVal === "-"
 
                   return (
                     <div
                       key={student.id}
                       className={`flex items-center justify-between p-5 rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-300 ${
-                        hasNoPhone ? "animate-pulse-yellow border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)]" : isPhoneIn ? "led-in" : "led-out"
+                        hasNoPhone ? "bg-yellow-50/80 dark:bg-yellow-900/20 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]" : isPhoneIn ? "led-in" : "led-out"
                       }`}
                     >
                       <div className="flex-1">

@@ -362,30 +362,38 @@ export default function ManageStudents() {
                       <th className="text-left py-3 px-4 font-medium">Locker No.</th>
                       <th className="text-left py-3 px-4 font-medium">Class</th>
                       <th className="text-left py-3 px-4 font-medium">Roll No.</th>
+                      <th className="text-left py-3 px-4 font-medium">Phone Name</th>
                       <th className="text-left py-3 px-4 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredStudents.map((student) => (
-                      <tr key={student.id} className="border-b hover:bg-muted/50 transition-colors">
-                        <td className="py-3 px-4">{student.name}</td>
-                        <td className="py-3 px-4">{student.admission_number}</td>
-                        <td className="py-3 px-4">{student.locker_number}</td>
-                        <td className="py-3 px-4">{student.class_name || "-"}</td>
-                        <td className="py-3 px-4">{student.roll_no || "-"}</td>
-                        <td className="py-3 px-4">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteStudent(student.id)}
-                            className="gap-1"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Delete
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredStudents.map((student) => {
+                      const hasNoPhone = !student.phone_name || student.phone_name.toLowerCase() === "nill" || student.phone_name.toLowerCase() === "nil" || student.phone_name.toLowerCase() === "none"
+                      
+                      return (
+                        <tr key={student.id} className={`border-b hover:bg-muted/50 transition-colors ${hasNoPhone ? "bg-yellow-50/50 dark:bg-yellow-900/10" : ""}`}>
+                          <td className="py-3 px-4 font-medium">{student.name}</td>
+                          <td className="py-3 px-4">{student.admission_number}</td>
+                          <td className="py-3 px-4">{student.locker_number}</td>
+                          <td className="py-3 px-4">{student.class_name || "-"}</td>
+                          <td className="py-3 px-4">{student.roll_no || "-"}</td>
+                          <td className={`py-3 px-4 font-medium ${hasNoPhone ? "text-yellow-600 dark:text-yellow-400" : ""}`}>
+                            {student.phone_name || "Nill"}
+                          </td>
+                          <td className="py-3 px-4">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteStudent(student.id)}
+                              className="gap-1"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Delete
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
