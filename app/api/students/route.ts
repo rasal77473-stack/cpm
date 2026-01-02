@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       phone_name: data.phone_name,
       class_name: data.class_name,
       roll_no: data.roll_no,
+      special_pass: data.special_pass || "NO",
     }).returning()
     
     return NextResponse.json(newStudent[0])
