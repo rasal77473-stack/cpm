@@ -262,7 +262,7 @@ export default function ManageStudents() {
         fetch("/api/students/bulk", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(importedStudents),
+          body: JSON.stringify(optimisticStudents),
         }).then(response => {
           if (!response.ok) throw new Error("Bulk import failed")
           return response.json()
