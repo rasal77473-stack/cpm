@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { LogOut, ChevronLeft, Plus, Upload, X, Trash2 } from "lucide-react"
+import { LogOut, ChevronLeft, Plus, Upload, X, Trash2, Edit2 } from "lucide-react"
 import * as XLSX from "xlsx"
 
 interface Student {
@@ -29,8 +29,10 @@ export default function ManageStudents() {
   const [selectedLocker, setSelectedLocker] = useState("all")
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
 
-  // Add Student Modal
+  // Add/Edit Student Modal
   const [showAddModal, setShowAddModal] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [newStudent, setNewStudent] = useState({
     admission_number: "",
     name: "",
@@ -122,18 +124,30 @@ export default function ManageStudents() {
     }
 
     try {
-      const response = await fetch("/api/students", {
-        method: "POST",
+      const url = "/api/students"
+      const method = isEditing ? "PUT" : "POST"
+      const body = isEditing ? { ...newStudent, id: editingId } : newStudent
+
+      const response = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newStudent),
+        body: JSON.stringify(body),
       })
 
-      if (!response.ok) throw new Error("Failed to add student")
+      if (!response.ok) throw new Error(`Failed to ${isEditing ? 'update' : 'add'} student`)
 
       const savedStudent = await response.json()
-      const updatedStudents = [...students, savedStudent]
-      setStudents(updatedStudents)
-      setFilteredStudents(updatedStudents)
+      
+      if (isEditing) {
+        const updatedStudents = students.map(s => s.id === editingId ? savedStudent : s)
+        setStudents(updatedStudents)
+        setFilteredStudents(updatedStudents)
+      } else {
+        const updatedStudents = [...students, savedStudent]
+        setStudents(updatedStudents)
+        setFilteredStudents(updatedStudents)
+      }
+
       setNewStudent({
         admission_number: "",
         name: "",
@@ -143,11 +157,27 @@ export default function ManageStudents() {
         roll_no: "",
       })
       setShowAddModal(false)
-      alert("Student added successfully!")
+      setIsEditing(false)
+      setEditingId(null)
+      alert(`Student ${isEditing ? 'updated' : 'added'} successfully!`)
     } catch (error) {
       console.error(error)
-      alert("Failed to add student")
+      alert(`Failed to ${isEditing ? 'update' : 'add'} student`)
     }
+  }
+
+  const handleEditClick = (student: Student) => {
+    setNewStudent({
+      admission_number: student.admission_number,
+      name: student.name,
+      locker_number: student.locker_number,
+      phone_name: student.phone_name || "",
+      class_name: student.class_name || "",
+      roll_no: student.roll_no || "",
+    })
+    setEditingId(student.id)
+    setIsEditing(true)
+    setShowAddModal(true)
   }
 
   const handleBulkImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -424,15 +454,26 @@ export default function ManageStudents() {
                             {student.phone_name || "Nill"}
                           </td>
                           <td className="py-3 px-4">
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteStudent(student.id)}
-                              className="gap-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Delete
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditClick(student)}
+                                className="gap-1"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteStudent(student.id)}
+                                className="gap-1"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Delete
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       )
@@ -445,12 +486,28 @@ export default function ManageStudents() {
         </Card>
       </main>
 
-      {/* Add Student Modal */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+      {/* Add/Edit Student Modal */}
+      <Dialog open={showAddModal} onOpenChange={(open) => {
+        setShowAddModal(open)
+        if (!open) {
+          setIsEditing(false)
+          setEditingId(null)
+          setNewStudent({
+            admission_number: "",
+            name: "",
+            locker_number: "",
+            phone_name: "",
+            class_name: "",
+            roll_no: "",
+          })
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Student</DialogTitle>
-            <DialogDescription>Enter the student details below</DialogDescription>
+            <DialogTitle>{isEditing ? 'Edit Student' : 'Add New Student'}</DialogTitle>
+            <DialogDescription>
+              {isEditing ? 'Update the student details below' : 'Enter the student details below'}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -503,7 +560,7 @@ export default function ManageStudents() {
             </div>
             <div className="flex gap-2 pt-4">
               <Button onClick={handleAddStudent} className="flex-1">
-                Add Student
+                {isEditing ? 'Update Student' : 'Add Student'}
               </Button>
               <Button onClick={() => setShowAddModal(false)} variant="outline" className="flex-1">
                 Cancel

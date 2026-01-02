@@ -45,6 +45,38 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    const data = await request.json()
+    const { id, ...updateData } = data
+
+    if (!id) {
+      return NextResponse.json({ message: "Student ID is required" }, { status: 400 })
+    }
+
+    const updated = await db.update(students)
+      .set({
+        admission_number: updateData.admission_number,
+        name: updateData.name,
+        locker_number: updateData.locker_number,
+        phone_name: updateData.phone_name,
+        class_name: updateData.class_name,
+        roll_no: updateData.roll_no,
+      })
+      .where(eq(students.id, Number(id)))
+      .returning()
+
+    if (updated.length === 0) {
+      return NextResponse.json({ message: "Student not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(updated[0])
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ message: "Failed to update student" }, { status: 500 })
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
