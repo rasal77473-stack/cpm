@@ -169,12 +169,12 @@ export default function ManageStudents() {
 
         // Parse Excel data
         const importedStudents = data.map((row) => ({
-          admission_number: String(row.admission_number || row["Admission Number"] || row["admission_number"] || row["Admission No"] || row["Admission No."] || "").trim(),
-          name: String(row.name || row["Name"] || row["name"] || "").trim(),
-          locker_number: String(row.locker_number || row["Locker Number"] || row["locker_number"] || row["Locker No"] || row["Locker No."] || "").trim(),
-          phone_name: String(row.phone_name || row["Phone Name"] || row["phone_name"] || row.phone || row["Phone"] || row["Phone Number"] || "").trim(),
-          class_name: String(row.class_name || row["Class"] || row["class"] || row["Class Name"] || "").trim(),
-          roll_no: String(row.roll_no || row["Roll No"] || row["roll_no"] || row["Roll Number"] || "").trim(),
+          admission_number: String(row.admission_number || row["Admission Number"] || row["admission_number"] || row["Admission No"] || row["Admission No."] || row["ADMISSION NO"] || row["ADM NO"] || "").trim(),
+          name: String(row.name || row["Name"] || row["name"] || row["STUDENT NAME"] || row["Student Name"] || "").trim(),
+          locker_number: String(row.locker_number || row["Locker Number"] || row["locker_number"] || row["Locker No"] || row["Locker No."] || row["LOCKER NO"] || "").trim(),
+          phone_name: String(row.phone_name || row["Phone Name"] || row["phone_name"] || row.phone || row["Phone"] || row["Phone Number"] || row["PHONE"] || row["PHONE NAME"] || row["Handset"] || row["Model"] || "").trim(),
+          class_name: String(row.class_name || row["Class"] || row["class"] || row["Class Name"] || row["CLASS"] || "").trim(),
+          roll_no: String(row.roll_no || row["Roll No"] || row["roll_no"] || row["Roll Number"] || row["ROLL NO"] || "").trim(),
         })).filter(s => s.admission_number && s.name && s.locker_number)
 
         if (importedStudents.length === 0) {
