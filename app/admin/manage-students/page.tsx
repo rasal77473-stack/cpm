@@ -249,7 +249,8 @@ export default function ManageStudents() {
         const tempIdStart = Date.now();
         const optimisticStudents = importedStudents.map((s, index) => ({
           ...s,
-          id: tempIdStart + index
+          id: tempIdStart + index,
+          special_pass: "NO"
         }));
         
         setStudents(prev => [...prev, ...optimisticStudents]);
@@ -534,6 +535,7 @@ export default function ManageStudents() {
             phone_name: "",
             class_name: "",
             roll_no: "",
+            special_pass: "NO",
           })
         }
       }}>

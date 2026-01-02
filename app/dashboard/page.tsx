@@ -147,10 +147,42 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-foreground">Caliph Phone Management</h1>
             <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
-            <LogOut className="w-4 h-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/50">
+                  <Star className="w-4 h-4 fill-current" />
+                  Special Pass
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-yellow-600">
+                    <Star className="w-5 h-5 fill-current" />
+                    Special Phone Pass Verification
+                  </DialogTitle>
+                  <DialogDescription>
+                    Search for a student to verify their special phone pass status.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="bg-muted/50 p-4 rounded-lg border border-border">
+                    <p className="text-sm text-center text-muted-foreground italic">
+                      "This section allows staff to verify students who claim to have a special pass from the administration. Search for the student below to see their details."
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quick Action</p>
+                    <p className="text-sm">Use the main search bar to find students with the <Star className="inline w-3 h-3 fill-current text-yellow-500" /> icon next to their names.</p>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -234,9 +266,10 @@ export default function DashboardPage() {
                       }`}
                     >
                       <div className="flex-1">
-                        <div className="text-lg font-semibold text-foreground tracking-tight">
+                        <div className="text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
                           {student.name}
-                          {hasNoPhone && <span className="ml-2 text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest bg-yellow-100 dark:bg-yellow-900/50 px-2 py-0.5 rounded-full border border-yellow-200 dark:border-yellow-800">No Phone (Nill)</span>}
+                          {student.special_pass === "YES" && <Star className="w-4 h-4 fill-current text-yellow-500" />}
+                          {hasNoPhone && <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest bg-yellow-100 dark:bg-yellow-900/50 px-2 py-0.5 rounded-full border border-yellow-200 dark:border-yellow-800">No Phone (Nill)</span>}
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Adm: {student.admission_number}</span>
