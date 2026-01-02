@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { LogOut, Search, Phone, Loader2, Star } from "lucide-react"
+import { LogOut, Search, Phone, Loader2 } from "lucide-react"
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
 
@@ -120,34 +120,6 @@ export default function DashboardPage() {
       setTogglingStudentId(null)
     }
   }, [phoneStatus])
-
-  const handleToggleSpecialPass = useCallback(async (studentId: number, currentPass: string) => {
-    const newPass = currentPass === "YES" ? "NO" : "YES"
-    
-    // Optimistic Update
-    const oldStudents = [...students]
-    const updatedStudents = students.map((s: any) => 
-      s.id === studentId ? { ...s, special_pass: newPass } : s
-    )
-    mutate("/api/students", updatedStudents, false)
-
-    try {
-      const response = await fetch("/api/students", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          id: studentId,
-          special_pass: newPass
-        }),
-      })
-
-      if (!response.ok) throw new Error("Failed to update pass")
-      toast.success(`Special Pass ${newPass === "YES" ? "Enabled" : "Disabled"}`)
-    } catch (error) {
-      toast.error("Update failed")
-      mutate("/api/students", oldStudents, false)
-    }
-  }, [students])
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -290,34 +262,19 @@ export default function DashboardPage() {
                         </div>
 
                         {!hasNoPhone && (
-                          <div className="flex flex-col gap-2">
-                            <Button
-                              onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
-                              size="lg"
-                              className={`rounded-xl px-6 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 ${
-                                isPhoneIn 
-                                  ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
-                                  : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                              }`}
-                              disabled={isToggling}
-                            >
-                              {isToggling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
-                              <span className="ml-2">{isPhoneIn ? "Submit OUT" : "Submit IN"}</span>
-                            </Button>
-                            <Button
-                              onClick={() => handleToggleSpecialPass(student.id, student.special_pass)}
-                              variant="outline"
-                              size="sm"
-                              className={`rounded-xl border-2 transition-all duration-300 ${
-                                student.special_pass === "YES" 
-                                  ? "bg-yellow-100 border-yellow-500 text-yellow-700 hover:bg-yellow-200" 
-                                  : "border-border hover:bg-secondary"
-                              }`}
-                            >
-                              <Star className={`w-4 h-4 mr-2 ${student.special_pass === "YES" ? "fill-yellow-500" : ""}`} />
-                              {student.special_pass === "YES" ? "Special Pass ON" : "Special Pass"}
-                            </Button>
-                          </div>
+                          <Button
+                            onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
+                            size="lg"
+                            className={`rounded-xl px-6 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 ${
+                              isPhoneIn 
+                                ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
+                                : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                            }`}
+                            disabled={isToggling}
+                          >
+                            {isToggling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
+                            <span className="ml-2">{isPhoneIn ? "Submit OUT" : "Submit IN"}</span>
+                          </Button>
                         )}
                       </div>
                     </div>
