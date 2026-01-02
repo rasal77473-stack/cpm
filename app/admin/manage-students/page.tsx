@@ -40,6 +40,7 @@ export default function ManageStudents() {
     phone_name: "",
     class_name: "",
     roll_no: "",
+    special_pass: "NO",
   })
 
   // Bulk Import
@@ -170,6 +171,7 @@ export default function ManageStudents() {
         phone_name: "",
         class_name: "",
         roll_no: "",
+        special_pass: "NO",
       })
       setIsEditing(false)
       setEditingId(null)
@@ -190,6 +192,7 @@ export default function ManageStudents() {
       phone_name: student.phone_name || "",
       class_name: student.class_name || "",
       roll_no: student.roll_no || "",
+      special_pass: (student as any).special_pass || "NO",
     })
     setEditingId(student.id)
     setIsEditing(true)
@@ -461,6 +464,7 @@ export default function ManageStudents() {
                       <th className="text-left py-3 px-4 font-medium">Class</th>
                       <th className="text-left py-3 px-4 font-medium">Roll No.</th>
                       <th className="text-left py-3 px-4 font-medium">Phone Name</th>
+                      <th className="text-left py-3 px-4 font-medium">Special Pass</th>
                       <th className="text-left py-3 px-4 font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -477,6 +481,11 @@ export default function ManageStudents() {
                           <td className="py-3 px-4">{student.roll_no || "-"}</td>
                           <td className={`py-3 px-4 font-medium ${hasNoPhone ? "text-yellow-600 dark:text-yellow-400" : ""}`}>
                             {student.phone_name || "Nill"}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${(student as any).special_pass === "YES" ? "bg-yellow-100 text-yellow-700 border border-yellow-200" : "bg-gray-100 text-gray-600"}`}>
+                              {(student as any).special_pass || "NO"}
+                            </span>
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex gap-2">
@@ -582,6 +591,18 @@ export default function ManageStudents() {
                 value={newStudent.roll_no}
                 onChange={(e) => setNewStudent({ ...newStudent, roll_no: e.target.value })}
               />
+            </div>
+            <div className="flex items-center space-x-2 py-2">
+              <input
+                type="checkbox"
+                id="special_pass"
+                checked={newStudent.special_pass === "YES"}
+                onChange={(e) => setNewStudent({ ...newStudent, special_pass: e.target.checked ? "YES" : "NO" })}
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <label htmlFor="special_pass" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Give Special Phone Pass
+              </label>
             </div>
             <div className="flex gap-2 pt-4">
               <Button onClick={handleAddStudent} className="flex-1">
