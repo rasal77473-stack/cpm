@@ -484,8 +484,8 @@ export default function ManageStudents() {
                             {student.phone_name || "Nill"}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${(student as any).special_pass === "YES" ? "bg-yellow-100 text-yellow-700 border border-yellow-200" : "bg-gray-100 text-gray-600"}`}>
-                              {(student as any).special_pass || "NO"}
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${student.special_pass === "YES" ? "bg-yellow-100 text-yellow-700 border border-yellow-200" : "bg-gray-100 text-gray-600"}`}>
+                              {student.special_pass || "NO"}
                             </span>
                           </td>
                           <td className="py-3 px-4">
