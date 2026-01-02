@@ -14,7 +14,12 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
     scrollRestoration: true,
-    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons", "date-fns", "recharts"],
+    serverComponentsExternalPackages: ["pg"],
+  },
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
   },
   onDemandEntries: {
     maxInactiveAge: 60 * 60 * 1000,

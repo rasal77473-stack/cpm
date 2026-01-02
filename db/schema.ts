@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, index } from "drizzle-orm/pg-core";
 
 export const students = pgTable("students", {
   id: serial("id").primaryKey(),
@@ -10,6 +10,13 @@ export const students = pgTable("students", {
   roll_no: text("roll_no").default("-"),
   special_pass: text("special_pass").default("NO"), // YES, NO
   createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    nameIdx: index("name_idx").on(table.name),
+    admIdx: index("adm_idx").on(table.admission_number),
+    lockerIdx: index("locker_idx").on(table.locker_number),
+    classIdx: index("class_idx").on(table.class_name),
+  }
 });
 
 export const phoneStatus = pgTable("phone_status", {
@@ -19,4 +26,9 @@ export const phoneStatus = pgTable("phone_status", {
   lastUpdated: timestamp("last_updated").defaultNow(),
   updatedBy: text("updated_by"),
   notes: text("notes"),
+}, (table) => {
+  return {
+    studentIdIdx: index("student_id_idx").on(table.studentId),
+    statusIdx: index("status_idx").on(table.status),
+  }
 });
