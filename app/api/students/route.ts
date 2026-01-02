@@ -62,6 +62,7 @@ export async function PUT(request: NextRequest) {
         phone_name: updateData.phone_name,
         class_name: updateData.class_name,
         roll_no: updateData.roll_no,
+        special_pass: updateData.special_pass,
       })
       .where(eq(students.id, Number(id)))
       .returning()

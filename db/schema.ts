@@ -8,6 +8,7 @@ export const students = pgTable("students", {
   phone_name: text("phone_name").default("Nill"),
   class_name: text("class_name").default("-"),
   roll_no: text("roll_no").default("-"),
+  special_pass: text("special_pass").default("NO"), // YES, NO
   createdAt: timestamp("created_at").defaultNow(),
 });
 
