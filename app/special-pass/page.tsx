@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, Search, Star, LogOut } from "lucide-react"
-import useSWR from "swr"
+import { ChevronLeft, Search, Star, LogOut, Phone, Loader2 } from "lucide-react"
+import useSWR, { mutate } from "swr"
+import { toast } from "sonner"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -14,10 +15,63 @@ export default function SpecialPassPage() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
 
   const { data: studentsData = [], isLoading } = useSWR("/api/students", fetcher)
   
   const students = Array.isArray(studentsData) ? studentsData : []
+
+  const { data: phoneStatus = {} } = useSWR("/api/phone-status", fetcher, {
+    refreshInterval: 5000,
+  })
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      router.push("/login")
+      return
+    }
+    setStaffName(localStorage.getItem("staffName") || "Staff")
+  }, [router])
+
+  const handleTogglePhoneStatus = async (studentId: number, currentStatus: string) => {
+    setTogglingStudentId(studentId)
+    const newStatus = currentStatus === "IN" ? "OUT" : "IN"
+    
+    // Optimistic Update
+    const oldStatus = { ...phoneStatus }
+    const optimisticStatus = { 
+      ...phoneStatus, 
+      [studentId]: { 
+        status: newStatus, 
+        last_updated: new Date().toISOString() 
+      } 
+    }
+    
+    mutate("/api/phone-status", optimisticStatus, false)
+
+    try {
+      const response = await fetch(`/api/phone-status/${studentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          status: newStatus,
+          staffId: localStorage.getItem("staffId"),
+          notes: ""
+        }),
+      })
+
+      if (!response.ok) throw new Error("Failed to update status")
+      
+      toast.success(`Phone marked as ${newStatus}`)
+      mutate("/api/phone-status")
+    } catch (error) {
+      toast.error("Update failed. Reverting...")
+      mutate("/api/phone-status", oldStatus, false)
+    } finally {
+      setTogglingStudentId(null)
+    }
+  }
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -140,6 +194,35 @@ export default function SpecialPassPage() {
                         <span className="text-muted-foreground font-bold">Phone:</span>
                         <span className="font-bold text-yellow-700 dark:text-yellow-400">{student.phone_name || "Nill"}</span>
                       </div>
+                    </div>
+                    
+                    {/* Submit Out Button */}
+                    <div className="mt-4">
+                      {(() => {
+                        const status = phoneStatus[student.id]
+                        const isPhoneIn = status?.status === "IN"
+                        const isToggling = togglingStudentId === student.id
+                        const phoneVal = (student.phone_name || "").toLowerCase().trim()
+                        const hasNoPhone = !phoneVal || phoneVal === "nill" || phoneVal === "nil" || phoneVal === "none" || phoneVal === "-"
+
+                        if (hasNoPhone) return null
+
+                        return (
+                          <Button
+                            onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
+                            size="sm"
+                            className={`w-full rounded-xl font-semibold shadow transition-all duration-300 active:scale-95 ${
+                              isPhoneIn 
+                                ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
+                                : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                            }`}
+                            disabled={isToggling}
+                          >
+                            {isToggling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone className="w-4 h-4" />}
+                            <span className="ml-2">{isPhoneIn ? "Submit OUT" : "Submit IN"}</span>
+                          </Button>
+                        )
+                      })()}
                     </div>
                   </div>
                 ))}
