@@ -20,8 +20,12 @@ export async function GET(request: NextRequest) {
 
     const allStudents = await db.select().from(students)
     return NextResponse.json(allStudents)
-  } catch (error) {
-    console.error(error)
+  } catch (error: any) {
+    console.error("Database error in GET /api/students:", error)
+    // If the table doesn't exist yet, return an empty array instead of 500
+    if (error.code === '42P01') {
+      return NextResponse.json([])
+    }
     return NextResponse.json({ message: "Failed to fetch students" }, { status: 500 })
   }
 }

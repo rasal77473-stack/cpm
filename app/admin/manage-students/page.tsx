@@ -17,6 +17,7 @@ interface Student {
   phone_name?: string
   class_name?: string
   roll_no?: string
+  special_pass: string
 }
 
 export default function ManageStudents() {
@@ -482,7 +483,7 @@ export default function ManageStudents() {
                           <td className={`py-3 px-4 font-medium ${hasNoPhone ? "text-yellow-600 dark:text-yellow-400" : ""}`}>
                             {student.phone_name || "Nill"}
                           </td>
-                          <td className="py-3 px-4">
+                          <td className="py-3 px-4 text-center">
                             <span className={`px-2 py-1 rounded-full text-xs font-bold ${(student as any).special_pass === "YES" ? "bg-yellow-100 text-yellow-700 border border-yellow-200" : "bg-gray-100 text-gray-600"}`}>
                               {(student as any).special_pass || "NO"}
                             </span>
