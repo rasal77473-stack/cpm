@@ -123,6 +123,23 @@ export default function ManageStudents() {
       return
     }
 
+    const oldStudents = [...students]
+    const tempId = Date.now()
+    const studentToSave = { ...newStudent, id: isEditing ? editingId! : tempId }
+
+    // Optimistic Update
+    if (isEditing) {
+      const updated = students.map(s => s.id === editingId ? studentToSave : s)
+      setStudents(updated)
+      setFilteredStudents(updated)
+    } else {
+      const updated = [...students, studentToSave]
+      setStudents(updated)
+      setFilteredStudents(updated)
+    }
+
+    setShowAddModal(false)
+
     try {
       const url = "/api/students"
       const method = isEditing ? "PUT" : "POST"
@@ -138,16 +155,14 @@ export default function ManageStudents() {
 
       const savedStudent = await response.json()
       
-      if (isEditing) {
-        const updatedStudents = students.map(s => s.id === editingId ? savedStudent : s)
-        setStudents(updatedStudents)
-        setFilteredStudents(updatedStudents)
-      } else {
-        const updatedStudents = [...students, savedStudent]
-        setStudents(updatedStudents)
-        setFilteredStudents(updatedStudents)
-      }
-
+      // Update with real data from server
+      const finalStudents = isEditing 
+        ? students.map(s => s.id === editingId ? savedStudent : s)
+        : oldStudents.concat(savedStudent)
+      
+      setStudents(finalStudents)
+      setFilteredStudents(finalStudents)
+      
       setNewStudent({
         admission_number: "",
         name: "",
@@ -156,12 +171,13 @@ export default function ManageStudents() {
         class_name: "",
         roll_no: "",
       })
-      setShowAddModal(false)
       setIsEditing(false)
       setEditingId(null)
       alert(`Student ${isEditing ? 'updated' : 'added'} successfully!`)
     } catch (error) {
       console.error(error)
+      setStudents(oldStudents)
+      setFilteredStudents(oldStudents)
       alert(`Failed to ${isEditing ? 'update' : 'add'} student`)
     }
   }
@@ -266,19 +282,22 @@ export default function ManageStudents() {
 
   const handleDeleteStudent = async (id: number) => {
     if (confirm("Are you sure you want to delete this student?")) {
+      const oldStudents = [...students]
+      const updated = students.filter((s) => s.id !== id)
+      setStudents(updated)
+      setFilteredStudents(updated)
+      
       try {
         const response = await fetch(`/api/students?id=${id}`, {
           method: "DELETE",
         })
 
         if (!response.ok) throw new Error("Failed to delete student")
-
-        const updated = students.filter((s) => s.id !== id)
-        setStudents(updated)
-        setFilteredStudents(updated)
         alert("Student deleted successfully!")
       } catch (error) {
         console.error(error)
+        setStudents(oldStudents)
+        setFilteredStudents(oldStudents)
         alert("Failed to delete student")
       }
     }
@@ -286,18 +305,21 @@ export default function ManageStudents() {
 
   const handleDeleteAllStudents = async () => {
     if (confirm("Are you sure you want to delete ALL students? This action cannot be undone!")) {
+      const oldStudents = [...students]
+      setStudents([])
+      setFilteredStudents([])
+      
       try {
         const response = await fetch("/api/students?action=deleteAll", {
           method: "PATCH",
         })
 
         if (!response.ok) throw new Error("Failed to delete all students")
-
-        setStudents([])
-        setFilteredStudents([])
         alert("All students deleted successfully!")
       } catch (error) {
         console.error(error)
+        setStudents(oldStudents)
+        setFilteredStudents(oldStudents)
         alert("Failed to delete all students")
       }
     }
