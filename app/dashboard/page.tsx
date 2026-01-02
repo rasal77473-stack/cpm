@@ -148,36 +148,14 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
           </div>
           <div className="flex items-center gap-4">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/50">
-                  <Star className="w-4 h-4 fill-current" />
-                  Special Pass
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-yellow-600">
-                    <Star className="w-5 h-5 fill-current" />
-                    Special Phone Pass Verification
-                  </DialogTitle>
-                  <DialogDescription>
-                    Search for a student to verify their special phone pass status.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="bg-muted/50 p-4 rounded-lg border border-border">
-                    <p className="text-sm text-center text-muted-foreground italic">
-                      "This section allows staff to verify students who claim to have a special pass from the administration. Search for the student below to see their details."
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quick Action</p>
-                    <p className="text-sm">Use the main search bar to find students with the <Star className="inline w-3 h-3 fill-current text-yellow-500" /> icon next to their names.</p>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push("/special-pass")}
+              className="gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/50"
+            >
+              <Star className="w-4 h-4 fill-current" />
+              Special Pass List
+            </Button>
             <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
               <LogOut className="w-4 h-4" />
               Logout
