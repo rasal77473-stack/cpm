@@ -173,9 +173,13 @@ export default function ManageStudents() {
           console.log("Processing row keys:", Object.keys(row));
           
           const findValue = (possibleKeys: string[]) => {
-            const key = Object.keys(row).find(k => 
-              possibleKeys.some(pk => k.toLowerCase().replace(/[^a-z0-9]/g, '') === pk.toLowerCase().replace(/[^a-z0-9]/g, ''))
-            );
+            const key = Object.keys(row).find(k => {
+              const cleanKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+              return possibleKeys.some(pk => 
+                cleanKey === pk.toLowerCase().replace(/[^a-z0-9]/g, '') ||
+                cleanKey.includes(pk.toLowerCase().replace(/[^a-z0-9]/g, ''))
+              );
+            });
             return key ? String(row[key]).trim() : "";
           };
 
@@ -183,7 +187,7 @@ export default function ManageStudents() {
             admission_number: findValue(["admissionnumber", "admissionno", "admno", "admission"]),
             name: findValue(["name", "studentname", "fullname"]),
             locker_number: findValue(["lockernumber", "lockerno", "locker"]),
-            phone_name: findValue(["phonename", "phonenumber", "handset", "model", "phone", "phonemodel"]),
+            phone_name: findValue(["phonename", "phonenumber", "handset", "model", "phone", "phonemodel", "handsetname"]),
             class_name: findValue(["classname", "class", "grade"]),
             roll_no: findValue(["rollno", "rollnumber", "roll"]),
           };
