@@ -8,3 +8,6 @@
 [x] 8. Fixed allowedDevOrigins in next.config.mjs for spock.replit.dev
 [x] 9. Sync database schema for special_pass column
 [x] 10. Added Special Pass view button to User Dashboard for authorized students
+[x] 11. Reinstalled npm dependencies after environment reset
+[x] 12. Created PostgreSQL database and synced schema
+[x] 13. Fixed Next.js allowedDevOrigins configuration for current Replit domain

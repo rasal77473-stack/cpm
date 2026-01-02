@@ -6,7 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  allowedDevOrigins: ['*.replit.dev', '*.spock.replit.dev', '*.picard.replit.dev', '*.worf.replit.dev', '*.kirk.replit.dev', '*.janeway.replit.dev'],
+  allowedDevOrigins: ['8d8ed612-e924-4e66-86ac-9447797caffd-00-2y5cw1fppy9ja.spock.replit.dev', '127.0.0.1', 'localhost'],
   devIndicators: false,
   compress: true,
   poweredByHeader: false,
