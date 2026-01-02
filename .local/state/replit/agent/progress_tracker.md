@@ -5,3 +5,4 @@
 [x] 5. Add phone, class, and roll number fields to student details
 [x] 6. Sync database schema and fix runtime errors
 [x] 7. Reinstall npm dependencies and fix cross-origin config for Replit environment
+[x] 8. Fixed allowedDevOrigins in next.config.mjs for spock.replit.dev

@@ -6,7 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  allowedDevOrigins: ['*.replit.dev', '*.picard.replit.dev', '*.worf.replit.dev'],
+  allowedDevOrigins: ['*.replit.dev', '*.spock.replit.dev', '*.picard.replit.dev', '*.worf.replit.dev', '*.kirk.replit.dev', '*.janeway.replit.dev'],
   devIndicators: false,
   compress: true,
   poweredByHeader: false,
