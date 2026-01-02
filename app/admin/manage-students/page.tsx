@@ -225,7 +225,7 @@ export default function ManageStudents() {
           return
         }
 
-        // Optimistically update UI
+        // Optimistically update UI instantly
         const tempIdStart = Date.now();
         const optimisticStudents = importedStudents.map((s, index) => ({
           ...s,
@@ -236,24 +236,22 @@ export default function ManageStudents() {
         setFilteredStudents(prev => [...prev, ...optimisticStudents]);
         setShowBulkModal(false);
 
-        // Optimized bulk import: send all students in a single request
-        try {
-          const response = await fetch("/api/students/bulk", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(importedStudents),
-          })
-          
+        // Background bulk import
+        fetch("/api/students/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(importedStudents),
+        }).then(response => {
           if (!response.ok) throw new Error("Bulk import failed")
-          
-          const result = await response.json()
-          fetchStudents() // Refresh to get real IDs
+          return response.json()
+        }).then(result => {
+          fetchStudents() // Refresh to get real IDs in background
           alert(`Successfully imported ${result.count} students!`)
-        } catch (err) {
+        }).catch(err => {
           console.error("Bulk import error:", err)
           alert("Failed to import students. Please try again.")
           fetchStudents(); // Rollback on error
-        }
+        });
       }
       fileReader.readAsArrayBuffer(file)
     } catch (error) {
