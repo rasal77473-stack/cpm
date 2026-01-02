@@ -298,6 +298,24 @@ export default function AdminPanel() {
               </Button>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-500" />
+                Special Passes
+              </CardTitle>
+              <CardDescription>Grant or revoke special phone permissions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => router.push("/admin/special-pass")} 
+                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+              >
+                Give Special Pass
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </main>
 
