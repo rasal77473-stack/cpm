@@ -19,7 +19,8 @@ export default function SpecialPassPage() {
 
   const { data: studentsData = [], isLoading } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 60000,
+    revalidateOnReconnect: false,
+    dedupingInterval: 3600000,
   })
   
   const students = Array.isArray(studentsData) ? studentsData : []

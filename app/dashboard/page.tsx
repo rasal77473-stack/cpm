@@ -30,7 +30,8 @@ export default function DashboardPage() {
   const { data: studentsData = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
-    dedupingInterval: 60000,
+    dedupingInterval: 3600000,
+    persistSize: true,
   })
 
   const students = Array.isArray(studentsData) ? studentsData : []
