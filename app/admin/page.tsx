@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { LogOut, Users, Phone, Settings, BarChart3, X, ChevronRight } from "lucide-react"
+import { LogOut, Users, Phone, Settings, BarChart3, X, ChevronRight, Star } from "lucide-react"
 
 interface Student {
   id: number
