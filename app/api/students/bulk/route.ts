@@ -9,11 +9,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Invalid data format" }, { status: 400 })
     }
 
-    // Perform bulk insert - omit id if present to let database generate it
-    const studentsToInsert = data.map(({ id, ...rest }: any) => ({
-      ...rest,
-      special_pass: rest.special_pass || "NO"
-    }))
+    // Perform bulk insert - omit id and special_pass handling
+    const studentsToInsert = data.map((s: any) => {
+      const { id, special_pass, ...rest } = s;
+      return {
+        ...rest,
+        special_pass: special_pass || "NO"
+      };
+    });
     
     const result = await db.insert(students).values(studentsToInsert).returning()
     
