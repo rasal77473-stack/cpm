@@ -199,9 +199,6 @@ export default function ManageStudents() {
 
         // Parse Excel data
         const importedStudents = data.map((row) => {
-          // Log row keys to debug in console if needed
-          console.log("Processing row keys:", Object.keys(row));
-          
           const findValue = (possibleKeys: string[]) => {
             const key = Object.keys(row).find(k => {
               const cleanKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -228,34 +225,31 @@ export default function ManageStudents() {
           return
         }
 
-        // Send to backend in chunks or one by one
-        let successCount = 0
-        const promises = importedStudents.map(async (student) => {
-          try {
-            const response = await fetch("/api/students", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(student),
-            })
-            if (response.ok) successCount++
-          } catch (err) {
-            console.error("Failed to import student:", student.name, err)
-          }
-        })
-
-        await Promise.all(promises)
-        
-        fetchStudents() // Refresh list from DB
-        setShowBulkModal(false)
-        alert(`Successfully imported ${successCount} out of ${importedStudents.length} students!`)
+        // Optimized bulk import: send all students in a single request
+        try {
+          const response = await fetch("/api/students/bulk", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(importedStudents),
+          })
+          
+          if (!response.ok) throw new Error("Bulk import failed")
+          
+          const result = await response.json()
+          fetchStudents() // Refresh list from DB
+          setShowBulkModal(false)
+          alert(`Successfully imported ${result.count} students!`)
+        } catch (err) {
+          console.error("Bulk import error:", err)
+          alert("Failed to import students. Please try again.")
+        }
       }
       fileReader.readAsArrayBuffer(file)
     } catch (error) {
-      console.error("Error importing file:", error)
-      alert("Error importing file. Please check the format.")
+      console.error("Error reading file:", error)
+      alert("Error reading file. Please check the format.")
     }
 
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
