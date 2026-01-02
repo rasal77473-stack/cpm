@@ -6,3 +6,5 @@
 [x] 6. Sync database schema and fix runtime errors
 [x] 7. Reinstall npm dependencies and fix cross-origin config for Replit environment
 [x] 8. Fixed allowedDevOrigins in next.config.mjs for spock.replit.dev
+[x] 9. Sync database schema for special_pass column
+[x] 10. Added Special Pass view button to User Dashboard for authorized students

@@ -602,7 +602,7 @@ export default function ManageStudents() {
                 className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
               <label htmlFor="special_pass" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Give Special Phone Pass
+                Grant Special Phone Pass (Admin Only)
               </label>
             </div>
             <div className="flex gap-2 pt-4">

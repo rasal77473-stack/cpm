@@ -5,9 +5,17 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { LogOut, Search, Phone, Loader2 } from "lucide-react"
+import { LogOut, Search, Phone, Loader2, Star } from "lucide-react"
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -239,6 +247,53 @@ export default function DashboardPage() {
                             Ph: {student.phone_name || "Nill"}
                           </span>
                         </div>
+                        {student.special_pass === "YES" && (
+                          <div className="mt-4">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/50 gap-2">
+                                  <Star className="w-4 h-4 fill-current" />
+                                  View Special Pass
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle className="flex items-center gap-2 text-yellow-600">
+                                    <Star className="w-5 h-5 fill-current" />
+                                    Special Phone Pass Details
+                                  </DialogTitle>
+                                  <DialogDescription>
+                                    This student has been granted a special phone pass by the administration.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                  <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="space-y-1">
+                                      <p className="text-muted-foreground">Student Name</p>
+                                      <p className="font-medium">{student.name}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="text-muted-foreground">Admission No</p>
+                                      <p className="font-medium">{student.admission_number}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="text-muted-foreground">Class & Roll</p>
+                                      <p className="font-medium">{student.class_name} / {student.roll_no}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="text-muted-foreground">Locker No</p>
+                                      <p className="font-medium">{student.locker_number}</p>
+                                    </div>
+                                  </div>
+                                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                                    <p className="text-xs text-yellow-700 dark:text-yellow-300 font-semibold uppercase tracking-wider mb-1">Authorization Status</p>
+                                    <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">VALID PASS GRANTED</p>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-6">
