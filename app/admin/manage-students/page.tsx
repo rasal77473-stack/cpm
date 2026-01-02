@@ -168,14 +168,26 @@ export default function ManageStudents() {
         }
 
         // Parse Excel data
-        const importedStudents = data.map((row) => ({
-          admission_number: String(row.admission_number || row["Admission Number"] || row["admission_number"] || row["Admission No"] || row["Admission No."] || row["ADMISSION NO"] || row["ADM NO"] || "").trim(),
-          name: String(row.name || row["Name"] || row["name"] || row["STUDENT NAME"] || row["Student Name"] || "").trim(),
-          locker_number: String(row.locker_number || row["Locker Number"] || row["locker_number"] || row["Locker No"] || row["Locker No."] || row["LOCKER NO"] || "").trim(),
-          phone_name: String(row.phone_name || row["Phone Name"] || row["phone_name"] || row.phone || row["Phone"] || row["Phone Number"] || row["PHONE"] || row["PHONE NAME"] || row["Handset"] || row["Model"] || "").trim(),
-          class_name: String(row.class_name || row["Class"] || row["class"] || row["Class Name"] || row["CLASS"] || "").trim(),
-          roll_no: String(row.roll_no || row["Roll No"] || row["roll_no"] || row["Roll Number"] || row["ROLL NO"] || "").trim(),
-        })).filter(s => s.admission_number && s.name && s.locker_number)
+        const importedStudents = data.map((row) => {
+          // Log row keys to debug in console if needed
+          console.log("Processing row keys:", Object.keys(row));
+          
+          const findValue = (possibleKeys: string[]) => {
+            const key = Object.keys(row).find(k => 
+              possibleKeys.some(pk => k.toLowerCase().replace(/[^a-z0-9]/g, '') === pk.toLowerCase().replace(/[^a-z0-9]/g, ''))
+            );
+            return key ? String(row[key]).trim() : "";
+          };
+
+          return {
+            admission_number: findValue(["admissionnumber", "admissionno", "admno", "admission"]),
+            name: findValue(["name", "studentname", "fullname"]),
+            locker_number: findValue(["lockernumber", "lockerno", "locker"]),
+            phone_name: findValue(["phonename", "phonenumber", "handset", "model", "phone", "phonemodel"]),
+            class_name: findValue(["classname", "class", "grade"]),
+            roll_no: findValue(["rollno", "rollnumber", "roll"]),
+          };
+        }).filter(s => s.admission_number && s.name && s.locker_number)
 
         if (importedStudents.length === 0) {
           alert("No valid students found in Excel. Make sure columns are: admission_number, name, locker_number, phone, class, roll_no")
