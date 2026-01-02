@@ -72,3 +72,23 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "Failed to delete student" }, { status: 500 })
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams
+    const action = searchParams.get("action")
+
+    if (action === "deleteAll") {
+      // Delete all phone status records first (foreign key constraint)
+      await db.delete(phoneStatus)
+      // Then delete all students
+      await db.delete(students)
+      return NextResponse.json({ message: "All students deleted successfully" })
+    }
+
+    return NextResponse.json({ message: "Invalid action" }, { status: 400 })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ message: "Failed to delete all students" }, { status: 500 })
+  }
+}

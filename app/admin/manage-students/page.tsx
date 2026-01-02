@@ -235,6 +235,25 @@ export default function ManageStudents() {
     }
   }
 
+  const handleDeleteAllStudents = async () => {
+    if (confirm("Are you sure you want to delete ALL students? This action cannot be undone!")) {
+      try {
+        const response = await fetch("/api/students?action=deleteAll", {
+          method: "PATCH",
+        })
+
+        if (!response.ok) throw new Error("Failed to delete all students")
+
+        setStudents([])
+        setFilteredStudents([])
+        alert("All students deleted successfully!")
+      } catch (error) {
+        console.error(error)
+        alert("Failed to delete all students")
+      }
+    }
+  }
+
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("staffId")
@@ -333,6 +352,14 @@ export default function ManageStudents() {
                 >
                   <Upload className="w-4 h-4" />
                   Bulk Import (Excel)
+                </Button>
+                <Button
+                  onClick={handleDeleteAllStudents}
+                  variant="destructive"
+                  className="flex-1 gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete All Students
                 </Button>
               </div>
             </div>
