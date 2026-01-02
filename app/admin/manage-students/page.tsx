@@ -187,9 +187,9 @@ export default function ManageStudents() {
             admission_number: findValue(["admissionnumber", "admissionno", "admno", "admission"]),
             name: findValue(["name", "studentname", "fullname"]),
             locker_number: findValue(["lockernumber", "lockerno", "locker"]),
-            phone_name: findValue(["phonename", "phonenumber", "handset", "model", "phone", "phonemodel", "handsetname"]),
-            class_name: findValue(["classname", "class", "grade"]),
-            roll_no: findValue(["rollno", "rollnumber", "roll"]),
+            phone_name: findValue(["phonename", "phonenumber", "handset", "model", "phone", "phonemodel", "handsetname", "phone_name"]),
+            class_name: findValue(["classname", "class", "grade", "class_name"]),
+            roll_no: findValue(["rollno", "rollnumber", "roll", "roll_no"]),
           };
         }).filter(s => s.admission_number && s.name && s.locker_number)
 
