@@ -17,12 +17,16 @@ export default function SpecialPassPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
 
-  const { data: studentsData = [], isLoading } = useSWR("/api/students", fetcher)
+  const { data: studentsData = [], isLoading } = useSWR("/api/students", fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000,
+  })
   
   const students = Array.isArray(studentsData) ? studentsData : []
 
   const { data: phoneStatus = {} } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 5000,
+    refreshInterval: 30000,
+    dedupingInterval: 15000,
   })
 
   useEffect(() => {

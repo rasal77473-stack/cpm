@@ -15,11 +15,19 @@ export async function GET(request: NextRequest) {
       if (!student) {
         return NextResponse.json({ message: "Student not found" }, { status: 404 })
       }
-      return NextResponse.json(student)
+      return NextResponse.json(student, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
+        }
+      })
     }
 
     const allStudents = await db.select().from(students)
-    return NextResponse.json(allStudents)
+    return NextResponse.json(allStudents, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
+      }
+    })
   } catch (error: any) {
     console.error("Database error in GET /api/students:", error)
     // If the table doesn't exist yet, return an empty array instead of 500

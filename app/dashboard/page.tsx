@@ -29,14 +29,16 @@ export default function DashboardPage() {
 
   const { data: studentsData = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 10000,
+    revalidateOnReconnect: false,
+    dedupingInterval: 60000,
   })
 
   const students = Array.isArray(studentsData) ? studentsData : []
 
   const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 5000,
-    dedupingInterval: 2000,
+    refreshInterval: 30000,
+    dedupingInterval: 15000,
+    revalidateOnFocus: false,
   })
 
   useEffect(() => {

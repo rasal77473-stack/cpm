@@ -15,12 +15,8 @@ const nextConfig = {
     optimizeCss: true,
     scrollRestoration: true,
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons", "date-fns", "recharts"],
-    serverComponentsExternalPackages: ["pg"],
   },
-  swcMinify: true,
-  compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
-  },
+  serverExternalPackages: ["pg"],
   onDemandEntries: {
     maxInactiveAge: 60 * 60 * 1000,
     pagesBufferLength: 5,

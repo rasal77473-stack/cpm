@@ -21,7 +21,11 @@ export async function GET(request: NextRequest) {
       return acc
     }, {} as Record<number, any>)
 
-    return NextResponse.json(statusMap)
+    return NextResponse.json(statusMap, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30'
+      }
+    })
   } catch (error) {
     console.error(error)
     return NextResponse.json({ message: "Failed to fetch phone status" }, { status: 500 })
