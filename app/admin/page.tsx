@@ -16,6 +16,7 @@ interface Student {
   phone_name?: string
   class_name?: string
   roll_no?: string
+  special_pass?: string
 }
 
 interface PhoneHistory {
