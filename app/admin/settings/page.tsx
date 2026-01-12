@@ -27,7 +27,7 @@ export default function SystemSettings() {
     const name = localStorage.getItem("staffName")
 
     if (!token || role !== "admin") {
-      router.push("/login")
+      router.push(token ? "/dashboard" : "/login")
       return
     }
 

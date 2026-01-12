@@ -55,7 +55,7 @@ export default function ManageStudents() {
     const name = localStorage.getItem("staffName")
 
     if (!token || (role !== "admin" && !permissions.includes("manage_students"))) {
-      router.push("/login")
+      router.push(token ? "/dashboard" : "/login")
       return
     }
 

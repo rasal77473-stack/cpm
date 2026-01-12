@@ -31,6 +31,12 @@ export default function UserManagement() {
   });
 
   useEffect(() => {
+    const token = localStorage.getItem("token")
+    const role = localStorage.getItem("role")
+    if (!token || role !== "admin") {
+      window.location.href = token ? "/dashboard" : "/login"
+      return
+    }
     fetchUsers();
   }, []);
 

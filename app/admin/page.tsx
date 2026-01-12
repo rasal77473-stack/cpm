@@ -69,11 +69,12 @@ export default function AdminPanel() {
       return
     }
 
-    if (role === "admin") {
-      setPermissions(["manage_students", "manage_special_pass", "manage_users", "in_out_control", "ban_unban"])
-    } else {
-      setPermissions(perms)
+    if (role !== "admin") {
+      router.push("/dashboard")
+      return
     }
+
+    setPermissions(["manage_students", "manage_special_pass", "manage_users", "in_out_control", "ban_unban"])
     setStaffName(name || "Staff")
     fetchAllData()
   }, [router])

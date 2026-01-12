@@ -25,7 +25,7 @@ export default function AdminSpecialPassPage() {
     const role = localStorage.getItem("role")
     const permissions = JSON.parse(localStorage.getItem("permissions") || "[]")
     if (!token || (role !== "admin" && !permissions.includes("manage_special_pass"))) {
-      router.push("/login")
+      router.push(token ? "/dashboard" : "/login")
       return
     }
     setStaffName(localStorage.getItem("staffName") || "Staff")

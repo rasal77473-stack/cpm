@@ -28,7 +28,7 @@ export default function ReportsPage() {
     const name = localStorage.getItem("staffName")
 
     if (!token || role !== "admin") {
-      router.push("/login")
+      router.push(token ? "/dashboard" : "/login")
       return
     }
 
