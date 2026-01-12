@@ -178,18 +178,25 @@ export default function AdminSpecialPassPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <Button
-                            variant={student.special_pass === "YES" ? "destructive" : "default"}
-                            size="sm"
-                            onClick={() => toggleSpecialPass(student.id, student.special_pass)}
-                            className="gap-2"
-                          >
-                            {student.special_pass === "YES" ? (
-                              <><XCircle className="w-4 h-4" /> Revoke</>
-                            ) : (
-                              <><CheckCircle className="w-4 h-4" /> Grant</>
-                            )}
-                          </Button>
+                          {student.special_pass === "YES" ? (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => toggleSpecialPass(student.id, student.special_pass)}
+                              className="gap-2"
+                            >
+                              <XCircle className="w-4 h-4" /> Revoke
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => router.push(`/admin/special-pass/grant/${student.id}`)}
+                              className="gap-2"
+                            >
+                              <CheckCircle className="w-4 h-4" /> Grant
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))

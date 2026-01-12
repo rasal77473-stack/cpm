@@ -310,6 +310,18 @@ export default function DashboardPage() {
                           {student.special_pass === "YES" && <Star className="w-4 h-4 fill-current text-yellow-500" />}
                           {hasNoPhone && <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest bg-yellow-100 dark:bg-yellow-900/50 px-2 py-0.5 rounded-full border border-yellow-200 dark:border-yellow-800">No Phone (Nill)</span>}
                         </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          {permissions.includes("manage_special_pass") && student.special_pass !== "YES" && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-7 text-[10px] uppercase font-bold border-yellow-500/50 text-yellow-600 hover:bg-yellow-50"
+                              onClick={() => router.push(`/admin/special-pass/grant/${student.id}`)}
+                            >
+                              Grant Pass
+                            </Button>
+                          )}
+                        </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Adm: {student.admission_number}</span>
                           <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Locker: {student.locker_number}</span>
