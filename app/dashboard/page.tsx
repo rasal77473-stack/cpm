@@ -176,6 +176,45 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Quick Access Actions based on permissions */}
+        {(permissions.includes("manage_students") || permissions.includes("manage_special_pass") || permissions.includes("manage_users")) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {permissions.includes("manage_students") && (
+              <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push("/admin/manage-students")}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Manage Students</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Add, edit or import student records</p>
+                </CardContent>
+              </Card>
+            )}
+            {permissions.includes("manage_special_pass") && (
+              <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push("/admin/special-pass")}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Special Pass Management</CardTitle>
+                  <Star className="h-4 w-4 text-yellow-500" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Grant or revoke special phone permissions</p>
+                </CardContent>
+              </Card>
+            )}
+            {permissions.includes("manage_users") && (
+              <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push("/admin/users")}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">User Management</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Manage mentors and roles</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
         {/* Search Section */}
         <Card className="mb-6">
           <CardHeader>
