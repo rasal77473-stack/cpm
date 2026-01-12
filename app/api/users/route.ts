@@ -41,10 +41,17 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, username, password, name, role, permissions } = body;
+    const { id, username, password, name, role, permissions, special_pass } = body;
 
     const updatedUser = await db.update(users)
-      .set({ username, password, name, role, permissions })
+      .set({ 
+        username, 
+        password, 
+        name, 
+        role, 
+        special_pass: special_pass || "NO",
+        permissions 
+      })
       .where(eq(users.id, id))
       .returning();
 

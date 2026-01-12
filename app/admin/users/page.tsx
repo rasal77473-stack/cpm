@@ -27,13 +27,15 @@ export default function UserManagement() {
     password: "",
     name: "",
     role: "mentor",
+    special_pass: "NO",
     permissions: ["view_only"],
   });
 
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
-    if (!token || role !== "admin") {
+    const specialPass = localStorage.getItem("special_pass")
+    if (!token || (role !== "admin" && specialPass !== "YES")) {
       window.location.href = token ? "/dashboard" : "/login"
       return
     }
@@ -75,7 +77,7 @@ export default function UserManagement() {
   };
 
   const resetForm = () => {
-    setFormData({ username: "", password: "", name: "", role: "mentor", permissions: ["view_only"] });
+    setFormData({ username: "", password: "", name: "", role: "mentor", special_pass: "NO", permissions: ["view_only"] });
     setIsEditing(false);
     setEditingId(null);
   };
@@ -86,6 +88,7 @@ export default function UserManagement() {
       password: user.password,
       name: user.name,
       role: user.role,
+      special_pass: user.special_pass || "NO",
       permissions: user.permissions || ["view_only"],
     });
     setIsEditing(true);
@@ -147,6 +150,14 @@ export default function UserManagement() {
                     <SelectItem value="mentor">Mentor</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex items-center space-x-2 py-2">
+                <Checkbox 
+                  id="special_pass" 
+                  checked={formData.special_pass === "YES"}
+                  onCheckedChange={(checked) => setFormData({...formData, special_pass: checked ? "YES" : "NO"})}
+                />
+                <Label htmlFor="special_pass" className="text-yellow-600 font-bold">Grant Special Pass (Admin Access)</Label>
               </div>
               <div className="space-y-3">
                 <Label>Permissions</Label>
