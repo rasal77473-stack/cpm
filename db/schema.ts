@@ -25,6 +25,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   role: text("role").notNull().default("mentor"), // admin, mentor
+  special_pass: text("special_pass").default("NO"), // YES, NO
   permissions: text("permissions").array().notNull().default(["view_only"]), 
   // permissions: view_only, in_out_control, manage_students, manage_special_pass, manage_users
   createdAt: timestamp("created_at").defaultNow(),

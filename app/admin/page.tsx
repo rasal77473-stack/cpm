@@ -61,6 +61,7 @@ export default function AdminPanel() {
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
+    const specialPass = localStorage.getItem("special_pass")
     const name = localStorage.getItem("staffName")
     const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
 
@@ -69,12 +70,12 @@ export default function AdminPanel() {
       return
     }
 
-    if (role !== "admin") {
+    if (role !== "admin" && specialPass !== "YES") {
       router.push("/dashboard")
       return
     }
 
-    setPermissions(["manage_students", "manage_special_pass", "manage_users", "in_out_control", "ban_unban"])
+    setPermissions(perms)
     setStaffName(name || "Staff")
     fetchAllData()
   }, [router])

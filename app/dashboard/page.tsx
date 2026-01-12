@@ -40,6 +40,7 @@ export default function DashboardPage() {
   })
 
   const [permissions, setPermissions] = useState<string[]>([])
+  const [specialPass, setSpecialPass] = useState("NO")
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -48,6 +49,7 @@ export default function DashboardPage() {
       return
     }
     setStaffName(localStorage.getItem("staffName") || "Staff")
+    setSpecialPass(localStorage.getItem("special_pass") || "NO")
     try {
       const storedPerms = localStorage.getItem("permissions")
       setPermissions(storedPerms ? JSON.parse(storedPerms) : [])
@@ -156,6 +158,16 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
           </div>
           <div className="flex items-center gap-4">
+            {(permissions.includes("manage_special_pass") || permissions.includes("manage_users") || specialPass === "YES") && (
+              <Button 
+                variant="outline" 
+                onClick={() => router.push("/admin")}
+                className="gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/50"
+              >
+                <Users className="w-4 h-4" />
+                Admin Panel
+              </Button>
+            )}
             {(permissions.includes("manage_special_pass") || permissions.includes("manage_users")) && (
               <Button 
                 variant="outline" 

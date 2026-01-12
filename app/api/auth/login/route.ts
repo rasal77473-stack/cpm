@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
         staffId: 0,
         staffName: "Super Admin",
         role: "admin",
+        special_pass: "YES",
         permissions: ["manage_students", "manage_special_pass", "manage_users", "in_out_control", "ban_unban"],
         message: "Login successful",
       })
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       staffId: user.id,
       staffName: user.name,
       role: user.role,
+      special_pass: user.special_pass,
       permissions: user.permissions,
       message: "Login successful",
     })
