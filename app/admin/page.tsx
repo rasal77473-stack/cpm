@@ -69,7 +69,11 @@ export default function AdminPanel() {
       return
     }
 
-    setPermissions(perms)
+    if (role === "admin") {
+      setPermissions(["manage_students", "manage_special_pass", "manage_users", "in_out_control"])
+    } else {
+      setPermissions(perms)
+    }
     setStaffName(name || "Staff")
     fetchAllData()
   }, [router])
