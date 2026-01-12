@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       password,
       name,
       role,
+      special_pass: body.special_pass || "NO",
       permissions: permissions || ["view_only"],
     }).returning();
 
