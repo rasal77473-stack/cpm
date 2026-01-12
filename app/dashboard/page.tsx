@@ -29,17 +29,14 @@ export default function DashboardPage() {
 
   const { data: studentsData = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    dedupingInterval: 3600000,
-    persistSize: true,
+    dedupingInterval: 10000,
   })
 
   const students = Array.isArray(studentsData) ? studentsData : []
 
   const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 30000,
-    dedupingInterval: 15000,
-    revalidateOnFocus: false,
+    refreshInterval: 5000,
+    dedupingInterval: 2000,
   })
 
   useEffect(() => {
@@ -303,24 +300,6 @@ export default function DashboardPage() {
                                     <p className="text-xs text-yellow-700 dark:text-yellow-300 font-semibold uppercase tracking-wider mb-1">Authorization Status</p>
                                     <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">VALID PASS GRANTED</p>
                                   </div>
-
-                                  {!hasNoPhone && (
-                                    <div className="pt-4 flex justify-center">
-                                      <Button
-                                        onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
-                                        size="lg"
-                                        className={`w-full rounded-xl px-6 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 ${
-                                          isPhoneIn 
-                                            ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
-                                            : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                                        }`}
-                                        disabled={isToggling}
-                                      >
-                                        {isToggling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
-                                        <span className="ml-2">{isPhoneIn ? "Submit OUT" : "Submit IN"}</span>
-                                      </Button>
-                                    </div>
-                                  )}
                                 </div>
                               </DialogContent>
                             </Dialog>
