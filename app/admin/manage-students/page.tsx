@@ -51,14 +51,15 @@ export default function ManageStudents() {
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
+    const permissions = JSON.parse(localStorage.getItem("permissions") || "[]")
     const name = localStorage.getItem("staffName")
 
-    if (!token || role !== "admin") {
+    if (!token || (role !== "admin" && !permissions.includes("manage_students"))) {
       router.push("/login")
       return
     }
 
-    setStaffName(name || "Admin")
+    setStaffName(name || "Staff")
     fetchStudents()
   }, [router])
 

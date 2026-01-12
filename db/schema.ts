@@ -19,6 +19,17 @@ export const students = pgTable("students", {
   }
 });
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  role: text("role").notNull().default("mentor"), // admin, mentor
+  permissions: text("permissions").array().notNull().default(["view_only"]), 
+  // permissions: view_only, in_out_control, manage_students, manage_special_pass, manage_users
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const phoneStatus = pgTable("phone_status", {
   id: serial("id").primaryKey(),
   studentId: integer("student_id").references(() => students.id).notNull(),

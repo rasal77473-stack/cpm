@@ -56,17 +56,21 @@ export default function AdminPanel() {
   const [phoneInCount, setPhoneInCount] = useState(0)
   const [phoneOutCount, setPhoneOutCount] = useState(0)
 
+  const [permissions, setPermissions] = useState<string[]>([])
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
     const name = localStorage.getItem("staffName")
+    const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
 
-    if (!token || role !== "admin") {
+    if (!token) {
       router.push("/login")
       return
     }
 
-    setStaffName(name || "Admin")
+    setPermissions(perms)
+    setStaffName(name || "Staff")
     fetchAllData()
   }, [router])
 
@@ -227,23 +231,25 @@ export default function AdminPanel() {
 
         {/* Admin Options */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Manage Students
-              </CardTitle>
-              <CardDescription>View and manage student records</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => router.push("/admin/manage-students")} 
-                className="w-full"
-              >
-                Manage Students
-              </Button>
-            </CardContent>
-          </Card>
+          {(permissions.includes("manage_students") || permissions.includes("manage_users")) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Manage Students
+                </CardTitle>
+                <CardDescription>View and manage student records</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => router.push("/admin/manage-students")} 
+                  className="w-full"
+                >
+                  Manage Students
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
@@ -299,23 +305,45 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500" />
-                Special Passes
-              </CardTitle>
-              <CardDescription>Grant or revoke special phone permissions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => router.push("/admin/special-pass")} 
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
-              >
-                Give Special Pass
-              </Button>
-            </CardContent>
-          </Card>
+          {(permissions.includes("manage_special_pass") || permissions.includes("manage_users")) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="w-5 h-5 text-yellow-500" />
+                  Special Passes
+                </CardTitle>
+                <CardDescription>Grant or revoke special phone permissions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => router.push("/admin/special-pass")} 
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                >
+                  Give Special Pass
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {permissions.includes("manage_users") && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  User Management
+                </CardTitle>
+                <CardDescription>Manage mentors and roles</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => router.push("/admin/users")} 
+                  className="w-full"
+                >
+                  Manage Users
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
 

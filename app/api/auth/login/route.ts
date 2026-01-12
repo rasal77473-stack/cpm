@@ -1,20 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-// Mock staff database - Replace with actual database query
-const STAFF_DB = {
-  admin: {
-    id: 1,
-    name: "Admin User",
-    password: "caliph786786", // In production, this would be hashed
-    role: "admin",
-  },
-  user: {
-    id: 2,
-    name: "Staff User",
-    password: "caliph", // In production, this would be hashed
-    role: "staff",
-  },
-}
+import { db } from "@/db"
+import { users } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,20 +11,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Username and password are required" }, { status: 400 })
     }
 
-    const staff = STAFF_DB[username as keyof typeof STAFF_DB]
+    // Default hardcoded admin for bootstrap
+    if (username === "admin" && password === "caliph786786") {
+      const token = Buffer.from(`admin:${Date.now()}`).toString("base64")
+      return NextResponse.json({
+        token,
+        staffId: 0,
+        staffName: "Super Admin",
+        role: "admin",
+        permissions: ["manage_students", "manage_special_pass", "manage_users", "in_out_control"],
+        message: "Login successful",
+      })
+    }
 
-    if (!staff || staff.password !== password) {
+    const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1)
+
+    if (!user || user.password !== password) {
       return NextResponse.json({ message: "Invalid username or password" }, { status: 401 })
     }
 
-    // In production, create a proper JWT token
-    const token = Buffer.from(`${staff.id}:${Date.now()}`).toString("base64")
+    const token = Buffer.from(`${user.id}:${Date.now()}`).toString("base64")
 
     return NextResponse.json({
       token,
-      staffId: staff.id,
-      staffName: staff.name,
-      role: (staff as any).role || "staff",
+      staffId: user.id,
+      staffName: user.name,
+      role: user.role,
+      permissions: user.permissions,
       message: "Login successful",
     })
   } catch (error) {

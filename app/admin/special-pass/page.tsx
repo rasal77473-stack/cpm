@@ -23,11 +23,12 @@ export default function AdminSpecialPassPage() {
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
-    if (!token || role !== "admin") {
+    const permissions = JSON.parse(localStorage.getItem("permissions") || "[]")
+    if (!token || (role !== "admin" && !permissions.includes("manage_special_pass"))) {
       router.push("/login")
       return
     }
-    setStaffName(localStorage.getItem("staffName") || "Admin")
+    setStaffName(localStorage.getItem("staffName") || "Staff")
   }, [router])
 
   const classes = useMemo(() => {
