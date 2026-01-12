@@ -17,19 +17,25 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { username, password, name, role, permissions } = body;
 
+    if (!username || !password || !name) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
     const newUser = await db.insert(users).values({
       username,
-      password, // In a real app, hash this!
+      password,
       name,
       role,
-      permissions,
+      permissions: permissions || ["view_only"],
     }).returning();
 
     return NextResponse.json(newUser[0]);
   } catch (error) {
+    console.error("Create user error:", error);
     return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
   }
 }
+
 
 export async function PUT(req: Request) {
   try {

@@ -38,12 +38,14 @@ export default function UserManagement() {
     try {
       const res = await fetch("/api/users");
       const data = await res.json();
+      console.log("Users fetched:", data);
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
+      console.error("Fetch users error:", err);
       setUsers([]);
     }
   };
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {

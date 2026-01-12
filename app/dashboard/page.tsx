@@ -48,7 +48,12 @@ export default function DashboardPage() {
       return
     }
     setStaffName(localStorage.getItem("staffName") || "Staff")
-    setPermissions(JSON.parse(localStorage.getItem("permissions") || "[]"))
+    try {
+      const storedPerms = localStorage.getItem("permissions")
+      setPermissions(storedPerms ? JSON.parse(storedPerms) : [])
+    } catch (e) {
+      setPermissions([])
+    }
   }, [router])
 
   const handleSearch = useCallback((query: string) => {
