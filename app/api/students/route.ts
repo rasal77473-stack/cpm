@@ -1,7 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { students, phoneStatus } from "@/db/schema"
+import { students, phoneStatus, userActivityLogs } from "@/db/schema"
 import { eq } from "drizzle-orm"
+
+async function logActivity(userId: number, action: string, details: string) {
+  try {
+    await db.insert(userActivityLogs).values({ userId, action, details })
+  } catch (e) {
+    console.error("Logging failed:", e)
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,6 +58,10 @@ export async function POST(request: NextRequest) {
       roll_no: data.roll_no,
       special_pass: data.special_pass || "NO",
     }).returning()
+    
+    if (data.staffId) {
+      await logActivity(Number(data.staffId), "ADD_STUDENT", `Added student: ${data.name} (${data.admission_number})`)
+    }
     
     return NextResponse.json(newStudent[0])
   } catch (error) {

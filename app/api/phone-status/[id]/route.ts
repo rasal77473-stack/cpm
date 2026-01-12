@@ -1,7 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { phoneStatus } from "@/db/schema"
+import { phoneStatus, userActivityLogs, students } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
+
+async function logActivity(userId: number, action: string, details: string) {
+  try {
+    await db.insert(userActivityLogs).values({ userId, action, details })
+  } catch (e) {
+    console.error("Logging failed:", e)
+  }
+}
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -43,6 +51,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       updatedBy: staffId,
       notes: notes || "",
     }).returning()
+
+    if (staffId) {
+      const student = await db.query.students.findFirst({
+        where: eq(students.id, studentId)
+      })
+      await logActivity(Number(staffId), "PHONE_STATUS_CHANGE", `Marked ${student?.name || studentId} as ${status}`)
+    }
 
     return NextResponse.json({
       message: "Status updated successfully",

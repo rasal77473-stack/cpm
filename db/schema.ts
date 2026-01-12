@@ -31,6 +31,18 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const userActivityLogs = pgTable("user_activity_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  action: text("action").notNull(),
+  details: text("details"),
+  timestamp: timestamp("timestamp").defaultNow(),
+}, (table) => {
+  return {
+    userIdIdx: index("log_user_id_idx").on(table.userId),
+  }
+});
+
 export const phoneStatus = pgTable("phone_status", {
   id: serial("id").primaryKey(),
   studentId: integer("student_id").references(() => students.id).notNull(),

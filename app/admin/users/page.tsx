@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner";
+import { History, Loader2 } from "lucide-react";
 
 const PERMISSIONS = [
   { id: "view_only", label: "View Only" },
@@ -22,6 +24,10 @@ export default function UserManagement() {
   const [users, setUsers] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [selectedUserLogs, setSelectedUserLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [selectedUserForLogs, setSelectedUserForLogs] = useState<any>(null);
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -54,7 +60,20 @@ export default function UserManagement() {
     }
   };
 
-
+  const fetchUserLogs = async (user: any) => {
+    setLoadingLogs(true);
+    setSelectedUserForLogs(user);
+    setShowLogsModal(true);
+    try {
+      const res = await fetch(`/api/users/${user.id}/logs`);
+      const data = await res.json();
+      setSelectedUserLogs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      toast.error("Failed to fetch logs");
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,6 +215,9 @@ export default function UserManagement() {
                       <p className="text-sm text-muted-foreground">Role: {user.role}</p>
                     </div>
                     <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => fetchUserLogs(user)} title="View Activity Logs">
+                        <History className="w-4 h-4" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>Edit</Button>
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(user.id)}>Delete</Button>
                     </div>
@@ -213,6 +235,36 @@ export default function UserManagement() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={showLogsModal} onOpenChange={setShowLogsModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Activity Logs: {selectedUserForLogs?.name}</DialogTitle>
+            <DialogDescription>
+              Chronological history of actions performed by this user.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingLogs ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : selectedUserLogs.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">No activity logs found.</p>
+          ) : (
+            <div className="space-y-4">
+              {selectedUserLogs.map((log: any) => (
+                <div key={log.id} className="p-3 border rounded-lg bg-accent/50">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="font-bold text-sm uppercase tracking-wider text-primary">{log.action.replace(/_/g, " ")}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</span>
+                  </div>
+                  <p className="text-sm">{log.details}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
