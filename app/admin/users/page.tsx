@@ -15,10 +15,11 @@ const PERMISSIONS = [
   { id: "manage_students", label: "Manage Students" },
   { id: "manage_special_pass", label: "Special Pass Authority" },
   { id: "manage_users", label: "User Management" },
+  { id: "ban_unban", label: "Ban/Unban Students" },
 ];
 
 export default function UserManagement() {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
@@ -34,10 +35,16 @@ export default function UserManagement() {
   }, []);
 
   const fetchUsers = async () => {
-    const res = await fetch("/api/users");
-    const data = await res.json();
-    setUsers(data);
+    try {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      setUsers([]);
+    }
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

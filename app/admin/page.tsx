@@ -70,7 +70,7 @@ export default function AdminPanel() {
     }
 
     if (role === "admin") {
-      setPermissions(["manage_students", "manage_special_pass", "manage_users", "in_out_control"])
+      setPermissions(["manage_students", "manage_special_pass", "manage_users", "in_out_control", "ban_unban"])
     } else {
       setPermissions(perms)
     }
