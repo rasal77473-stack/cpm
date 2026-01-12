@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { LogOut, Search, Phone, Loader2, Star } from "lucide-react"
+import { LogOut, Search, Phone, Loader2, Star, Users } from "lucide-react"
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
 import {
