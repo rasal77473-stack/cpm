@@ -11,3 +11,4 @@
 [x] 11. Reinstalled npm dependencies after environment reset
 [x] 12. Created PostgreSQL database and synced schema
 [x] 13. Fixed Next.js allowedDevOrigins configuration for current Replit domain
+[x] 14. Reinstalled npm dependencies and updated allowedDevOrigins to wildcard pattern for all Replit domains
