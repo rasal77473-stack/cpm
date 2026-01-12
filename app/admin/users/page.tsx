@@ -19,6 +19,8 @@ const PERMISSIONS = [
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -39,19 +41,53 @@ export default function UserManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/users", {
-      method: "POST",
-      body: JSON.stringify(formData),
+    const url = "/api/users";
+    const method = isEditing ? "PUT" : "POST";
+    const body = isEditing ? { ...formData, id: editingId } : formData;
+
+    const res = await fetch(url, {
+      method,
+      body: JSON.stringify(body),
       headers: { "Content-Type": "application/json" },
     });
     if (res.ok) {
-      toast.success("User created successfully");
+      toast.success(isEditing ? "User updated successfully" : "User created successfully");
       fetchUsers();
-      setFormData({ username: "", password: "", name: "", role: "mentor", permissions: ["view_only"] });
+      resetForm();
     } else {
-      toast.error("Failed to create user");
+      toast.error(isEditing ? "Failed to update user" : "Failed to create user");
     }
   };
+
+  const resetForm = () => {
+    setFormData({ username: "", password: "", name: "", role: "mentor", permissions: ["view_only"] });
+    setIsEditing(false);
+    setEditingId(null);
+  };
+
+  const handleEdit = (user: any) => {
+    setFormData({
+      username: user.username,
+      password: user.password,
+      name: user.name,
+      role: user.role,
+      permissions: user.permissions || ["view_only"],
+    });
+    setIsEditing(true);
+    setEditingId(user.id);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+    const res = await fetch(`/api/users?id=${id}`, { method: "DELETE" });
+    if (res.ok) {
+      toast.success("User deleted successfully");
+      fetchUsers();
+    } else {
+      toast.error("Failed to delete user");
+    }
+  };
+
 
   const togglePermission = (permId: string) => {
     setFormData(prev => ({
@@ -69,7 +105,7 @@ export default function UserManagement() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Create New User</CardTitle>
+            <CardTitle>{isEditing ? "Edit User" : "Create New User"}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -112,7 +148,10 @@ export default function UserManagement() {
                   ))}
                 </div>
               </div>
-              <Button type="submit" className="w-full">Create User</Button>
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1">{isEditing ? "Update User" : "Create User"}</Button>
+                {isEditing && <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>}
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -129,6 +168,10 @@ export default function UserManagement() {
                     <div>
                       <p className="font-bold">{user.name} ({user.username})</p>
                       <p className="text-sm text-muted-foreground">Role: {user.role}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>Edit</Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(user.id)}>Delete</Button>
                     </div>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">

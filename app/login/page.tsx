@@ -39,6 +39,7 @@ export default function LoginPage() {
       localStorage.setItem("staffId", data.staffId)
       localStorage.setItem("staffName", data.staffName)
       localStorage.setItem("role", data.role)
+      localStorage.setItem("permissions", JSON.stringify(data.permissions))
       
       if (data.role === "admin") {
         router.push("/admin")

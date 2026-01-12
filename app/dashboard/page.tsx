@@ -39,6 +39,8 @@ export default function DashboardPage() {
     dedupingInterval: 2000,
   })
 
+  const [permissions, setPermissions] = useState<string[]>([])
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (!token) {
@@ -46,6 +48,7 @@ export default function DashboardPage() {
       return
     }
     setStaffName(localStorage.getItem("staffName") || "Staff")
+    setPermissions(JSON.parse(localStorage.getItem("permissions") || "[]"))
   }, [router])
 
   const handleSearch = useCallback((query: string) => {
@@ -148,14 +151,16 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
           </div>
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              onClick={() => router.push("/special-pass")}
-              className="gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/50"
-            >
-              <Star className="w-4 h-4 fill-current" />
-              Special Pass List
-            </Button>
+            {(permissions.includes("manage_special_pass") || permissions.includes("manage_users")) && (
+              <Button 
+                variant="outline" 
+                onClick={() => router.push("/special-pass")}
+                className="gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/50"
+              >
+                <Star className="w-4 h-4 fill-current" />
+                Special Pass List
+              </Button>
+            )}
             <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
               <LogOut className="w-4 h-4" />
               Logout
@@ -327,7 +332,7 @@ export default function DashboardPage() {
                           )}
                         </div>
 
-                        {!hasNoPhone && (
+                        {permissions.includes("in_out_control") && !hasNoPhone && (
                           <Button
                             onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
                             size="lg"
