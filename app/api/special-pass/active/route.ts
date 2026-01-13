@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
       ORDER BY spg.issue_time DESC
     `)
     
-    return NextResponse.json(activePasses.rows)
+    return NextResponse.json(activePasses.rows, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10'
+      }
+    })
   } catch (error) {
     console.error("Failed to fetch active special passes:", error)
     return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 })

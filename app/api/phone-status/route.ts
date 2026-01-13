@@ -18,7 +18,11 @@ export async function GET() {
       return acc;
     }, {} as Record<number, any>);
 
-    return NextResponse.json(statusMap);
+    return NextResponse.json(statusMap, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10'
+      }
+    });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch status" }, { status: 500 });
   }
