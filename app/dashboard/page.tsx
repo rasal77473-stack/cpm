@@ -247,7 +247,7 @@ export default function DashboardPage() {
                   <div key={pass.id} className="p-4 rounded-xl border border-yellow-500/20 bg-card shadow-sm flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold">{pass.name || pass.studentName}</h4>
+                        <h4 className="font-bold">{pass.name || pass.studentName || pass.student_name}</h4>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                           pass.status === 'OUT' 
                             ? "bg-orange-100 text-orange-700" 

@@ -50,6 +50,17 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
     setSubmitting(true)
     
     try {
+      // Check if student already has an active or out pass before submitting
+      const activeRes = await fetch("/api/special-pass/active")
+      const activePasses = await activeRes.json()
+      const hasActivePass = activePasses.some((p: any) => p.student_id === Number(studentId))
+
+      if (hasActivePass) {
+        toast.error("Student already has an active special pass")
+        setSubmitting(false)
+        return
+      }
+
       const res = await fetch("/api/special-pass/grant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
