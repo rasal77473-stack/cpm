@@ -152,6 +152,11 @@ export default function DashboardPage() {
 
   const handleOutPass = async (grantId: number) => {
     try {
+      // Optimistically update the UI to show OUT status
+      mutate("/api/special-pass/active", (current: any) => {
+        return current.map((p: any) => p.id === grantId ? { ...p, status: 'OUT' } : p)
+      }, false)
+
       const response = await fetch(`/api/special-pass/out/${grantId}`, {
         method: "POST",
       })
@@ -159,9 +164,12 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error("Failed to mark out")
 
       toast.success("Special pass marked as OUT")
+      // Revalidate in background
       mutate("/api/special-pass/active")
     } catch (error) {
       toast.error("Failed to mark special pass as OUT")
+      // Revert optimism
+      mutate("/api/special-pass/active")
     }
   }
 

@@ -1,12 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { userActivityLogs, students, specialPassGrants } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
     const { studentId, mentorId, mentorName, purpose, returnTime, staffId } = data
+
+    // Check if student already has an active or out pass
+    const existingPass = await db
+      .select()
+      .from(specialPassGrants)
+      .where(
+        sql`${specialPassGrants.studentId} = ${Number(studentId)} AND ${specialPassGrants.status} IN ('ACTIVE', 'OUT')`
+      )
+      .limit(1)
+
+    if (existingPass.length > 0) {
+      return NextResponse.json({ message: "Student already has an active special pass" }, { status: 400 })
+    }
 
     // Insert into specialPassGrants
     await db.insert(specialPassGrants).values({
