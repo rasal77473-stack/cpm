@@ -1,4 +1,5 @@
-import { pgTable, serial, text, timestamp, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, index, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const students = pgTable("students", {
   id: serial("id").primaryKey(),
@@ -10,13 +11,6 @@ export const students = pgTable("students", {
   roll_no: text("roll_no").default("-"),
   special_pass: text("special_pass").default("NO"), // YES, NO
   createdAt: timestamp("created_at").defaultNow(),
-}, (table) => {
-  return {
-    nameIdx: index("name_idx").on(table.name),
-    admIdx: index("adm_idx").on(table.admission_number),
-    lockerIdx: index("locker_idx").on(table.locker_number),
-    classIdx: index("class_idx").on(table.class_name),
-  }
 });
 
 export const users = pgTable("users", {
@@ -26,8 +20,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   role: text("role").notNull().default("mentor"), // admin, mentor
   special_pass: text("special_pass").default("NO"), // YES, NO
-  permissions: text("permissions").array().notNull().default(["view_only"]), 
-  // permissions: view_only, in_out_control, manage_students, manage_special_pass, manage_users
+  permissions: text("permissions").array().notNull().default(sql`'{"view_only"}'::text[]`), 
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -37,10 +30,6 @@ export const userActivityLogs = pgTable("user_activity_logs", {
   action: text("action").notNull(),
   details: text("details"),
   timestamp: timestamp("timestamp").defaultNow(),
-}, (table) => {
-  return {
-    userIdIdx: index("log_user_id_idx").on(table.userId),
-  }
 });
 
 export const specialPassGrants = pgTable("special_pass_grants", {
@@ -61,9 +50,4 @@ export const phoneStatus = pgTable("phone_status", {
   lastUpdated: timestamp("last_updated").defaultNow(),
   updatedBy: text("updated_by"),
   notes: text("notes"),
-}, (table) => {
-  return {
-    studentIdIdx: index("student_id_idx").on(table.studentId),
-    statusIdx: index("status_idx").on(table.status),
-  }
 });
