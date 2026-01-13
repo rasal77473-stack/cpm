@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { ArrowLeft, Loader2 } from "lucide-react"
+import { mutate } from "swr"
 
 export default function GrantSpecialPassPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -64,6 +65,8 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
 
       if (res.ok) {
         toast.success("Special pass granted successfully")
+        // Force revalidation of student data
+        mutate("/api/students")
         router.push("/admin/special-pass")
       } else {
         throw new Error("Failed to grant pass")

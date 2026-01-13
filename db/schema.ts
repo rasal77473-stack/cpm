@@ -43,6 +43,17 @@ export const userActivityLogs = pgTable("user_activity_logs", {
   }
 });
 
+export const specialPassGrants = pgTable("special_pass_grants", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id").references(() => students.id).notNull(),
+  mentorId: integer("mentor_id").notNull(),
+  mentorName: text("mentor_name").notNull(),
+  purpose: text("purpose").notNull(),
+  issueTime: timestamp("issue_time").defaultNow(),
+  returnTime: timestamp("return_time"),
+  status: text("status").default("ACTIVE"), // ACTIVE, COMPLETED, EXPIRED
+});
+
 export const phoneStatus = pgTable("phone_status", {
   id: serial("id").primaryKey(),
   studentId: integer("student_id").references(() => students.id).notNull(),
