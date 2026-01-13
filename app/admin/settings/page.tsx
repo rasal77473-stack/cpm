@@ -27,7 +27,7 @@ export default function SystemSettings() {
     const name = localStorage.getItem("staffName")
 
     if (!token || role !== "admin") {
-      router.push(token ? "/dashboard" : "/login")
+      router.replace(token ? "/dashboard" : "/login")
       return
     }
 
@@ -63,7 +63,15 @@ export default function SystemSettings() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/admin")}
+              onClick={() => {
+                const role = localStorage.getItem("role")
+                const specialPass = localStorage.getItem("special_pass")
+                if (role === "admin" || specialPass === "YES") {
+                  router.push("/admin")
+                } else {
+                  router.push("/dashboard")
+                }
+              }}
               className="rounded-full"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -211,7 +219,15 @@ export default function SystemSettings() {
             Save Settings
           </Button>
           <Button
-            onClick={() => router.push("/admin")}
+            onClick={() => {
+              const role = localStorage.getItem("role")
+              const specialPass = localStorage.getItem("special_pass")
+              if (role === "admin" || specialPass === "YES") {
+                router.push("/admin")
+              } else {
+                router.push("/dashboard")
+              }
+            }}
             variant="outline"
             size="lg"
             className="flex-1"
