@@ -160,10 +160,16 @@ export default function AdminPanel() {
             <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
             <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
-            <LogOut className="w-4 h-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => router.push("/dashboard")} className="gap-2 bg-transparent">
+              <ChevronRight className="w-4 h-4 rotate-180" />
+              Dashboard
+            </Button>
+            <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 

@@ -32,6 +32,8 @@ export default function DashboardPage() {
     dedupingInterval: 10000,
   })
 
+  const { data: activePasses = [], isLoading: loadingPasses } = useSWR("/api/special-pass/active", fetcher)
+
   const students = Array.isArray(studentsData) ? studentsData : []
 
   const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", fetcher, {
@@ -192,6 +194,37 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Active Special Passes Section */}
+        {activePasses.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+              Active Special Passes
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activePasses.map((pass: any) => (
+                <Card key={pass.id} className="border-yellow-500/50 bg-yellow-50/30 dark:bg-yellow-900/10">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{pass.name}</CardTitle>
+                    <CardDescription className="text-xs">
+                      Adm: {pass.admission_number} | Locker: {pass.locker_number}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-sm">
+                    <div className="space-y-1">
+                      <p><span className="font-semibold">Purpose:</span> {pass.purpose}</p>
+                      <p><span className="font-semibold">Mentor:</span> {pass.mentor_name}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Return by: {new Date(pass.return_time).toLocaleString()}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Quick Access Actions based on permissions */}
         {(permissions.includes("manage_students") || permissions.includes("manage_special_pass") || permissions.includes("manage_users")) && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
