@@ -39,6 +39,10 @@ export default function DashboardPage() {
     dedupingInterval: 2000,
   })
 
+  const { data: activePasses = [] } = useSWR("/api/special-pass/active", fetcher, {
+    refreshInterval: 10000,
+  })
+
   const [permissions, setPermissions] = useState<string[]>([])
   const [specialPass, setSpecialPass] = useState("NO")
 
@@ -225,6 +229,37 @@ export default function DashboardPage() {
               </Card>
             )}
           </div>
+        )}
+
+        {/* Active Special Passes Section */}
+        {activePasses && activePasses.length > 0 && (
+          <Card className="mb-8 border-yellow-500/50 bg-yellow-500/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
+                <Star className="w-5 h-5 fill-current" />
+                Active Special Passes
+              </CardTitle>
+              <CardDescription>Students currently authorized for special phone usage</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activePasses.map((pass: any) => (
+                  <div key={pass.id} className="p-4 rounded-xl border border-yellow-500/20 bg-card shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold">{pass.studentName}</h4>
+                      <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">ACTIVE</span>
+                    </div>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <p>Adm: {pass.admissionNumber}</p>
+                      <p>Mentor: {pass.mentorName}</p>
+                      <p className="font-medium text-yellow-600 dark:text-yellow-400">Return: {new Date(pass.returnTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="italic mt-1 border-t border-yellow-500/10 pt-1 line-clamp-1">{pass.purpose}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Search Section */}
