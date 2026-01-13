@@ -150,6 +150,21 @@ export default function DashboardPage() {
     router.push("/login")
   }
 
+  const handleOutPass = async (grantId: number) => {
+    try {
+      const response = await fetch(`/api/special-pass/out/${grantId}`, {
+        method: "POST",
+      })
+
+      if (!response.ok) throw new Error("Failed to mark out")
+
+      toast.success("Special pass marked as OUT")
+      mutate("/api/special-pass/active")
+    } catch (error) {
+      toast.error("Failed to mark special pass as OUT")
+    }
+  }
+
   const handleReturnPass = async (grantId: number) => {
     try {
       const response = await fetch(`/api/special-pass/return/${grantId}`, {
@@ -225,7 +240,13 @@ export default function DashboardPage() {
                     <div>
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-bold">{pass.name || pass.studentName}</h4>
-                        <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">ACTIVE</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                          pass.status === 'OUT' 
+                            ? "bg-orange-100 text-orange-700" 
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}>
+                          {pass.status || 'ACTIVE'}
+                        </span>
                       </div>
                       <div className="space-y-1 text-xs text-muted-foreground">
                         <p>Adm: {pass.admission_number || pass.admissionNumber}</p>
@@ -234,13 +255,28 @@ export default function DashboardPage() {
                         <p className="italic mt-1 border-t border-yellow-500/10 pt-1 line-clamp-2">{pass.purpose}</p>
                       </div>
                     </div>
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleReturnPass(pass.id)}
-                      className="mt-4 w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold"
-                    >
-                      Submit In
-                    </Button>
+                    <div className="flex gap-2 mt-4">
+                      {pass.status !== 'OUT' && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleOutPass(pass.id)}
+                          className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                        >
+                          Submit Out
+                        </Button>
+                      )}
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleReturnPass(pass.id)}
+                        className={`flex-1 font-bold ${
+                          pass.status === 'OUT' 
+                            ? "bg-green-600 hover:bg-green-700 text-white" 
+                            : "bg-yellow-500 hover:bg-yellow-600 text-white"
+                        }`}
+                      >
+                        Submit In
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
