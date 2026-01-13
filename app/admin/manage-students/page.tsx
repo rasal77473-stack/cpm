@@ -55,7 +55,7 @@ export default function ManageStudents() {
     const name = localStorage.getItem("staffName")
 
     if (!token || (role !== "admin" && !permissions.includes("manage_students"))) {
-      router.push(token ? "/dashboard" : "/login")
+      router.replace(token ? "/dashboard" : "/login")
       return
     }
 
@@ -349,7 +349,15 @@ export default function ManageStudents() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/admin")}
+              onClick={() => {
+                const role = localStorage.getItem("role")
+                const specialPass = localStorage.getItem("special_pass")
+                if (role === "admin" || specialPass === "YES") {
+                  router.push("/admin")
+                } else {
+                  router.push("/dashboard")
+                }
+              }}
               className="rounded-full"
             >
               <ChevronLeft className="w-4 h-4" />

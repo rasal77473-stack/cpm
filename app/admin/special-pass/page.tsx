@@ -30,7 +30,7 @@ export default function AdminSpecialPassPage() {
     const role = localStorage.getItem("role")
     const permissions = JSON.parse(localStorage.getItem("permissions") || "[]")
     if (!token || (role !== "admin" && !permissions.includes("manage_special_pass") && !permissions.includes("view_special_pass_logs"))) {
-      router.push(token ? "/dashboard" : "/login")
+      router.replace(token ? "/dashboard" : "/login")
       return
     }
     setStaffName(localStorage.getItem("staffName") || "Staff")
@@ -96,7 +96,15 @@ export default function AdminSpecialPassPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/admin")}
+              onClick={() => {
+                const role = localStorage.getItem("role")
+                const specialPass = localStorage.getItem("special_pass")
+                if (role === "admin" || specialPass === "YES") {
+                  router.push("/admin")
+                } else {
+                  router.push("/dashboard")
+                }
+              }}
               className="rounded-full"
             >
               <ChevronLeft className="w-4 h-4" />

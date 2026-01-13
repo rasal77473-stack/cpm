@@ -43,7 +43,7 @@ export default function UserManagement() {
     const role = localStorage.getItem("role")
     const specialPass = localStorage.getItem("special_pass")
     if (!token || (role !== "admin" && specialPass !== "YES")) {
-      window.location.href = token ? "/dashboard" : "/login"
+      window.location.replace(token ? "/dashboard" : "/login")
       return
     }
     fetchUsers();

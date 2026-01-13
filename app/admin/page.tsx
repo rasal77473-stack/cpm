@@ -71,7 +71,7 @@ export default function AdminPanel() {
     }
 
     if (role !== "admin" && specialPass !== "YES") {
-      router.push("/dashboard")
+      router.replace("/dashboard")
       return
     }
 
