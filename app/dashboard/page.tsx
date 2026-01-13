@@ -292,8 +292,43 @@ export default function DashboardPage() {
         )}
 
         {/* Quick Access Actions based on permissions */}
-
-        {/* Search Section */}
+        {(permissions.length > 0 || specialPass === "YES") && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {permissions.includes("manage_students") && (
+              <Card className="cursor-pointer hover:bg-accent transition-colors border-blue-500/20 bg-blue-500/5 shadow-sm" onClick={() => router.push("/admin/manage-students")}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-bold text-blue-700 dark:text-blue-400 uppercase tracking-tight">Manage Students</CardTitle>
+                  <Users className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Add, edit or import student records</p>
+                </CardContent>
+              </Card>
+            )}
+            {(permissions.includes("manage_special_pass") || permissions.includes("view_special_pass_logs")) && (
+              <Card className="cursor-pointer hover:bg-accent transition-colors border-yellow-500/20 bg-yellow-500/5 shadow-sm" onClick={() => router.push("/admin/special-pass")}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-bold text-yellow-700 dark:text-yellow-400 uppercase tracking-tight">Special Pass Management</CardTitle>
+                  <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Grant, revoke or view special phone permissions</p>
+                </CardContent>
+              </Card>
+            )}
+            {permissions.includes("manage_users") && (
+              <Card className="cursor-pointer hover:bg-accent transition-colors border-purple-500/20 bg-purple-500/5 shadow-sm" onClick={() => router.push("/admin/users")}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-bold text-purple-700 dark:text-purple-400 uppercase tracking-tight">User Management</CardTitle>
+                  <Users className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Manage mentors and roles</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Search Students</CardTitle>
