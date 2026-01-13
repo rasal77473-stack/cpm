@@ -32,17 +32,15 @@ export default function DashboardPage() {
     dedupingInterval: 10000,
   })
 
-  const { data: activePasses = [], isLoading: loadingPasses } = useSWR("/api/special-pass/active", fetcher)
+  const { data: activePasses = [], isLoading: loadingPasses } = useSWR("/api/special-pass/active", fetcher, {
+    refreshInterval: 10000,
+  })
 
   const students = Array.isArray(studentsData) ? studentsData : []
 
   const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", fetcher, {
     refreshInterval: 5000,
     dedupingInterval: 2000,
-  })
-
-  const { data: activePasses = [] } = useSWR("/api/special-pass/active", fetcher, {
-    refreshInterval: 10000,
   })
 
   const [permissions, setPermissions] = useState<string[]>([])
