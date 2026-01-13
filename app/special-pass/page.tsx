@@ -78,15 +78,6 @@ export default function SpecialPassPage() {
     }
   }
 
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-    if (!token) {
-      router.push("/login")
-      return
-    }
-    setStaffName(localStorage.getItem("staffName") || "Staff")
-  }, [router])
-
   const specialStudents = useMemo(() => {
     return students.filter((s: any) => s.special_pass === "YES")
   }, [students])
