@@ -48,6 +48,8 @@ export default function ManageStudents() {
   const [showBulkModal, setShowBulkModal] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [isAuthorized, setIsAuthorized] = useState(false)
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
@@ -59,9 +61,21 @@ export default function ManageStudents() {
       return
     }
 
+    setIsAuthorized(true)
     setStaffName(name || "Staff")
     fetchStudents()
   }, [router])
+
+  if (loading || !isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground animate-pulse">Checking permissions...</p>
+        </div>
+      </div>
+    )
+  }
 
   const fetchStudents = async () => {
     try {

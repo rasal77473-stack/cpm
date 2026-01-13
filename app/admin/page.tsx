@@ -58,6 +58,8 @@ export default function AdminPanel() {
 
   const [permissions, setPermissions] = useState<string[]>([])
 
+  const [isAuthorized, setIsAuthorized] = useState(false)
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
@@ -75,10 +77,22 @@ export default function AdminPanel() {
       return
     }
 
+    setIsAuthorized(true)
     setPermissions(perms)
     setStaffName(name || "Staff")
     fetchAllData()
   }, [router])
+
+  if (loading || !isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground animate-pulse">Verifying credentials...</p>
+        </div>
+      </div>
+    )
+  }
 
   const fetchAllData = async () => {
     try {

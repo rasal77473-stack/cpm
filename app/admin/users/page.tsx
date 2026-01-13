@@ -38,6 +38,8 @@ export default function UserManagement() {
     permissions: ["view_only"],
   });
 
+  const [isAuthorized, setIsAuthorized] = useState(false)
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
@@ -46,8 +48,20 @@ export default function UserManagement() {
       window.location.replace(token ? "/dashboard" : "/login")
       return
     }
+    setIsAuthorized(true)
     fetchUsers();
   }, []);
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground animate-pulse">Restricted Access - Verifying...</p>
+        </div>
+      </div>
+    )
+  }
 
   const fetchUsers = async () => {
     try {

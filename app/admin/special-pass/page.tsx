@@ -28,6 +28,8 @@ export default function AdminSpecialPassPage() {
   const [defaultTab, setDefaultTab] = useState("logs")
   const [isClient, setIsClient] = useState(false)
 
+  const [isAuthorized, setIsAuthorized] = useState(false)
+
   useEffect(() => {
     setIsClient(true)
     const token = localStorage.getItem("token")
@@ -43,8 +45,20 @@ export default function AdminSpecialPassPage() {
       setDefaultTab("authorize")
     }
 
+    setIsAuthorized(true)
     setStaffName(localStorage.getItem("staffName") || "Staff")
   }, [router])
+
+  if (!isClient || !isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Access verification in progress...</p>
+        </div>
+      </div>
+    )
+  }
 
   const classes = useMemo(() => {
     const set = new Set<string>()
