@@ -256,7 +256,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4">
-                      {pass.status !== 'OUT' && (
+                      {pass.status !== 'OUT' ? (
                         <Button 
                           size="sm" 
                           onClick={() => handleOutPass(pass.id)}
@@ -264,18 +264,15 @@ export default function DashboardPage() {
                         >
                           Submit Out
                         </Button>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleReturnPass(pass.id)}
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
+                        >
+                          Submit In
+                        </Button>
                       )}
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleReturnPass(pass.id)}
-                        className={`flex-1 font-bold ${
-                          pass.status === 'OUT' 
-                            ? "bg-green-600 hover:bg-green-700 text-white" 
-                            : "bg-yellow-500 hover:bg-yellow-600 text-white"
-                        }`}
-                      >
-                        Submit In
-                      </Button>
                     </div>
                   </div>
                 ))}
