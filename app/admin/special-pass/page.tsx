@@ -25,14 +25,24 @@ export default function AdminSpecialPassPage() {
   
   const students = Array.isArray(studentsData) ? studentsData : []
 
+  const [defaultTab, setDefaultTab] = useState("logs")
+  const [isClient, setIsClient] = useState(false)
+
   useEffect(() => {
+    setIsClient(true)
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
     const permissions = JSON.parse(localStorage.getItem("permissions") || "[]")
+    
     if (!token || (role !== "admin" && !permissions.includes("manage_special_pass") && !permissions.includes("view_special_pass_logs"))) {
       router.replace(token ? "/dashboard" : "/login")
       return
     }
+
+    if (permissions.includes("manage_special_pass") || role === "admin") {
+      setDefaultTab("authorize")
+    }
+
     setStaffName(localStorage.getItem("staffName") || "Staff")
   }, [router])
 
@@ -122,23 +132,24 @@ export default function AdminSpecialPassPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <Tabs defaultValue={JSON.parse(localStorage.getItem("permissions") || "[]").includes("manage_special_pass") || localStorage.getItem("role") === "admin" ? "authorize" : "logs"} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            {(JSON.parse(localStorage.getItem("permissions") || "[]").includes("manage_special_pass") || localStorage.getItem("role") === "admin") && (
-              <TabsTrigger value="authorize" className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                Authorize
-              </TabsTrigger>
-            )}
-            {(JSON.parse(localStorage.getItem("permissions") || "[]").includes("view_special_pass_logs") || JSON.parse(localStorage.getItem("permissions") || "[]").includes("manage_special_pass") || localStorage.getItem("role") === "admin") && (
-              <TabsTrigger value="logs" className="flex items-center gap-2">
-                <History className="w-4 h-4" />
-                Pass Logs
-              </TabsTrigger>
-            )}
-          </TabsList>
+        {isClient && (
+          <Tabs defaultValue={defaultTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+              {(JSON.parse(localStorage.getItem("permissions") || "[]").includes("manage_special_pass") || localStorage.getItem("role") === "admin") && (
+                <TabsTrigger value="authorize" className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Authorize
+                </TabsTrigger>
+              )}
+              {(JSON.parse(localStorage.getItem("permissions") || "[]").includes("view_special_pass_logs") || JSON.parse(localStorage.getItem("permissions") || "[]").includes("manage_special_pass") || localStorage.getItem("role") === "admin") && (
+                <TabsTrigger value="logs" className="flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  Pass Logs
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-          <TabsContent value="authorize">
+            <TabsContent value="authorize">
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Student Authorization</CardTitle>
@@ -295,6 +306,7 @@ export default function AdminSpecialPassPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        )}
       </main>
     </div>
   )
