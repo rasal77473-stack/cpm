@@ -12,3 +12,4 @@
 [x] 12. Fixed npm dependencies installation
 [x] 13. Configured allowedDevOrigins for Replit environment
 [x] 14. Project fully migrated and operational
+[x] 15. Provisioned PostgreSQL database and created tables manually via SQL
