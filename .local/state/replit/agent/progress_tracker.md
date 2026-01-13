@@ -7,4 +7,5 @@
 [x] 7. Install the required packages
 [x] 8. Restart the workflow to see if the project is working
 [x] 9. Verify the project is working
-[x] 10. Import completed
+[x] 10. Sync database schema manually via SQL
+[x] 11. Import completed
