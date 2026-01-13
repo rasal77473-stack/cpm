@@ -29,7 +29,7 @@ export default function AdminSpecialPassPage() {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
     const permissions = JSON.parse(localStorage.getItem("permissions") || "[]")
-    if (!token || (role !== "admin" && !permissions.includes("manage_special_pass"))) {
+    if (!token || (role !== "admin" && !permissions.includes("manage_special_pass") && !permissions.includes("view_special_pass_logs"))) {
       router.push(token ? "/dashboard" : "/login")
       return
     }
@@ -114,16 +114,20 @@ export default function AdminSpecialPassPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <Tabs defaultValue="authorize" className="space-y-6">
+        <Tabs defaultValue={JSON.parse(localStorage.getItem("permissions") || "[]").includes("manage_special_pass") || localStorage.getItem("role") === "admin" ? "authorize" : "logs"} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="authorize" className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" />
-              Authorize
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
-              <History className="w-4 h-4" />
-              Pass Logs
-            </TabsTrigger>
+            {(JSON.parse(localStorage.getItem("permissions") || "[]").includes("manage_special_pass") || localStorage.getItem("role") === "admin") && (
+              <TabsTrigger value="authorize" className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                Authorize
+              </TabsTrigger>
+            )}
+            {(JSON.parse(localStorage.getItem("permissions") || "[]").includes("view_special_pass_logs") || JSON.parse(localStorage.getItem("permissions") || "[]").includes("manage_special_pass") || localStorage.getItem("role") === "admin") && (
+              <TabsTrigger value="logs" className="flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Pass Logs
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="authorize">

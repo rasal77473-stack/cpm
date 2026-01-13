@@ -16,6 +16,7 @@ const PERMISSIONS = [
   { id: "in_out_control", label: "In/Out Control" },
   { id: "manage_students", label: "Manage Students" },
   { id: "manage_special_pass", label: "Special Pass Authority" },
+  { id: "view_special_pass_logs", label: "View Special Pass Logs" },
   { id: "manage_users", label: "User Management" },
   { id: "ban_unban", label: "Ban/Unban Students" },
 ];
