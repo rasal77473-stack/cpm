@@ -150,6 +150,22 @@ export default function DashboardPage() {
     router.push("/login")
   }
 
+  const handleReturnPass = async (grantId: number) => {
+    try {
+      const response = await fetch(`/api/special-pass/return/${grantId}`, {
+        method: "POST",
+      })
+
+      if (!response.ok) throw new Error("Failed to return pass")
+
+      toast.success("Special pass submitted successfully")
+      mutate("/api/special-pass/active")
+      mutate("/api/students")
+    } catch (error) {
+      toast.error("Failed to submit special pass")
+    }
+  }
+
   const loading = loadingStudents || (loadingStatus && students.length === 0)
 
   return (
@@ -193,76 +209,6 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Active Special Passes Section */}
-        {activePasses.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
-              Active Special Passes
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activePasses.map((pass: any) => (
-                <Card key={pass.id} className="border-yellow-500/50 bg-yellow-50/30 dark:bg-yellow-900/10">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{pass.name}</CardTitle>
-                    <CardDescription className="text-xs">
-                      Adm: {pass.admission_number} | Locker: {pass.locker_number}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="text-sm">
-                    <div className="space-y-1">
-                      <p><span className="font-semibold">Purpose:</span> {pass.purpose}</p>
-                      <p><span className="font-semibold">Mentor:</span> {pass.mentor_name}</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Return by: {new Date(pass.return_time).toLocaleString()}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Quick Access Actions based on permissions */}
-        {(permissions.includes("manage_students") || permissions.includes("manage_special_pass") || permissions.includes("manage_users")) && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {permissions.includes("manage_students") && (
-              <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push("/admin/manage-students")}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Manage Students</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Add, edit or import student records</p>
-                </CardContent>
-              </Card>
-            )}
-            {permissions.includes("manage_special_pass") && (
-              <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push("/admin/special-pass")}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Special Pass Management</CardTitle>
-                  <Star className="h-4 w-4 text-yellow-500" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Grant or revoke special phone permissions</p>
-                </CardContent>
-              </Card>
-            )}
-            {permissions.includes("manage_users") && (
-              <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push("/admin/users")}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">User Management</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Manage mentors and roles</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* Active Special Passes Section */}
         {activePasses && activePasses.length > 0 && (
           <Card className="mb-8 border-yellow-500/50 bg-yellow-500/5">
             <CardHeader className="pb-3">
@@ -275,23 +221,34 @@ export default function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activePasses.map((pass: any) => (
-                  <div key={pass.id} className="p-4 rounded-xl border border-yellow-500/20 bg-card shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold">{pass.studentName}</h4>
-                      <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">ACTIVE</span>
+                  <div key={pass.id} className="p-4 rounded-xl border border-yellow-500/20 bg-card shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold">{pass.name || pass.studentName}</h4>
+                        <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">ACTIVE</span>
+                      </div>
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <p>Adm: {pass.admission_number || pass.admissionNumber}</p>
+                        <p>Mentor: {pass.mentor_name || pass.mentorName}</p>
+                        <p className="font-medium text-yellow-600 dark:text-yellow-400">Return: {new Date(pass.return_time || pass.returnTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="italic mt-1 border-t border-yellow-500/10 pt-1 line-clamp-2">{pass.purpose}</p>
+                      </div>
                     </div>
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      <p>Adm: {pass.admissionNumber}</p>
-                      <p>Mentor: {pass.mentorName}</p>
-                      <p className="font-medium text-yellow-600 dark:text-yellow-400">Return: {new Date(pass.returnTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                      <p className="italic mt-1 border-t border-yellow-500/10 pt-1 line-clamp-1">{pass.purpose}</p>
-                    </div>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleReturnPass(pass.id)}
+                      className="mt-4 w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold"
+                    >
+                      Submit In
+                    </Button>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Quick Access Actions based on permissions */}
 
         {/* Search Section */}
         <Card className="mb-6">
