@@ -17,7 +17,7 @@ export default function SpecialPassPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
 
-  const { data: studentsData = [], isLoading } = useSWR("/api/students", fetcher, {
+  const { data: studentsData = [], isLoading, error: studentsError } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     dedupingInterval: 3600000,
@@ -25,10 +25,24 @@ export default function SpecialPassPage() {
   
   const students = Array.isArray(studentsData) ? studentsData : []
 
-  const { data: phoneStatus = {} } = useSWR("/api/phone-status", fetcher, {
+  const { data: phoneStatus = {}, error: phoneStatusError } = useSWR("/api/phone-status", fetcher, {
     refreshInterval: 30000,
     dedupingInterval: 15000,
   })
+
+  useEffect(() => {
+    if (studentsError) {
+      console.error("Error fetching students:", studentsError)
+      toast.error("Failed to load students")
+    }
+  }, [studentsError])
+
+  useEffect(() => {
+    if (phoneStatusError) {
+      console.error("Error fetching phone status:", phoneStatusError)
+      toast.error("Failed to load phone status")
+    }
+  }, [phoneStatusError])
 
   useEffect(() => {
     const token = localStorage.getItem("token")
