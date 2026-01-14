@@ -6,10 +6,12 @@ export const students = pgTable("students", {
   admission_number: text("admission_number").notNull().unique(),
   name: text("name").notNull(),
   locker_number: text("locker_number").notNull().default("-"),
-  phone_name: text("phone_name").default("Nill"),
-  class_name: text("class_name").default("-"),
-  roll_no: text("roll_no").default("-"),
-  special_pass: text("special_pass").default("NO"), // YES, NO
+  phone_number: text("phone_number"),
+  class: text("class"),
+  roll_number: text("roll_number"),
+  phone_name: text("phone_name"),
+  class_name: text("class_name"),
+  roll_no: text("roll_no"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

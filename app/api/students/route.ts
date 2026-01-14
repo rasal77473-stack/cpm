@@ -62,10 +62,12 @@ export async function POST(request: NextRequest) {
       admission_number: data.admission_number,
       name: data.name,
       locker_number: data.locker_number || "-",
-      phone_name: data.phone_name || "Nill",
-      class_name: data.class_name || "-",
-      roll_no: data.roll_no || "-",
-      special_pass: data.special_pass || "NO",
+      phone_number: data.phone_number,
+      class: data.class,
+      roll_number: data.roll_number,
+      phone_name: data.phone_name,
+      class_name: data.class_name,
+      roll_no: data.roll_no,
     }).returning()
     
     if (data.staffId) {
@@ -94,10 +96,12 @@ export async function PUT(request: NextRequest) {
         admission_number: updateData.admission_number,
         name: updateData.name,
         locker_number: updateData.locker_number,
+        phone_number: updateData.phone_number,
+        class: updateData.class,
+        roll_number: updateData.roll_number,
         phone_name: updateData.phone_name,
         class_name: updateData.class_name,
         roll_no: updateData.roll_no,
-        special_pass: updateData.special_pass,
       })
       .where(eq(students.id, Number(id)))
       .returning()
