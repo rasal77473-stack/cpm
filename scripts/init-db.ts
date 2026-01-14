@@ -12,7 +12,7 @@ async function initializeDatabase() {
         "id" serial PRIMARY KEY NOT NULL,
         "admission_number" text NOT NULL UNIQUE,
         "name" text NOT NULL,
-        "locker_number" text NOT NULL,
+        "locker_number" text NOT NULL DEFAULT '-',
         "phone_name" text DEFAULT 'Nill',
         "class_name" text DEFAULT '-',
         "roll_no" text DEFAULT '-',
