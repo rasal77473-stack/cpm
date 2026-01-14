@@ -164,27 +164,39 @@ export default function ManageStudents() {
       const method = isEditing ? "PUT" : "POST"
       const body = isEditing ? { ...newStudent, id: editingId } : newStudent
 
+      console.log(`📤 Sending ${method} request to ${url}:`, body)
+
       const response = await fetch(url, {
         method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
 
+      console.log(`📥 Response status: ${response.status} ${response.statusText}`)
+
       if (!response.ok) {
         let errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student`
+        let errorDetails = ""
+        
         try {
           const errorData = await response.json()
+          console.error("❌ Error response data:", errorData)
           if (errorData.error) {
             errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student: ${errorData.error}`
+            errorDetails = errorData.error
           }
         } catch (e) {
-          // If response is not JSON, use status text
-          errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student: ${response.statusText}`
+          const statusText = response.statusText || "Unknown error"
+          errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student: ${statusText}`
+          errorDetails = statusText
         }
+        
+        console.error(`❌ API Error [${response.status}]:`, errorDetails)
         throw new Error(errorMessage)
       }
 
       const savedStudent = await response.json()
+      console.log("✅ Student saved successfully:", savedStudent)
       
       // Update with real data from server
       const finalStudents = isEditing 
@@ -208,7 +220,8 @@ export default function ManageStudents() {
       alert(`Student ${isEditing ? 'updated' : 'added'} successfully!`)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : `Failed to ${isEditing ? 'update' : 'add'} student`
-      console.error("Error adding/updating student:", errorMessage, error)
+      console.error("❌ Error adding/updating student:", errorMessage, error)
+      console.error("Full error object:", error)
       setStudents(oldStudents)
       setFilteredStudents(oldStudents)
       alert(errorMessage)
