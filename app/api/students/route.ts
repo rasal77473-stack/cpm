@@ -39,10 +39,18 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Database error in GET /api/students:", error)
     const errorMessage = error?.message || "Failed to fetch students"
+    
     // If the table doesn't exist yet, return an empty array instead of 500
-    if (error.code === '42P01') {
+    if (error.code === '42P01' || errorMessage.includes("does not exist")) {
+      console.log("Students table doesn't exist yet, returning empty array")
       return NextResponse.json([])
     }
+    
+    // Log more detailed error info
+    if (error.code) {
+      console.error("PostgreSQL Error Code:", error.code)
+    }
+    
     return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
