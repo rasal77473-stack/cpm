@@ -60,40 +60,6 @@ export default function AdminPanel() {
 
   const [isAuthorized, setIsAuthorized] = useState(false)
 
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-    const role = localStorage.getItem("role")
-    const specialPass = localStorage.getItem("special_pass")
-    const name = localStorage.getItem("staffName")
-    const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
-
-    if (!token) {
-      router.push("/login")
-      return
-    }
-
-    if (role !== "admin" && specialPass !== "YES") {
-      router.replace("/dashboard")
-      return
-    }
-
-    setIsAuthorized(true)
-    setPermissions(perms)
-    setStaffName(name || "Staff")
-    fetchAllData()
-  }, [router])
-
-  if (loading || !isAuthorized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground animate-pulse">Verifying credentials...</p>
-        </div>
-      </div>
-    )
-  }
-
   const fetchAllData = async () => {
     try {
       const [studentsRes, statusRes, historyRes] = await Promise.all([
@@ -131,6 +97,40 @@ export default function AdminPanel() {
       console.error("Failed to fetch data:", error)
       setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    const role = localStorage.getItem("role")
+    const specialPass = localStorage.getItem("special_pass")
+    const name = localStorage.getItem("staffName")
+    const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
+
+    if (!token) {
+      router.push("/login")
+      return
+    }
+
+    if (role !== "admin" && specialPass !== "YES") {
+      router.replace("/dashboard")
+      return
+    }
+
+    setIsAuthorized(true)
+    setPermissions(perms)
+    setStaffName(name || "Staff")
+    fetchAllData()
+  }, [router])
+
+  if (loading || !isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground animate-pulse">Verifying credentials...</p>
+        </div>
+      </div>
+    )
   }
 
   const handleStudentClick = (student: Student) => {

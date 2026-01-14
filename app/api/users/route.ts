@@ -15,25 +15,35 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { username, password, name, role, permissions } = body;
+    const { username, password, name, role, permissions, special_pass } = body;
+
+    console.log("POST /api/users - Received body:", body);
 
     if (!username || !password || !name) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      console.log("POST /api/users - Missing required fields:", { username: !!username, password: !!password, name: !!name });
+      return NextResponse.json({ error: "Missing required fields: username, password, name" }, { status: 400 });
     }
 
-    const newUser = await db.insert(users).values({
+    const userData = {
       username,
       password,
       name,
-      role,
-      special_pass: body.special_pass || "NO",
+      role: role || "mentor",
+      special_pass: special_pass || "NO",
       permissions: permissions || ["view_only"],
-    }).returning();
+    };
 
-    return NextResponse.json(newUser[0]);
+    console.log("POST /api/users - Creating user with data:", userData);
+
+    const newUser = await db.insert(users).values(userData).returning();
+
+    console.log("POST /api/users - User created:", newUser);
+
+    return NextResponse.json(newUser[0], { status: 201 });
   } catch (error) {
-    console.error("Create user error:", error);
-    return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
+    console.error("POST /api/users - Create user error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: `Failed to create user: ${errorMessage}` }, { status: 500 });
   }
 }
 

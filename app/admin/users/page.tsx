@@ -40,6 +40,17 @@ export default function UserManagement() {
 
   const [isAuthorized, setIsAuthorized] = useState(false)
 
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Fetch users error:", err);
+      setUsers([]);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
@@ -63,17 +74,6 @@ export default function UserManagement() {
     )
   }
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch("/api/users");
-      const data = await res.json();
-      setUsers(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Fetch users error:", err);
-      setUsers([]);
-    }
-  };
-
   const fetchUserLogs = async (user: any) => {
     setLoadingLogs(true);
     setSelectedUserForLogs(user);
@@ -91,21 +91,45 @@ export default function UserManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = "/api/users";
-    const method = isEditing ? "PUT" : "POST";
-    const body = isEditing ? { ...formData, id: editingId } : formData;
+    try {
+      const url = "/api/users";
+      const method = isEditing ? "PUT" : "POST";
+      const body = isEditing ? { ...formData, id: editingId } : formData;
 
-    const res = await fetch(url, {
-      method,
-      body: JSON.stringify(body),
-      headers: { "Content-Type": "application/json" },
-    });
-    if (res.ok) {
-      toast.success(isEditing ? "User updated successfully" : "User created successfully");
-      fetchUsers();
-      resetForm();
-    } else {
-      toast.error(isEditing ? "Failed to update user" : "Failed to create user");
+      console.log("Sending request:", { method, body });
+
+      const res = await fetch(url, {
+        method,
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      console.log("Response status:", res.status, "StatusText:", res.statusText, "OK:", res.ok);
+
+      const text = await res.text();
+      console.log("Response text:", text);
+      
+      let responseData = {};
+      try {
+        responseData = JSON.parse(text);
+      } catch (e) {
+        console.warn("Could not parse response as JSON");
+      }
+      
+      console.log("Response data:", responseData);
+
+      if (res.ok) {
+        toast.success(isEditing ? "User updated successfully" : "User created successfully");
+        await fetchUsers();
+        resetForm();
+      } else {
+        const errorMsg = (responseData as any)?.error || `HTTP ${res.status}: ${res.statusText}`;
+        toast.error(errorMsg);
+        console.error("API Error:", { status: res.status, statusText: res.statusText, data: responseData });
+      }
+    } catch (error) {
+      toast.error("An error occurred while processing the request");
+      console.error("Submit error:", error);
     }
   };
 
