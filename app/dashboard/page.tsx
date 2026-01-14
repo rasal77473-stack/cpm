@@ -143,7 +143,7 @@ export default function DashboardPage() {
     } finally {
       setTogglingStudentId(null)
     }
-  }, [phoneStatus])
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem("token")
