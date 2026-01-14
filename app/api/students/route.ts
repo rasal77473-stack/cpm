@@ -61,10 +61,10 @@ export async function POST(request: NextRequest) {
     const newStudent = await db.insert(students).values({
       admission_number: data.admission_number,
       name: data.name,
-      locker_number: data.locker_number,
-      phone_name: data.phone_name,
-      class_name: data.class_name,
-      roll_no: data.roll_no,
+      locker_number: data.locker_number || "-",
+      phone_name: data.phone_name || "Nill",
+      class_name: data.class_name || "-",
+      roll_no: data.roll_no || "-",
       special_pass: data.special_pass || "NO",
     }).returning()
     
