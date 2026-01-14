@@ -50,6 +50,20 @@ export default function ManageStudents() {
 
   const [isAuthorized, setIsAuthorized] = useState(false)
 
+  // Calculate memos BEFORE early returns (Rules of Hooks)
+  const { lockers, classes } = useMemo(() => {
+    const classSet = new Set<string>()
+    const lockerSet = new Set<string>()
+    students.forEach((s) => {
+      if (s.class_name) classSet.add(s.class_name)
+      if (s.locker_number) lockerSet.add(s.locker_number)
+    })
+    return {
+      classes: ["all", ...Array.from(classSet).sort()],
+      lockers: ["all", ...Array.from(lockerSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))]
+    }
+  }, [students])
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
@@ -63,7 +77,22 @@ export default function ManageStudents() {
 
     setIsAuthorized(true)
     setStaffName(name || "Staff")
-    fetchStudents()
+    
+    const fetchStudentsData = async () => {
+      try {
+        const response = await fetch("/api/students")
+        const data = await response.json()
+        const studentList = Array.isArray(data) ? data : []
+        setStudents(studentList)
+        setFilteredStudents(studentList)
+        setLoading(false)
+      } catch (error) {
+        console.error("Failed to fetch students:", error)
+        setLoading(false)
+      }
+    }
+    
+    fetchStudentsData()
   }, [router])
 
   if (loading || !isAuthorized) {
@@ -76,33 +105,6 @@ export default function ManageStudents() {
       </div>
     )
   }
-
-  const fetchStudents = async () => {
-    try {
-      const response = await fetch("/api/students")
-      const data = await response.json()
-      const studentList = Array.isArray(data) ? data : []
-      setStudents(studentList)
-      setFilteredStudents(studentList)
-      setLoading(false)
-    } catch (error) {
-      console.error("Failed to fetch students:", error)
-      setLoading(false)
-    }
-  }
-
-  const { lockers, classes } = useMemo(() => {
-    const classSet = new Set<string>()
-    const lockerSet = new Set<string>()
-    students.forEach((s) => {
-      if (s.class_name) classSet.add(s.class_name)
-      if (s.locker_number) lockerSet.add(s.locker_number)
-    })
-    return {
-      classes: ["all", ...Array.from(classSet).sort()],
-      lockers: ["all", ...Array.from(lockerSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))]
-    }
-  }, [students])
 
   const handleSearch = (query: string, className: string = selectedClass, lockerNo: string = selectedLocker) => {
     setSearchQuery(query)

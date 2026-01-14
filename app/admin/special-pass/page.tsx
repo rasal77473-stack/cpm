@@ -30,6 +30,29 @@ export default function AdminSpecialPassPage() {
 
   const [isAuthorized, setIsAuthorized] = useState(false)
 
+  // Calculate memos BEFORE early returns (Rules of Hooks)
+  const classes = useMemo(() => {
+    const set = new Set<string>()
+    students.forEach((s: any) => { if (s.class_name) set.add(s.class_name) })
+    return ["all", ...Array.from(set).sort()]
+  }, [students])
+
+  const filteredStudents = useMemo(() => {
+    let filtered = students
+    if (selectedClass !== "all") {
+      filtered = filtered.filter((s: any) => s.class_name === selectedClass)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter((s: any) => 
+        s.name.toLowerCase().includes(q) || 
+        s.admission_number.toLowerCase().includes(q) || 
+        s.locker_number.toLowerCase().includes(q)
+      )
+    }
+    return filtered
+  }, [students, searchQuery, selectedClass])
+
   useEffect(() => {
     setIsClient(true)
     const token = localStorage.getItem("token")
@@ -59,28 +82,6 @@ export default function AdminSpecialPassPage() {
       </div>
     )
   }
-
-  const classes = useMemo(() => {
-    const set = new Set<string>()
-    students.forEach((s: any) => { if (s.class_name) set.add(s.class_name) })
-    return ["all", ...Array.from(set).sort()]
-  }, [students])
-
-  const filteredStudents = useMemo(() => {
-    let filtered = students
-    if (selectedClass !== "all") {
-      filtered = filtered.filter((s: any) => s.class_name === selectedClass)
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      filtered = filtered.filter((s: any) => 
-        s.name.toLowerCase().includes(q) || 
-        s.admission_number.toLowerCase().includes(q) || 
-        s.locker_number.toLowerCase().includes(q)
-      )
-    }
-    return filtered
-  }, [students, searchQuery, selectedClass])
 
   const toggleSpecialPass = async (studentId: number, currentPass: string) => {
     const newPass = currentPass === "YES" ? "NO" : "YES"
