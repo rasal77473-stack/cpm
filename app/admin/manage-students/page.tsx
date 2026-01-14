@@ -170,7 +170,19 @@ export default function ManageStudents() {
         body: JSON.stringify(body),
       })
 
-      if (!response.ok) throw new Error(`Failed to ${isEditing ? 'update' : 'add'} student`)
+      if (!response.ok) {
+        let errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student`
+        try {
+          const errorData = await response.json()
+          if (errorData.error) {
+            errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student: ${errorData.error}`
+          }
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student: ${response.statusText}`
+        }
+        throw new Error(errorMessage)
+      }
 
       const savedStudent = await response.json()
       
@@ -195,10 +207,11 @@ export default function ManageStudents() {
       setEditingId(null)
       alert(`Student ${isEditing ? 'updated' : 'added'} successfully!`)
     } catch (error) {
-      console.error(error)
+      const errorMessage = error instanceof Error ? error.message : `Failed to ${isEditing ? 'update' : 'add'} student`
+      console.error("Error adding/updating student:", errorMessage, error)
       setStudents(oldStudents)
       setFilteredStudents(oldStudents)
-      alert(`Failed to ${isEditing ? 'update' : 'add'} student`)
+      alert(errorMessage)
     }
   }
 
@@ -281,14 +294,21 @@ export default function ManageStudents() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(optimisticStudents),
         }).then(response => {
-          if (!response.ok) throw new Error("Bulk import failed")
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || "Bulk import failed")
+            }).catch(e => {
+              throw new Error(e.message || `Bulk import failed: ${response.statusText}`)
+            })
+          }
           return response.json()
         }).then(result => {
           fetchStudents() // Refresh to get real IDs in background
           alert(`Successfully imported ${result.count} students!`)
         }).catch(err => {
-          console.error("Bulk import error:", err)
-          alert("Failed to import students. Please try again.")
+          const errorMessage = err instanceof Error ? err.message : "Failed to import students. Please try again."
+          console.error("Bulk import error:", errorMessage, err)
+          alert(errorMessage)
           fetchStudents(); // Rollback on error
         });
       }
@@ -315,13 +335,25 @@ export default function ManageStudents() {
           method: "DELETE",
         })
 
-        if (!response.ok) throw new Error("Failed to delete student")
+        if (!response.ok) {
+          let errorMessage = "Failed to delete student"
+          try {
+            const errorData = await response.json()
+            if (errorData.error) {
+              errorMessage = `Failed to delete student: ${errorData.error}`
+            }
+          } catch (e) {
+            errorMessage = `Failed to delete student: ${response.statusText}`
+          }
+          throw new Error(errorMessage)
+        }
         alert("Student deleted successfully!")
       } catch (error) {
-        console.error(error)
+        const errorMessage = error instanceof Error ? error.message : "Failed to delete student"
+        console.error("Error deleting student:", errorMessage, error)
         setStudents(oldStudents)
         setFilteredStudents(oldStudents)
-        alert("Failed to delete student")
+        alert(errorMessage)
       }
     }
   }
@@ -337,13 +369,25 @@ export default function ManageStudents() {
           method: "PATCH",
         })
 
-        if (!response.ok) throw new Error("Failed to delete all students")
+        if (!response.ok) {
+          let errorMessage = "Failed to delete all students"
+          try {
+            const errorData = await response.json()
+            if (errorData.error) {
+              errorMessage = `Failed to delete all students: ${errorData.error}`
+            }
+          } catch (e) {
+            errorMessage = `Failed to delete all students: ${response.statusText}`
+          }
+          throw new Error(errorMessage)
+        }
         alert("All students deleted successfully!")
       } catch (error) {
-        console.error(error)
+        const errorMessage = error instanceof Error ? error.message : "Failed to delete all students"
+        console.error("Error deleting all students:", errorMessage, error)
         setStudents(oldStudents)
         setFilteredStudents(oldStudents)
-        alert("Failed to delete all students")
+        alert(errorMessage)
       }
     }
   }
