@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     })
 
     if (!status) {
-      return NextResponse.json({ message: "Status not found" }, { status: 404 })
+      return NextResponse.json({ error: "Status not found" }, { status: 404 })
     }
 
     return NextResponse.json({
@@ -30,8 +30,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       last_updated: status.lastUpdated?.toISOString()
     })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Failed to fetch phone status" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch phone status"
+    console.error("GET /api/phone-status/[id] error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -42,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { status, staffId, notes } = await request.json()
 
     if (!status) {
-      return NextResponse.json({ message: "Status is required" }, { status: 400 })
+      return NextResponse.json({ error: "Status is required" }, { status: 400 })
     }
 
     const updated = await db.insert(phoneStatus).values({
@@ -60,6 +61,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     return NextResponse.json({
+      success: true,
       message: "Status updated successfully",
       status: {
         student_id: updated[0].studentId,
@@ -68,7 +70,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       },
     })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Failed to update phone status" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to update phone status"
+    console.error("PUT /api/phone-status/[id] error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

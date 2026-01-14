@@ -78,7 +78,7 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
     await db.delete(users).where(eq(users.id, parseInt(id)));
-    return NextResponse.json({ message: "User deleted" });
+    return NextResponse.json({ success: true, message: "User deleted" });
   } catch (error) {
     return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
   }

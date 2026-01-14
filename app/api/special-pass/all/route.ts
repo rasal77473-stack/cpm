@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(allPasses)
   } catch (error) {
-    console.error("Failed to fetch all special passes:", error)
-    return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch special passes"
+    console.error("GET /api/special-pass/all error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

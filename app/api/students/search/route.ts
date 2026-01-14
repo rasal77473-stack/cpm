@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(filtered)
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Search failed" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Search failed"
+    console.error("GET /api/students/search error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

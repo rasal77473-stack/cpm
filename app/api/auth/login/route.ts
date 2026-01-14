@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const { username, password } = await request.json()
 
     if (!username || !password) {
-      return NextResponse.json({ message: "Username and password are required" }, { status: 400 })
+      return NextResponse.json({ error: "Username and password are required" }, { status: 400 })
     }
 
     // Default hardcoded admin for bootstrap
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1)
 
     if (!user || user.password !== password) {
-      return NextResponse.json({ message: "Invalid username or password" }, { status: 401 })
+      return NextResponse.json({ error: "Invalid username or password" }, { status: 401 })
     }
 
     const token = Buffer.from(`${user.id}:${Date.now()}`).toString("base64")
@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
       message: "Login successful",
     })
   } catch (error) {
-    return NextResponse.json({ message: "An error occurred during login" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "An error occurred during login"
+    console.error("POST /api/auth/login error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

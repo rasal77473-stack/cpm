@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Failed to fetch history" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch phone history"
+    console.error("GET /api/phone-history error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

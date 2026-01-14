@@ -10,6 +10,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const logs = await db.select().from(userActivityLogs).where(eq(userActivityLogs.userId, userId)).orderBy(desc(userActivityLogs.timestamp))
     return NextResponse.json(logs)
   } catch (error) {
-    return NextResponse.json({ message: "Failed to fetch logs" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch logs"
+    console.error("GET /api/users/[id]/logs error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

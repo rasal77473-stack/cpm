@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error("Failed to fetch active special passes:", error)
-    return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch active special passes"
+    console.error("GET /api/special-pass/active error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

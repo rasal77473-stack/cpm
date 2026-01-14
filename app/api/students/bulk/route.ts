@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
     if (!Array.isArray(data)) {
-      return NextResponse.json({ message: "Invalid data format" }, { status: 400 })
+      return NextResponse.json({ error: "Invalid data format" }, { status: 400 })
     }
 
     // Perform bulk insert - omit id and special_pass handling
@@ -21,11 +21,13 @@ export async function POST(request: NextRequest) {
     const result = await db.insert(students).values(studentsToInsert).returning()
     
     return NextResponse.json({ 
+      success: true,
       message: "Bulk import successful", 
       count: result.length 
     })
   } catch (error) {
-    console.error("Bulk insert error:", error)
-    return NextResponse.json({ message: "Failed to perform bulk import" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to perform bulk import"
+    console.error("POST /api/students/bulk error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

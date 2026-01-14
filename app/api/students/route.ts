@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         where: eq(students.id, Number.parseInt(id))
       })
       if (!student) {
-        return NextResponse.json({ message: "Student not found" }, { status: 404 })
+        return NextResponse.json({ error: "Student not found" }, { status: 404 })
       }
       return NextResponse.json(student, {
         headers: {
@@ -38,11 +38,12 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: any) {
     console.error("Database error in GET /api/students:", error)
+    const errorMessage = error?.message || "Failed to fetch students"
     // If the table doesn't exist yet, return an empty array instead of 500
     if (error.code === '42P01') {
       return NextResponse.json([])
     }
-    return NextResponse.json({ message: "Failed to fetch students" }, { status: 500 })
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -65,8 +66,9 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(newStudent[0])
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Failed to create student" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to create student"
+    console.error("POST /api/students error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -76,7 +78,7 @@ export async function PUT(request: NextRequest) {
     const { id, ...updateData } = data
 
     if (!id) {
-      return NextResponse.json({ message: "Student ID is required" }, { status: 400 })
+      return NextResponse.json({ error: "Student ID is required" }, { status: 400 })
     }
 
     const updated = await db.update(students)
@@ -93,13 +95,14 @@ export async function PUT(request: NextRequest) {
       .returning()
 
     if (updated.length === 0) {
-      return NextResponse.json({ message: "Student not found" }, { status: 404 })
+      return NextResponse.json({ error: "Student not found" }, { status: 404 })
     }
 
     return NextResponse.json(updated[0])
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Failed to update student" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to update student"
+    console.error("PUT /api/students error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -109,7 +112,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id")
 
     if (!id) {
-      return NextResponse.json({ message: "Student ID is required" }, { status: 400 })
+      return NextResponse.json({ error: "Student ID is required" }, { status: 400 })
     }
 
     const studentId = Number.parseInt(id)
@@ -121,13 +124,14 @@ export async function DELETE(request: NextRequest) {
     const deleted = await db.delete(students).where(eq(students.id, studentId)).returning()
 
     if (deleted.length === 0) {
-      return NextResponse.json({ message: "Student not found" }, { status: 404 })
+      return NextResponse.json({ error: "Student not found" }, { status: 404 })
     }
 
-    return NextResponse.json({ message: "Student deleted successfully" })
+    return NextResponse.json({ success: true, message: "Student deleted successfully" })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Failed to delete student" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete student"
+    console.error("DELETE /api/students error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
@@ -141,12 +145,13 @@ export async function PATCH(request: NextRequest) {
       await db.delete(phoneStatus)
       // Then delete all students
       await db.delete(students)
-      return NextResponse.json({ message: "All students deleted successfully" })
+      return NextResponse.json({ success: true, message: "All students deleted successfully" })
     }
 
-    return NextResponse.json({ message: "Invalid action" }, { status: 400 })
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Failed to delete all students" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete all students"
+    console.error("PATCH /api/students error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

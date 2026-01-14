@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (existingPass.length > 0) {
-      return NextResponse.json({ message: "Student already has an active special pass" }, { status: 400 })
+      return NextResponse.json({ error: "Student already has an active special pass" }, { status: 400 })
     }
 
     // Insert into specialPassGrants
@@ -44,9 +44,10 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ message: "Success" })
+    return NextResponse.json({ success: true, message: "Special pass granted successfully" })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ message: "Failed" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to grant special pass"
+    console.error("POST /api/special-pass/grant error:", errorMessage, error)
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
