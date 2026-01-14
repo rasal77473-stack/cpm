@@ -30,11 +30,6 @@ export async function POST(request: NextRequest) {
       returnTime: new Date(returnTime),
     })
 
-    // Update student special_pass status
-    await db.update(students)
-      .set({ special_pass: "YES" })
-      .where(eq(students.id, Number(studentId)))
-
     // Log activity
     if (staffId) {
       await db.insert(userActivityLogs).values({
