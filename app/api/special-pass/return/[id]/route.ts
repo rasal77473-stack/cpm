@@ -29,14 +29,6 @@ export async function POST(
       })
       .where(eq(specialPassGrants.id, grantId))
 
-    // Update student special_pass status
-    await db
-      .update(students)
-      .set({
-        special_pass: "NO",
-      })
-      .where(eq(students.id, grant.studentId))
-
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Failed to return special pass:", error)

@@ -5,18 +5,27 @@ import { eq, sql } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
   try {
-    // We join with the grants table to get details if needed, 
-    // but the requirement is just to show students with special_pass = 'YES'
+    // Get all active special pass grants with student details
     const activePasses = await db.execute(sql`
       SELECT 
-        s.*, 
+        s.id,
+        s.admission_number,
+        s.name,
+        s.locker_number,
+        s.phone_number,
+        s.class,
+        s.roll_number,
+        s.phone_name,
+        s.class_name,
+        s.roll_no,
+        s.created_at,
         spg.purpose, 
         spg.mentor_name, 
         spg.issue_time, 
         spg.return_time 
       FROM students s
       JOIN special_pass_grants spg ON s.id = spg.student_id
-      WHERE s.special_pass = 'YES' AND spg.status = 'ACTIVE'
+      WHERE spg.status = 'ACTIVE'
       ORDER BY spg.issue_time DESC
     `)
     
