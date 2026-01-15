@@ -75,16 +75,19 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
       })
 
       if (res.ok) {
-        toast.success("Special pass granted successfully")
-        // Force revalidation of student data
-        mutate("/api/students")
-        router.push("/admin/special-pass")
+        toast.success("Special pass granted successfully! Redirecting...")
+        // Force revalidation of student data and special passes
+        await mutate("/api/students")
+        await mutate("/api/special-pass/all")
+        // Add a small delay before redirect for better UX
+        setTimeout(() => {
+          router.push("/admin/special-pass")
+        }, 500)
       } else {
         throw new Error("Failed to grant pass")
       }
     } catch (err) {
       toast.error("An error occurred")
-    } finally {
       setSubmitting(false)
     }
   }
