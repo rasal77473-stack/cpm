@@ -5,9 +5,17 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, Search, Star, LogOut, Phone, Loader2 } from "lucide-react"
+import { ChevronLeft, Search, Star, LogOut, Phone, Loader2, Clock, CheckCircle2, AlertCircle } from "lucide-react"
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -16,6 +24,7 @@ export default function SpecialPassPage() {
   const [staffName, setStaffName] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
+  const [buttonStates, setButtonStates] = useState<Record<number, "IN" | "OUT">>({})
 
   const { data: studentsData = [], isLoading, error: studentsError } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
@@ -29,6 +38,23 @@ export default function SpecialPassPage() {
     refreshInterval: 30000,
     dedupingInterval: 15000,
   })
+
+  const { data: allPasses = [], error: passesError } = useSWR("/api/special-pass/all", fetcher, {
+    refreshInterval: 30000,
+    dedupingInterval: 15000,
+  })
+
+  useEffect(() => {
+    if (phoneStatus && Object.keys(phoneStatus).length > 0) {
+      const newStates: Record<number, "IN" | "OUT"> = {}
+      for (const [key, value] of Object.entries(phoneStatus)) {
+        const studentId = parseInt(key)
+        const status = value as any
+        newStates[studentId] = status?.status || "IN"
+      }
+      setButtonStates(newStates)
+    }
+  }, [phoneStatus])
 
   useEffect(() => {
     if (studentsError) {
@@ -45,6 +71,12 @@ export default function SpecialPassPage() {
   }, [phoneStatusError])
 
   useEffect(() => {
+    if (passesError) {
+      console.error("Error fetching special passes:", passesError)
+    }
+  }, [passesError])
+
+  useEffect(() => {
     const token = localStorage.getItem("token")
     if (!token) {
       router.push("/login")
@@ -57,17 +89,11 @@ export default function SpecialPassPage() {
     setTogglingStudentId(studentId)
     const newStatus = currentStatus === "IN" ? "OUT" : "IN"
     
-    // Optimistic Update
-    const oldStatus = { ...phoneStatus }
-    const optimisticStatus = { 
-      ...phoneStatus, 
-      [studentId]: { 
-        status: newStatus, 
-        last_updated: new Date().toISOString() 
-      } 
-    }
-    
-    mutate("/api/phone-status", optimisticStatus, false)
+    // Update button state immediately
+    setButtonStates(prev => ({
+      ...prev,
+      [studentId]: newStatus
+    }))
 
     try {
       const response = await fetch(`/api/phone-status/${studentId}`, {
@@ -85,8 +111,12 @@ export default function SpecialPassPage() {
       toast.success(`Phone marked as ${newStatus}`)
       mutate("/api/phone-status")
     } catch (error) {
+      // Revert on error
+      setButtonStates(prev => ({
+        ...prev,
+        [studentId]: currentStatus as "IN" | "OUT"
+      }))
       toast.error("Update failed. Reverting...")
-      mutate("/api/phone-status", oldStatus, false)
     } finally {
       setTogglingStudentId(null)
     }
@@ -209,17 +239,18 @@ export default function SpecialPassPage() {
                     {/* Submit Out Button */}
                     <div className="mt-4">
                       {(() => {
-                        const status = phoneStatus[student.id]
-                        const isPhoneIn = status?.status === "IN"
-                        const isToggling = togglingStudentId === student.id
                         const phoneVal = (student.phone_name || "").toLowerCase().trim()
                         const hasNoPhone = !phoneVal || phoneVal === "nill" || phoneVal === "nil" || phoneVal === "none" || phoneVal === "-"
 
                         if (hasNoPhone) return null
 
+                        const currentButtonState = buttonStates[student.id]
+                        const isPhoneIn = currentButtonState === "IN"
+                        const isToggling = togglingStudentId === student.id
+
                         return (
                           <Button
-                            onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
+                            onClick={() => handleTogglePhoneStatus(student.id, currentButtonState || "IN")}
                             size="sm"
                             className={`w-full rounded-xl font-semibold shadow transition-all duration-300 active:scale-95 ${
                               isPhoneIn 
@@ -236,6 +267,76 @@ export default function SpecialPassPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Special Pass History Section */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Special Pass History
+            </CardTitle>
+            <CardDescription>All granted special passes with their submission times and status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {allPasses.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No special pass history yet</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student Name</TableHead>
+                      <TableHead>Admission</TableHead>
+                      <TableHead>Mentor</TableHead>
+                      <TableHead>Purpose</TableHead>
+                      <TableHead>Issued Time</TableHead>
+                      <TableHead>Return Time</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allPasses.map((pass: any) => (
+                      <TableRow key={pass.id}>
+                        <TableCell className="font-medium">{pass.studentName}</TableCell>
+                        <TableCell>{pass.admissionNumber}</TableCell>
+                        <TableCell>{pass.mentorName}</TableCell>
+                        <TableCell className="max-w-xs truncate">{pass.purpose}</TableCell>
+                        <TableCell>
+                          {pass.issueTime ? new Date(pass.issueTime).toLocaleString() : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {pass.returnTime ? new Date(pass.returnTime).toLocaleString() : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {pass.status === "ACTIVE" && (
+                              <>
+                                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                                <span className="text-sm font-medium text-yellow-600 dark:text-yellow-500">Active</span>
+                              </>
+                            )}
+                            {pass.status === "COMPLETED" && (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500" />
+                                <span className="text-sm font-medium text-green-600 dark:text-green-500">Completed</span>
+                              </>
+                            )}
+                            {pass.status === "EXPIRED" && (
+                              <>
+                                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-500" />
+                                <span className="text-sm font-medium text-red-600 dark:text-red-500">Expired</span>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
