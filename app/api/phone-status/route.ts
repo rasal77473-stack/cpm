@@ -1,61 +1,66 @@
 import { db } from "@/db";
 import { phoneStatus } from "@/db/schema";
 import { NextResponse } from "next/server";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
+// GET - Retrieve all phone statuses
 export async function GET() {
   try {
-    // Get all phone status records, ordered by latest updated first
-    const allStatus = await db
+    const statuses = await db
       .select()
       .from(phoneStatus)
       .orderBy(desc(phoneStatus.lastUpdated));
 
-    // Build a map keeping only the latest status for each student
-    const statusMap: Record<number, any> = {};
-    
-    for (const record of allStatus) {
-      // If we haven't seen this student before, add them (they're latest due to ordering)
-      if (!statusMap[record.studentId]) {
-        statusMap[record.studentId] = {
-          student_id: record.studentId,
-          status: record.status,
-          last_updated: record.lastUpdated?.toISOString() || new Date().toISOString()
-        };
-      }
-    }
-
-    return NextResponse.json(statusMap, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10'
-      }
-    });
+    return NextResponse.json(statuses);
   } catch (error) {
     console.error("GET /api/phone-status error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to fetch status";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch phone statuses" },
+      { status: 500 }
+    );
   }
 }
 
+// POST - Create a new phone status record
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { studentId, status, notes, updatedBy, permissions } = body;
+    const { studentId, status, notes, updatedBy } = body;
 
-    // Permissions check
-    if (permissions && !permissions.includes('in_out_control') && !permissions.includes('manage_students')) {
-      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
+    // Validate required fields
+    if (!studentId || !status) {
+      return NextResponse.json(
+        { error: "studentId and status are required" },
+        { status: 400 }
+      );
     }
 
-    const newStatus = await db.insert(phoneStatus).values({
-      studentId,
-      status,
-      notes,
-      updatedBy,
-    }).returning();
+    // Validate status value
+    const validStatuses = ["IN", "OUT"];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `Status must be one of: ${validStatuses.join(", ")}` },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json(newStatus[0]);
+    // Insert new phone status record
+    const newRecord = await db
+      .insert(phoneStatus)
+      .values({
+        studentId,
+        status,
+        notes: notes || null,
+        updatedBy: updatedBy || "system",
+      })
+      .returning();
+
+    return NextResponse.json(newRecord[0], { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
+    console.error("POST /api/phone-status error:", error);
+    return NextResponse.json(
+      { error: "Failed to create phone status record" },
+      { status: 500 }
+    );
   }
 }

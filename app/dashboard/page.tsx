@@ -129,6 +129,34 @@ export default function DashboardPage() {
     
     console.log(`Toggling phone status for student ${studentId}: ${currentStatus} → ${newStatus}`)
 
+    // Get staffId first to ensure we have it before making the request
+    const staffId = localStorage.getItem("staffId")
+    const staffName = localStorage.getItem("staffName")
+    
+    if (!staffId) {
+      toast.error("Authentication error: Staff ID not found. Please log in again.")
+      setTogglingStudentId(null)
+      return
+    }
+
+    // Check permissions
+    let userPermissions: string[] = [];
+    try {
+      const storedPerms = localStorage.getItem("permissions");
+      userPermissions = storedPerms ? JSON.parse(storedPerms) : [];
+    } catch (e) {
+      console.error("Failed to parse permissions from localStorage", e);
+      toast.error("Permission error: Unable to verify permissions. Please log in again.");
+      setTogglingStudentId(null);
+      return;
+    }
+    
+    if (!userPermissions.includes("in_out_control")) {
+      toast.error("Permission denied: You don't have permission to change phone status.");
+      setTogglingStudentId(null);
+      return;
+    }
+
     // Store old status for potential revert
     const oldPhoneStatus = { ...phoneStatus }
 
@@ -149,7 +177,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           status: newStatus,
-          staffId: localStorage.getItem("staffId"),
+          staffId: parseInt(staffId), // Convert to number as expected by API
           notes: ""
         }),
       })
@@ -172,7 +200,7 @@ export default function DashboardPage() {
       console.error(`Error toggling phone status for student ${studentId}:`, error)
       
       // Revert optimistic update on error
-      toast.error(error instanceof Error ? error.message : "Failed to update phone status. Reverting...")
+      toast.error(error instanceof Error ? error.message : "Failed to update phone status. Please try again.")
       mutate("/api/phone-status", oldPhoneStatus, false)
     } finally {
       setTogglingStudentId(null)

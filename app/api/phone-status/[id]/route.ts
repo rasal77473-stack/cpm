@@ -3,114 +3,145 @@ import { db } from "@/db"
 import { phoneStatus, userActivityLogs, students } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 
-async function logActivity(userId: number, action: string, details: string) {
-  try {
-    await db.insert(userActivityLogs).values({ userId, action, details })
-  } catch (e) {
-    console.error("Logging failed:", e)
-  }
-}
-
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// GET - Retrieve latest phone status for a student
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params
-    const studentId = Number.parseInt(id)
-    const status = await db.query.phoneStatus.findFirst({
-      where: eq(phoneStatus.studentId, studentId),
-      orderBy: [desc(phoneStatus.lastUpdated)]
-    })
+    const studentId = parseInt(id)
 
-    if (!status) {
-      return NextResponse.json({ error: "Status not found" }, { status: 404 })
+    // Validate student ID
+    if (!studentId || isNaN(studentId)) {
+      return NextResponse.json(
+        { error: "Invalid student ID" },
+        { status: 400 }
+      )
     }
 
-    return NextResponse.json({
-      student_id: status.studentId,
-      status: status.status,
-      last_updated: status.lastUpdated?.toISOString()
-    })
+    // Get latest phone status
+    const [status] = await db
+      .select()
+      .from(phoneStatus)
+      .where(eq(phoneStatus.studentId, studentId))
+      .orderBy(desc(phoneStatus.lastUpdated))
+      .limit(1)
+
+    if (!status) {
+      return NextResponse.json(
+        { error: "Phone status not found" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(status)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to fetch phone status"
-    console.error("GET /api/phone-status/[id] error:", errorMessage, error)
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    console.error("GET /api/phone-status/[id] error:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch phone status" },
+      { status: 500 }
+    )
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// PUT - Update phone status for a student
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params
-    const studentId = Number.parseInt(id)
-    const { status, staffId, notes } = await request.json()
+    const studentId = parseInt(id)
+    const body = await request.json()
+    const { status, updatedBy, notes } = body
 
-    console.log(`PUT /api/phone-status/${studentId} - Setting status to: ${status}`)
-
-    if (!status) {
-      return NextResponse.json({ error: "Status is required" }, { status: 400 })
+    // Validate required fields
+    if (!studentId || isNaN(studentId)) {
+      return NextResponse.json(
+        { error: "Invalid student ID" },
+        { status: 400 }
+      )
     }
 
-    // First, check if student already has a phone status record
-    const existingStatus = await db.query.phoneStatus.findFirst({
-      where: eq(phoneStatus.studentId, studentId),
-    })
+    if (!status) {
+      return NextResponse.json(
+        { error: "Status is required" },
+        { status: 400 }
+      )
+    }
 
-    console.log(`Existing status for student ${studentId}:`, existingStatus?.status)
+    // Validate status value
+    const validStatuses = ["IN", "OUT"]
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `Status must be one of: ${validStatuses.join(", ")}` },
+        { status: 400 }
+      )
+    }
 
-    let result;
-    
-    if (existingStatus) {
-      // UPDATE existing record
-      console.log(`Updating existing record for student ${studentId}`)
-      await db
+    // Check if record exists
+    const [existing] = await db
+      .select()
+      .from(phoneStatus)
+      .where(eq(phoneStatus.studentId, studentId))
+      .limit(1)
+
+    let result
+
+    if (existing) {
+      // Update existing record
+      const [updated] = await db
         .update(phoneStatus)
         .set({
           status,
-          updatedBy: staffId,
-          notes: notes || "",
+          updatedBy: updatedBy || "system",
+          notes: notes || null,
           lastUpdated: new Date(),
         })
         .where(eq(phoneStatus.studentId, studentId))
+        .returning()
 
-      // Fetch the updated record to return
-      result = await db.query.phoneStatus.findFirst({
-        where: eq(phoneStatus.studentId, studentId),
-      })
+      result = updated
     } else {
-      // INSERT new record if doesn't exist
-      console.log(`Inserting new record for student ${studentId}`)
-      const inserted = await db.insert(phoneStatus).values({
-        studentId,
-        status,
-        updatedBy: staffId,
-        notes: notes || "",
-      }).returning()
-      result = inserted[0]
+      // Create new record
+      const [created] = await db
+        .insert(phoneStatus)
+        .values({
+          studentId,
+          status,
+          updatedBy: updatedBy || "system",
+          notes: notes || null,
+        })
+        .returning()
+
+      result = created
     }
 
-    if (!result) {
-      throw new Error("Failed to retrieve updated status record")
-    }
+    // Log the activity if updatedBy is provided
+    if (updatedBy) {
+      const [student] = await db
+        .select()
+        .from(students)
+        .where(eq(students.id, studentId))
+        .limit(1)
 
-    if (staffId) {
-      const student = await db.query.students.findFirst({
-        where: eq(students.id, studentId)
+      await db.insert(userActivityLogs).values({
+        userId: parseInt(updatedBy),
+        action: "PHONE_STATUS_CHANGE",
+        details: `Phone status changed to ${status} for student ${student?.name || studentId}`,
       })
-      await logActivity(Number(staffId), "PHONE_STATUS_CHANGE", `Marked ${student?.name || studentId} as ${status}`)
     }
 
-    console.log(`Successfully updated status for student ${studentId} to: ${status}`)
-
-    return NextResponse.json({
-      success: true,
-      message: "Status updated successfully",
-      status: {
-        student_id: result.studentId,
-        status: result.status,
-        last_updated: result.lastUpdated?.toISOString()
-      },
-    })
+    return NextResponse.json(
+      { success: true, message: "Phone status updated successfully", data: result },
+      { status: 200 }
+    )
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to update phone status"
-    console.error("PUT /api/phone-status/[id] error:", errorMessage, error)
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    console.error("PUT /api/phone-status/[id] error:", error)
+    return NextResponse.json(
+      { error: "Failed to update phone status" },
+      { status: 500 }
+    )
   }
 }

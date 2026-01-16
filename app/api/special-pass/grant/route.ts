@@ -1,48 +1,70 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { userActivityLogs, students, specialPassGrants } from "@/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { userActivityLogs, specialPassGrants } from "@/db/schema"
+import { eq, and } from "drizzle-orm"
 
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json()
-    const { studentId, mentorId, mentorName, purpose, returnTime, staffId } = data
+    const body = await request.json()
+    const { studentId, mentorId, mentorName, purpose, returnTime, staffId } = body
 
-    // Check if student already has an active or out pass
+    // Validate required fields
+    if (!studentId || !mentorId || !mentorName || !purpose) {
+      return NextResponse.json(
+        { error: "studentId, mentorId, mentorName, and purpose are required" },
+        { status: 400 }
+      )
+    }
+
+    // Check if student already has an active pass
     const existingPass = await db
       .select()
       .from(specialPassGrants)
       .where(
-        sql`${specialPassGrants.studentId} = ${Number(studentId)} AND ${specialPassGrants.status} IN ('ACTIVE', 'OUT')`
+        and(
+          eq(specialPassGrants.studentId, Number(studentId)),
+          eq(specialPassGrants.status, "ACTIVE")
+        )
       )
       .limit(1)
 
     if (existingPass.length > 0) {
-      return NextResponse.json({ error: "Student already has an active special pass" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Student already has an active special pass" },
+        { status: 400 }
+      )
     }
 
-    // Insert into specialPassGrants
-    await db.insert(specialPassGrants).values({
-      studentId: Number(studentId),
-      mentorId: Number(mentorId),
-      mentorName,
-      purpose,
-      returnTime: new Date(returnTime),
-    })
+    // Create new special pass grant
+    const [newGrant] = await db
+      .insert(specialPassGrants)
+      .values({
+        studentId: Number(studentId),
+        mentorId: Number(mentorId),
+        mentorName,
+        purpose,
+        returnTime: returnTime ? new Date(returnTime) : null,
+      })
+      .returning()
 
-    // Log activity
+    // Log the activity
     if (staffId) {
       await db.insert(userActivityLogs).values({
         userId: Number(staffId),
         action: "GRANT_SPECIAL_PASS",
-        details: `Granted special pass to student ID: ${studentId}. Purpose: ${purpose}`
+        details: `Granted special pass to student ${studentId}. Purpose: ${purpose}`,
       })
     }
 
-    return NextResponse.json({ success: true, message: "Special pass granted successfully" })
+    return NextResponse.json(
+      { success: true, message: "Special pass granted successfully", data: newGrant },
+      { status: 201 }
+    )
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to grant special pass"
-    console.error("POST /api/special-pass/grant error:", errorMessage, error)
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    console.error("POST /api/special-pass/grant error:", error)
+    return NextResponse.json(
+      { error: "Failed to grant special pass" },
+      { status: 500 }
+    )
   }
 }

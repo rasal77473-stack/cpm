@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, Search, Star, LogOut, Phone, Loader2, Clock, CheckCircle2, AlertCircle } from "lucide-react"
+import { ChevronLeft, Search, Star, LogOut, Clock, CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
 import {
@@ -23,69 +23,20 @@ export default function SpecialPassPage() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-  const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
-  const [buttonStates, setButtonStates] = useState<Record<number, "IN" | "OUT">>({})
+  const [returningPassId, setReturningPassId] = useState<number | null>(null)
 
-  const { data: studentsData = [], isLoading, error: studentsError } = useSWR("/api/students", fetcher, {
+  // Fetch all students
+  const { data: studentsData = [], isLoading: studentLoading } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
-    revalidateOnReconnect: false,
     dedupingInterval: 3600000,
   })
-  
+
   const students = Array.isArray(studentsData) ? studentsData : []
 
-  const { data: phoneStatus = {}, error: phoneStatusError } = useSWR("/api/phone-status", fetcher, {
+  // Fetch all special passes
+  const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 30000,
-    dedupingInterval: 15000,
   })
-
-  const { data: allPasses = [], error: passesError } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 30000,
-    dedupingInterval: 15000,
-  })
-
-  useEffect(() => {
-    if (phoneStatus && Object.keys(phoneStatus).length > 0) {
-      const newStates: Record<number, "IN" | "OUT"> = {}
-      for (const [key, value] of Object.entries(phoneStatus)) {
-        const studentId = parseInt(key)
-        const status = value as any
-        newStates[studentId] = status?.status || "IN"
-      }
-      // Only update states that have changed
-      setButtonStates(prev => {
-        const updated = { ...prev }
-        let hasChanges = false
-        for (const [id, status] of Object.entries(newStates)) {
-          if (updated[parseInt(id)] !== status) {
-            updated[parseInt(id)] = status
-            hasChanges = true
-          }
-        }
-        return hasChanges ? updated : prev
-      })
-    }
-  }, [phoneStatus])
-
-  useEffect(() => {
-    if (studentsError) {
-      console.error("Error fetching students:", studentsError)
-      toast.error("Failed to load students")
-    }
-  }, [studentsError])
-
-  useEffect(() => {
-    if (phoneStatusError) {
-      console.error("Error fetching phone status:", phoneStatusError)
-      toast.error("Failed to load phone status")
-    }
-  }, [phoneStatusError])
-
-  useEffect(() => {
-    if (passesError) {
-      console.error("Error fetching special passes:", passesError)
-    }
-  }, [passesError])
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -96,72 +47,44 @@ export default function SpecialPassPage() {
     setStaffName(localStorage.getItem("staffName") || "Staff")
   }, [router])
 
-  const handleTogglePhoneStatus = async (studentId: number, currentStatus: string) => {
-    const newStatus = currentStatus === "IN" ? "OUT" : "IN"
-    
-    // Update button state INSTANTLY - this is immediate visual feedback
-    setButtonStates(prev => ({
-      ...prev,
-      [studentId]: newStatus
-    }))
-    
-    // Disable button while sending request
-    setTogglingStudentId(studentId)
-
-    try {
-      const response = await fetch(`/api/phone-status/${studentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          status: newStatus,
-          staffId: localStorage.getItem("staffId"),
-          notes: ""
-        }),
-      })
-
-      if (!response.ok) throw new Error("Failed to update status")
-      
-      toast.success(`Phone marked as ${newStatus}`)
-      // Don't need to mutate since we're managing state locally
-      mutate("/api/phone-status")
-    } catch (error) {
-      // Revert on error only
-      setButtonStates(prev => ({
-        ...prev,
-        [studentId]: currentStatus as "IN" | "OUT"
-      }))
-      toast.error("Update failed. Reverting...")
-    } finally {
-      setTogglingStudentId(null)
-    }
-  }
-
+  // Filter students with special pass (if needed based on your schema)
   const specialStudents = useMemo(() => {
     return students.filter((s: any) => s.special_pass === "YES")
   }, [students])
 
-  useEffect(() => {
-    // Initialize button states for all special students
-    const newStates: Record<number, "IN" | "OUT"> = {}
-    specialStudents.forEach((student: any) => {
-      if (!buttonStates[student.id]) {
-        newStates[student.id] = "IN" // Default to IN
-      }
-    })
-    if (Object.keys(newStates).length > 0) {
-      setButtonStates(prev => ({ ...prev, ...newStates }))
-    }
-  }, [specialStudents])
-
-  const filteredStudents = useMemo(() => {
-    if (!searchQuery.trim()) return specialStudents
+  // Filter passes based on search
+  const filteredPasses = useMemo(() => {
+    if (!searchQuery.trim()) return allPasses
     const q = searchQuery.toLowerCase()
-    return specialStudents.filter((s: any) => 
-      s.name.toLowerCase().includes(q) || 
-      s.admission_number.toLowerCase().includes(q) || 
-      s.locker_number.toLowerCase().includes(q)
+    return allPasses.filter((p: any) =>
+      p.studentName?.toLowerCase().includes(q) ||
+      p.admissionNumber?.toLowerCase().includes(q) ||
+      p.mentorName?.toLowerCase().includes(q) ||
+      p.purpose?.toLowerCase().includes(q)
     )
-  }, [specialStudents, searchQuery])
+  }, [allPasses, searchQuery])
+
+  const handleReturnPass = async (passId: number) => {
+    setReturningPassId(passId)
+    try {
+      const response = await fetch(`/api/special-pass/return/${passId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to return pass")
+      }
+
+      toast.success("Special pass returned successfully")
+      mutate("/api/special-pass/all")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to return pass")
+    } finally {
+      setReturningPassId(null)
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -172,6 +95,7 @@ export default function SpecialPassPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -184,7 +108,7 @@ export default function SpecialPassPage() {
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Special Pass Students</h1>
+              <h1 className="text-2xl font-bold text-foreground">Special Pass Management</h1>
               <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
             </div>
           </div>
@@ -196,16 +120,17 @@ export default function SpecialPassPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Search Section */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Search Special Pass Students</CardTitle>
-            <CardDescription>Only students with administration authorization are shown here</CardDescription>
+            <CardTitle>Search Special Passes</CardTitle>
+            <CardDescription>Find and manage special pass grants</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, admission number, or locker..."
+                placeholder="Search by student name, admission, mentor, or purpose..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -214,129 +139,49 @@ export default function SpecialPassPage() {
           </CardContent>
         </Card>
 
+        {/* Special Passes Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Authorized Students ({filteredStudents.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading...</div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {searchQuery ? "No matching students found" : "No students have a special pass yet"}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredStudents.map((student: any) => (
-                  <div
-                    key={student.id}
-                    className="p-5 rounded-2xl border border-yellow-400 bg-yellow-50/50 dark:bg-yellow-900/10 shadow-sm hover:shadow-md transition-all duration-300"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                          {student.name}
-                          <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                        </h3>
-                        <p className="text-sm text-muted-foreground">Adm: {student.admission_number}</p>
-                      </div>
-                      <div className="bg-yellow-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
-                        Authorized
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Locker:</span>
-                        <span className="font-medium">{student.locker_number}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Class:</span>
-                        <span className="font-medium">{student.class_name || "-"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Roll:</span>
-                        <span className="font-medium">{student.roll_no || "-"}</span>
-                      </div>
-                      <div className="flex justify-between pt-2 border-t border-yellow-200 dark:border-yellow-800">
-                        <span className="text-muted-foreground font-bold">Phone:</span>
-                        <span className="font-bold text-yellow-700 dark:text-yellow-400">{student.phone_name || "Nill"}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Submit Out Button */}
-                    <div className="mt-4">
-                      {(() => {
-                        const phoneVal = (student.phone_name || "").toLowerCase().trim()
-                        const hasNoPhone = !phoneVal || phoneVal === "nill" || phoneVal === "nil" || phoneVal === "none" || phoneVal === "-"
-
-                        if (hasNoPhone) return null
-
-                        const currentButtonState = buttonStates[student.id]
-                        const isPhoneIn = currentButtonState === "IN"
-                        const isToggling = togglingStudentId === student.id
-
-                        return (
-                          <Button
-                            onClick={() => handleTogglePhoneStatus(student.id, currentButtonState || "IN")}
-                            size="sm"
-                            className={`w-full rounded-xl font-semibold shadow transition-all duration-300 active:scale-95 ${
-                              isPhoneIn 
-                                ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
-                                : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                            }`}
-                            disabled={isToggling}
-                          >
-                            {isToggling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone className="w-4 h-4" />}
-                            <span className="ml-2">{isPhoneIn ? "Submit OUT" : "Submit IN"}</span>
-                          </Button>
-                        )
-                      })()}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Special Pass History Section */}
-        <Card className="mt-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Special Pass History
+              Special Pass Records ({filteredPasses.length})
             </CardTitle>
-            <CardDescription>All granted special passes with their submission times and status</CardDescription>
+            <CardDescription>View and manage all special pass grants</CardDescription>
           </CardHeader>
           <CardContent>
-            {allPasses.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No special pass history yet</div>
+            {passesLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading passes...</div>
+            ) : filteredPasses.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchQuery ? "No matching passes found" : "No special passes yet"}
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Student Name</TableHead>
+                      <TableHead>Student</TableHead>
                       <TableHead>Admission</TableHead>
                       <TableHead>Mentor</TableHead>
                       <TableHead>Purpose</TableHead>
-                      <TableHead>Issued Time</TableHead>
-                      <TableHead>Return Time</TableHead>
+                      <TableHead>Issued</TableHead>
+                      <TableHead>Returned</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {allPasses.map((pass: any) => (
+                    {filteredPasses.map((pass: any) => (
                       <TableRow key={pass.id}>
-                        <TableCell className="font-medium">{pass.studentName}</TableCell>
-                        <TableCell>{pass.admissionNumber}</TableCell>
-                        <TableCell>{pass.mentorName}</TableCell>
-                        <TableCell className="max-w-xs truncate">{pass.purpose}</TableCell>
-                        <TableCell>
-                          {pass.issueTime ? new Date(pass.issueTime).toLocaleString() : "-"}
+                        <TableCell className="font-medium">{pass.studentName || "Unknown"}</TableCell>
+                        <TableCell className="text-sm">{pass.admissionNumber}</TableCell>
+                        <TableCell className="text-sm">{pass.mentorName}</TableCell>
+                        <TableCell className="text-sm max-w-xs truncate">{pass.purpose}</TableCell>
+                        <TableCell className="text-sm">
+                          {pass.issueTime ? new Date(pass.issueTime).toLocaleDateString() : "-"}
                         </TableCell>
-                        <TableCell>
-                          {pass.returnTime ? new Date(pass.returnTime).toLocaleString() : "-"}
+                        <TableCell className="text-sm">
+                          {pass.returnTime ? new Date(pass.returnTime).toLocaleDateString() : "-"}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -359,6 +204,22 @@ export default function SpecialPassPage() {
                               </>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {pass.status === "ACTIVE" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleReturnPass(pass.id)}
+                              disabled={returningPassId === pass.id}
+                            >
+                              {returningPassId === pass.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                "Return"
+                              )}
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
