@@ -173,76 +173,94 @@ export default function DashboardPage() {
   }
 
   const handleOutPass = async (grantId: number) => {
-    // Update button state INSTANTLY
+    setTogglingStudentId(grantId)
+    
+    // Update button state INSTANTLY for visual feedback
     setSpecialPassButtonStates(prev => ({
       ...prev,
       [grantId]: "OUT"
     }))
-    setTogglingStudentId(grantId)
 
     try {
+      console.log(`Marking special pass ${grantId} as OUT`)
+      
       const response = await fetch(`/api/special-pass/out/${grantId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
 
-      const data = await response.json()
+      const responseData = await response.json()
+      console.log("Out pass response:", responseData)
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to mark out")
+        throw new Error(responseData?.error || `HTTP ${response.status}: Failed to mark out`)
       }
 
-      toast.success("Special pass marked as OUT ✓")
-      // Give a moment before refreshing
+      toast.success("✓ Special pass marked as OUT")
+      console.log(`Successfully marked pass ${grantId} as OUT`)
+      
+      // Refresh the active passes list after a brief delay
       setTimeout(() => {
         mutate("/api/special-pass/active")
-      }, 500)
+      }, 300)
     } catch (error) {
-      console.error("Out pass error:", error)
-      // Revert on error
+      console.error(`Error marking pass ${grantId} as OUT:`, error)
+      
+      // Revert button state on error
       setSpecialPassButtonStates(prev => ({
         ...prev,
         [grantId]: "IN"
       }))
-      toast.error(error instanceof Error ? error.message : "Failed to mark special pass as OUT")
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to mark special pass as OUT"
+      toast.error(errorMessage)
     } finally {
       setTogglingStudentId(null)
     }
   }
 
   const handleReturnPass = async (grantId: number) => {
-    // Update button state INSTANTLY
+    setTogglingStudentId(grantId)
+    
+    // Update button state INSTANTLY for visual feedback
     setSpecialPassButtonStates(prev => ({
       ...prev,
       [grantId]: "IN"
     }))
-    setTogglingStudentId(grantId)
 
     try {
+      console.log(`Returning special pass ${grantId}`)
+      
       const response = await fetch(`/api/special-pass/return/${grantId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
 
-      const data = await response.json()
+      const responseData = await response.json()
+      console.log("Return pass response:", responseData)
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to return pass")
+        throw new Error(responseData?.error || `HTTP ${response.status}: Failed to return pass`)
       }
 
-      toast.success("Special pass submitted successfully! ✓")
-      // Give a moment before refreshing
+      toast.success("✓ Special pass submitted successfully")
+      console.log(`Successfully returned pass ${grantId}`)
+      
+      // Refresh the active passes list after a brief delay
       setTimeout(() => {
         mutate("/api/special-pass/active")
-      }, 500)
+      }, 300)
     } catch (error) {
-      console.error("Return pass error:", error)
-      // Revert on error
+      console.error(`Error returning pass ${grantId}:`, error)
+      
+      // Revert button state on error
       setSpecialPassButtonStates(prev => ({
         ...prev,
         [grantId]: "OUT"
       }))
-      toast.error(error instanceof Error ? error.message : "Failed to submit special pass")
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit special pass"
+      toast.error(errorMessage)
     } finally {
       setTogglingStudentId(null)
     }
