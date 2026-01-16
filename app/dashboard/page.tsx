@@ -59,8 +59,10 @@ export default function DashboardPage() {
   const students = Array.isArray(studentsData) ? studentsData : []
 
   const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 10000,
-    dedupingInterval: 2000,
+    refreshInterval: 30000, // Refresh every 30 seconds instead of 10
+    dedupingInterval: 15000, // Dedupe for 15 seconds
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
   })
 
   const [permissions, setPermissions] = useState<string[]>([])
