@@ -1,35 +1,37 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { students } from "@/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { specialPassGrants, students } from "@/db/schema"
+import { eq, or, sql } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
   try {
-    // Get all active special pass grants with student details
-    const activePasses = await db.execute(sql`
-      SELECT 
-        s.id,
-        s.admission_number,
-        s.name,
-        s.locker_number,
-        s.phone_number,
-        s.class,
-        s.roll_number,
-        s.phone_name,
-        s.class_name,
-        s.roll_no,
-        s.created_at,
-        spg.purpose, 
-        spg.mentor_name, 
-        spg.issue_time, 
-        spg.return_time 
-      FROM students s
-      JOIN special_pass_grants spg ON s.id = spg.student_id
-      WHERE spg.status = 'ACTIVE'
-      ORDER BY spg.issue_time DESC
-    `)
+    // Get all ACTIVE and OUT special pass grants with student details
+    const activePasses = await db
+      .select({
+        id: specialPassGrants.id,
+        studentId: specialPassGrants.studentId,
+        name: students.name,
+        admissionNumber: students.admission_number,
+        lockerNumber: students.locker_number,
+        className: students.class_name,
+        rollNo: students.roll_no,
+        mentorName: specialPassGrants.mentorName,
+        purpose: specialPassGrants.purpose,
+        issueTime: specialPassGrants.issueTime,
+        returnTime: specialPassGrants.returnTime,
+        status: specialPassGrants.status,
+      })
+      .from(specialPassGrants)
+      .innerJoin(students, eq(specialPassGrants.studentId, students.id))
+      .where(
+        or(
+          eq(specialPassGrants.status, "ACTIVE"),
+          eq(specialPassGrants.status, "OUT")
+        )
+      )
+      .orderBy(sql`${specialPassGrants.issueTime} DESC`)
     
-    return NextResponse.json(activePasses.rows, {
+    return NextResponse.json(activePasses, {
       headers: {
         'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10'
       }

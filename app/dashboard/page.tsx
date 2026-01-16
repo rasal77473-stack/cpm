@@ -304,19 +304,19 @@ export default function DashboardPage() {
                   <div key={pass.id} className="p-4 rounded-xl border border-yellow-500/20 bg-card shadow-sm flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold">{pass.name || pass.studentName || pass.student_name}</h4>
+                        <h4 className="font-bold">{pass.name}</h4>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                           pass.status === 'OUT' 
                             ? "bg-orange-100 text-orange-700" 
                             : "bg-yellow-100 text-yellow-700"
                         }`}>
-                          {pass.status || 'ACTIVE'}
+                          {pass.status}
                         </span>
                       </div>
                       <div className="space-y-1 text-xs text-muted-foreground">
-                        <p>Adm: {pass.admission_number || pass.admissionNumber}</p>
-                        <p>Mentor: {pass.mentor_name || pass.mentorName}</p>
-                        <p className="font-medium text-yellow-600 dark:text-yellow-400">Return: {new Date(pass.return_time || pass.returnTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p>Adm: {pass.admissionNumber}</p>
+                        <p>Mentor: {pass.mentorName}</p>
+                        <p className="font-medium text-yellow-600 dark:text-yellow-400">Return: {pass.returnTime ? new Date(pass.returnTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}</p>
                         <p className="italic mt-1 border-t border-yellow-500/10 pt-1 line-clamp-2">{pass.purpose}</p>
                       </div>
                     </div>
