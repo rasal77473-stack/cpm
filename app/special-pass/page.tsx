@@ -52,7 +52,18 @@ export default function SpecialPassPage() {
         const status = value as any
         newStates[studentId] = status?.status || "IN"
       }
-      setButtonStates(newStates)
+      // Only update states that have changed
+      setButtonStates(prev => {
+        const updated = { ...prev }
+        let hasChanges = false
+        for (const [id, status] of Object.entries(newStates)) {
+          if (updated[parseInt(id)] !== status) {
+            updated[parseInt(id)] = status
+            hasChanges = true
+          }
+        }
+        return hasChanges ? updated : prev
+      })
     }
   }, [phoneStatus])
 
@@ -86,14 +97,16 @@ export default function SpecialPassPage() {
   }, [router])
 
   const handleTogglePhoneStatus = async (studentId: number, currentStatus: string) => {
-    setTogglingStudentId(studentId)
     const newStatus = currentStatus === "IN" ? "OUT" : "IN"
     
-    // Update button state immediately
+    // Update button state INSTANTLY - this is immediate visual feedback
     setButtonStates(prev => ({
       ...prev,
       [studentId]: newStatus
     }))
+    
+    // Disable button while sending request
+    setTogglingStudentId(studentId)
 
     try {
       const response = await fetch(`/api/phone-status/${studentId}`, {
@@ -109,9 +122,10 @@ export default function SpecialPassPage() {
       if (!response.ok) throw new Error("Failed to update status")
       
       toast.success(`Phone marked as ${newStatus}`)
+      // Don't need to mutate since we're managing state locally
       mutate("/api/phone-status")
     } catch (error) {
-      // Revert on error
+      // Revert on error only
       setButtonStates(prev => ({
         ...prev,
         [studentId]: currentStatus as "IN" | "OUT"
