@@ -127,8 +127,12 @@ export default function DashboardPage() {
     setTogglingStudentId(studentId)
     const newStatus = currentStatus === "IN" ? "OUT" : "IN"
     
-    // Optimistic Update
-    const oldStatus = { ...phoneStatus }
+    console.log(`Toggling phone status for student ${studentId}: ${currentStatus} → ${newStatus}`)
+
+    // Store old status for potential revert
+    const oldPhoneStatus = { ...phoneStatus }
+
+    // Optimistic update - show change immediately
     const optimisticStatus = { 
       ...phoneStatus, 
       [studentId]: { 
@@ -137,8 +141,6 @@ export default function DashboardPage() {
       } 
     }
     
-    // Use mutate with the new data immediately, and set revalidate to false 
-    // to prevent an immediate network refresh from overwriting our optimistic state
     mutate("/api/phone-status", optimisticStatus, false)
 
     try {
@@ -152,18 +154,30 @@ export default function DashboardPage() {
         }),
       })
 
-      if (!response.ok) throw new Error("Failed to update status")
+      const responseData = await response.json()
+      console.log(`Phone status update response for student ${studentId}:`, responseData)
+
+      if (!response.ok) {
+        throw new Error(responseData?.error || `HTTP ${response.status}: Failed to update status`)
+      }
       
-      toast.success(`Phone marked as ${newStatus}`)
-      // Trigger a silent revalidation in the background
-      mutate("/api/phone-status")
+      toast.success(`✓ Phone marked as ${newStatus}`)
+      console.log(`Successfully marked student ${studentId} phone as ${newStatus}`)
+      
+      // Revalidate in background after a brief delay
+      setTimeout(() => {
+        mutate("/api/phone-status")
+      }, 300)
     } catch (error) {
-      toast.error("Update failed. Reverting...")
-      mutate("/api/phone-status", oldStatus, false)
+      console.error(`Error toggling phone status for student ${studentId}:`, error)
+      
+      // Revert optimistic update on error
+      toast.error(error instanceof Error ? error.message : "Failed to update phone status. Reverting...")
+      mutate("/api/phone-status", oldPhoneStatus, false)
     } finally {
       setTogglingStudentId(null)
     }
-  }, [])
+  }, [phoneStatus])
 
   const handleLogout = () => {
     localStorage.removeItem("token")
