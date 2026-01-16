@@ -1,30 +1,26 @@
 import { db } from "@/db";
 import { phoneStatus } from "@/db/schema";
 import { NextResponse } from "next/server";
-import { desc, sql } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 
 export async function GET() {
   try {
-    // Get only the latest status record for each student
+    // Get all phone status records, ordered by latest updated first
     const allStatus = await db
-      .selectDistinct({ studentId: phoneStatus.studentId })
+      .select()
       .from(phoneStatus)
       .orderBy(desc(phoneStatus.lastUpdated));
 
-    // Build map with latest status for each student
+    // Build a map keeping only the latest status for each student
     const statusMap: Record<number, any> = {};
     
     for (const record of allStatus) {
-      const latest = await db.query.phoneStatus.findFirst({
-        where: (ps: any) => sql`${ps.studentId} = ${record.studentId}`,
-        orderBy: [desc(phoneStatus.lastUpdated)]
-      });
-
-      if (latest) {
-        statusMap[latest.studentId] = {
-          student_id: latest.studentId,
-          status: latest.status,
-          last_updated: latest.lastUpdated?.toISOString() || new Date().toISOString()
+      // If we haven't seen this student before, add them (they're latest due to ordering)
+      if (!statusMap[record.studentId]) {
+        statusMap[record.studentId] = {
+          student_id: record.studentId,
+          status: record.status,
+          last_updated: record.lastUpdated?.toISOString() || new Date().toISOString()
         };
       }
     }

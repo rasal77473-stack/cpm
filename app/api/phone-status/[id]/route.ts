@@ -42,6 +42,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const studentId = Number.parseInt(id)
     const { status, staffId, notes } = await request.json()
 
+    console.log(`PUT /api/phone-status/${studentId} - Setting status to: ${status}`)
+
     if (!status) {
       return NextResponse.json({ error: "Status is required" }, { status: 400 })
     }
@@ -51,11 +53,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       where: eq(phoneStatus.studentId, studentId),
     })
 
-    let updated;
+    console.log(`Existing status for student ${studentId}:`, existingStatus?.status)
+
+    let result;
     
     if (existingStatus) {
       // UPDATE existing record
-      updated = await db
+      console.log(`Updating existing record for student ${studentId}`)
+      await db
         .update(phoneStatus)
         .set({
           status,
@@ -64,15 +69,25 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           lastUpdated: new Date(),
         })
         .where(eq(phoneStatus.studentId, studentId))
-        .returning()
+
+      // Fetch the updated record to return
+      result = await db.query.phoneStatus.findFirst({
+        where: eq(phoneStatus.studentId, studentId),
+      })
     } else {
       // INSERT new record if doesn't exist
-      updated = await db.insert(phoneStatus).values({
+      console.log(`Inserting new record for student ${studentId}`)
+      const inserted = await db.insert(phoneStatus).values({
         studentId,
         status,
         updatedBy: staffId,
         notes: notes || "",
       }).returning()
+      result = inserted[0]
+    }
+
+    if (!result) {
+      throw new Error("Failed to retrieve updated status record")
     }
 
     if (staffId) {
@@ -82,13 +97,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       await logActivity(Number(staffId), "PHONE_STATUS_CHANGE", `Marked ${student?.name || studentId} as ${status}`)
     }
 
+    console.log(`Successfully updated status for student ${studentId} to: ${status}`)
+
     return NextResponse.json({
       success: true,
       message: "Status updated successfully",
       status: {
-        student_id: updated[0].studentId,
-        status: updated[0].status,
-        last_updated: updated[0].lastUpdated?.toISOString()
+        student_id: result.studentId,
+        status: result.status,
+        last_updated: result.lastUpdated?.toISOString()
       },
     })
   } catch (error) {
