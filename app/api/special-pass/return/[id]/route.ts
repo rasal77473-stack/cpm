@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { specialPassGrants, students } from "@/db/schema"
+import { specialPassGrants, students, userActivityLogs } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 export async function POST(
@@ -21,17 +21,28 @@ export async function POST(
     }
 
     // Update grant status and return time
-    await db
+    const result = await db
       .update(specialPassGrants)
       .set({
         status: "COMPLETED",
         returnTime: new Date(),
       })
       .where(eq(specialPassGrants.id, grantId))
+      .returning()
 
-    return NextResponse.json({ success: true })
+    // Log the return action
+    if (grant.mentorId) {
+      await db.insert(userActivityLogs).values({
+        userId: grant.mentorId,
+        action: "RETURN_SPECIAL_PASS",
+        details: `Special pass returned for student ID: ${grant.studentId}. Pass ID: ${grantId}`
+      })
+    }
+
+    return NextResponse.json({ success: true, message: "Special pass completed successfully" })
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to process return"
     console.error("Failed to return special pass:", error)
-    return NextResponse.json({ error: "Failed to process return" }, { status: 500 })
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

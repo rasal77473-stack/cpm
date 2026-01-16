@@ -181,19 +181,28 @@ export default function DashboardPage() {
     try {
       const response = await fetch(`/api/special-pass/out/${grantId}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
       })
 
-      if (!response.ok) throw new Error("Failed to mark out")
+      const data = await response.json()
 
-      toast.success("Special pass marked as OUT")
-      mutate("/api/special-pass/active")
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to mark out")
+      }
+
+      toast.success("Special pass marked as OUT ✓")
+      // Give a moment before refreshing
+      setTimeout(() => {
+        mutate("/api/special-pass/active")
+      }, 500)
     } catch (error) {
+      console.error("Out pass error:", error)
       // Revert on error
       setSpecialPassButtonStates(prev => ({
         ...prev,
         [grantId]: "IN"
       }))
-      toast.error("Failed to mark special pass as OUT")
+      toast.error(error instanceof Error ? error.message : "Failed to mark special pass as OUT")
     } finally {
       setTogglingStudentId(null)
     }
@@ -210,20 +219,28 @@ export default function DashboardPage() {
     try {
       const response = await fetch(`/api/special-pass/return/${grantId}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
       })
 
-      if (!response.ok) throw new Error("Failed to return pass")
+      const data = await response.json()
 
-      toast.success("Special pass submitted successfully")
-      mutate("/api/special-pass/active")
-      mutate("/api/students")
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to return pass")
+      }
+
+      toast.success("Special pass submitted successfully! ✓")
+      // Give a moment before refreshing
+      setTimeout(() => {
+        mutate("/api/special-pass/active")
+      }, 500)
     } catch (error) {
+      console.error("Return pass error:", error)
       // Revert on error
       setSpecialPassButtonStates(prev => ({
         ...prev,
         [grantId]: "OUT"
       }))
-      toast.error("Failed to submit special pass")
+      toast.error(error instanceof Error ? error.message : "Failed to submit special pass")
     } finally {
       setTogglingStudentId(null)
     }

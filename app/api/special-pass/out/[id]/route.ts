@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { specialPassGrants } from "@/db/schema"
+import { specialPassGrants, userActivityLogs } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 export async function POST(
@@ -21,17 +21,27 @@ export async function POST(
     }
 
     // Update grant status to OUT
-    // We don't reset student special_pass to NO yet, that happens on IN (return)
-    await db
+    const result = await db
       .update(specialPassGrants)
       .set({
         status: "OUT",
       })
       .where(eq(specialPassGrants.id, grantId))
+      .returning()
 
-    return NextResponse.json({ success: true })
+    // Log the out action
+    if (grant.mentorId) {
+      await db.insert(userActivityLogs).values({
+        userId: grant.mentorId,
+        action: "OUT_SPECIAL_PASS",
+        details: `Student left with special pass. Student ID: ${grant.studentId}. Pass ID: ${grantId}`
+      })
+    }
+
+    return NextResponse.json({ success: true, message: "Special pass marked as OUT" })
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to process out"
     console.error("Failed to mark special pass as OUT:", error)
-    return NextResponse.json({ error: "Failed to process out" }, { status: 500 })
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
