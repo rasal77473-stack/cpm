@@ -46,12 +46,34 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Status is required" }, { status: 400 })
     }
 
-    const updated = await db.insert(phoneStatus).values({
-      studentId,
-      status,
-      updatedBy: staffId,
-      notes: notes || "",
-    }).returning()
+    // First, check if student already has a phone status record
+    const existingStatus = await db.query.phoneStatus.findFirst({
+      where: eq(phoneStatus.studentId, studentId),
+    })
+
+    let updated;
+    
+    if (existingStatus) {
+      // UPDATE existing record
+      updated = await db
+        .update(phoneStatus)
+        .set({
+          status,
+          updatedBy: staffId,
+          notes: notes || "",
+          lastUpdated: new Date(),
+        })
+        .where(eq(phoneStatus.studentId, studentId))
+        .returning()
+    } else {
+      // INSERT new record if doesn't exist
+      updated = await db.insert(phoneStatus).values({
+        studentId,
+        status,
+        updatedBy: staffId,
+        notes: notes || "",
+      }).returning()
+    }
 
     if (staffId) {
       const student = await db.query.students.findFirst({

@@ -1,22 +1,33 @@
 import { db } from "@/db";
 import { phoneStatus } from "@/db/schema";
 import { NextResponse } from "next/server";
-import { desc } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 
 export async function GET() {
   try {
-    const allStatus = await db.select().from(phoneStatus).orderBy(desc(phoneStatus.lastUpdated));
+    // Get only the latest status record for each student
+    const allStatus = await db
+      .selectDistinct({ studentId: phoneStatus.studentId })
+      .from(phoneStatus)
+      .orderBy(desc(phoneStatus.lastUpdated));
+
+    // Build map with latest status for each student
+    const statusMap: Record<number, any> = {};
     
-    const statusMap = allStatus.reduce((acc, curr) => {
-      if (!acc[curr.studentId]) {
-        acc[curr.studentId] = {
-          student_id: curr.studentId,
-          status: curr.status,
-          last_updated: curr.lastUpdated?.toISOString() || new Date().toISOString()
-        }
+    for (const record of allStatus) {
+      const latest = await db.query.phoneStatus.findFirst({
+        where: (ps: any) => sql`${ps.studentId} = ${record.studentId}`,
+        orderBy: [desc(phoneStatus.lastUpdated)]
+      });
+
+      if (latest) {
+        statusMap[latest.studentId] = {
+          student_id: latest.studentId,
+          status: latest.status,
+          last_updated: latest.lastUpdated?.toISOString() || new Date().toISOString()
+        };
       }
-      return acc;
-    }, {} as Record<number, any>);
+    }
 
     return NextResponse.json(statusMap, {
       headers: {
