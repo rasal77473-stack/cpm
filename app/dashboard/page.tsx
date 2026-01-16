@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [selectedClass, setSelectedClass] = useState("all")
   const [selectedLocker, setSelectedLocker] = useState("all")
   const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
+  const [specialPassButtonStates, setSpecialPassButtonStates] = useState<Record<number, "OUT" | "IN">>({})
 
   const { data: studentsData = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
@@ -37,6 +38,16 @@ export default function DashboardPage() {
     refreshInterval: 15000,
     dedupingInterval: 5000,
   })
+
+  useEffect(() => {
+    if (activePasses && Array.isArray(activePasses)) {
+      const newStates: Record<number, "OUT" | "IN"> = {}
+      activePasses.forEach((pass: any) => {
+        newStates[pass.id] = pass.status === "OUT" ? "OUT" : "IN"
+      })
+      setSpecialPassButtonStates(newStates)
+    }
+  }, [activePasses])
 
   const students = Array.isArray(studentsData) ? studentsData : []
 
@@ -153,12 +164,14 @@ export default function DashboardPage() {
   }
 
   const handleOutPass = async (grantId: number) => {
-    try {
-      // Optimistically update the UI to show OUT status
-      mutate("/api/special-pass/active", (current: any) => {
-        return current.map((p: any) => p.id === grantId ? { ...p, status: 'OUT' } : p)
-      }, false)
+    // Update button state INSTANTLY
+    setSpecialPassButtonStates(prev => ({
+      ...prev,
+      [grantId]: "OUT"
+    }))
+    setTogglingStudentId(grantId)
 
+    try {
       const response = await fetch(`/api/special-pass/out/${grantId}`, {
         method: "POST",
       })
@@ -166,16 +179,27 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error("Failed to mark out")
 
       toast.success("Special pass marked as OUT")
-      // Revalidate in background
       mutate("/api/special-pass/active")
     } catch (error) {
+      // Revert on error
+      setSpecialPassButtonStates(prev => ({
+        ...prev,
+        [grantId]: "IN"
+      }))
       toast.error("Failed to mark special pass as OUT")
-      // Revert optimism
-      mutate("/api/special-pass/active")
+    } finally {
+      setTogglingStudentId(null)
     }
   }
 
   const handleReturnPass = async (grantId: number) => {
+    // Update button state INSTANTLY
+    setSpecialPassButtonStates(prev => ({
+      ...prev,
+      [grantId]: "IN"
+    }))
+    setTogglingStudentId(grantId)
+
     try {
       const response = await fetch(`/api/special-pass/return/${grantId}`, {
         method: "POST",
@@ -187,7 +211,14 @@ export default function DashboardPage() {
       mutate("/api/special-pass/active")
       mutate("/api/students")
     } catch (error) {
+      // Revert on error
+      setSpecialPassButtonStates(prev => ({
+        ...prev,
+        [grantId]: "OUT"
+      }))
       toast.error("Failed to submit special pass")
+    } finally {
+      setTogglingStudentId(null)
     }
   }
 
@@ -266,20 +297,28 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4">
-                      {pass.status !== 'OUT' ? (
+                      {specialPassButtonStates[pass.id] !== 'OUT' ? (
                         <Button 
                           size="sm" 
                           onClick={() => handleOutPass(pass.id)}
+                          disabled={togglingStudentId === pass.id}
                           className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold"
                         >
+                          {togglingStudentId === pass.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                          ) : null}
                           Submit Out
                         </Button>
                       ) : (
                         <Button 
                           size="sm" 
                           onClick={() => handleReturnPass(pass.id)}
+                          disabled={togglingStudentId === pass.id}
                           className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
                         >
+                          {togglingStudentId === pass.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                          ) : null}
                           Submit In
                         </Button>
                       )}
