@@ -140,6 +140,19 @@ export default function SpecialPassPage() {
     return students.filter((s: any) => s.special_pass === "YES")
   }, [students])
 
+  useEffect(() => {
+    // Initialize button states for all special students
+    const newStates: Record<number, "IN" | "OUT"> = {}
+    specialStudents.forEach((student: any) => {
+      if (!buttonStates[student.id]) {
+        newStates[student.id] = "IN" // Default to IN
+      }
+    })
+    if (Object.keys(newStates).length > 0) {
+      setButtonStates(prev => ({ ...prev, ...newStates }))
+    }
+  }, [specialStudents])
+
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return specialStudents
     const q = searchQuery.toLowerCase()

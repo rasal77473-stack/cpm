@@ -45,7 +45,14 @@ export default function DashboardPage() {
       activePasses.forEach((pass: any) => {
         newStates[pass.id] = pass.status === "OUT" ? "OUT" : "IN"
       })
-      setSpecialPassButtonStates(newStates)
+      // Initialize all passes in button states
+      setSpecialPassButtonStates(prev => {
+        const updated = { ...prev }
+        for (const [id, status] of Object.entries(newStates)) {
+          updated[parseInt(id)] = status
+        }
+        return updated
+      })
     }
   }, [activePasses])
 
