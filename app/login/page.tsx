@@ -42,11 +42,8 @@ export default function LoginPage() {
       localStorage.setItem("special_pass", data.special_pass || "NO")
       localStorage.setItem("permissions", JSON.stringify(data.permissions))
       
-      if (data.role === "admin" || data.special_pass === "YES") {
-        router.push("/admin")
-      } else {
-        router.push("/dashboard")
-      }
+      // All users go to dashboard after login
+      router.push("/dashboard")
     } catch (err) {
       setError("An error occurred. Please try again.")
       console.error(err)
