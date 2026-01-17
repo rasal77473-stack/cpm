@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { userActivityLogs, specialPassGrants } from "@/db/schema"
+import { userActivityLogs, specialPassGrants, students } from "@/db/schema"
 import { eq, and } from "drizzle-orm"
 
 export async function POST(request: NextRequest) {
@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
     const { studentId, mentorId, mentorName, purpose, returnTime, staffId } = body
 
     // Validate required fields
-    if (!studentId || !mentorId || !mentorName || !purpose) {
+    if (!studentId || mentorId === undefined || mentorId === null || !mentorName || !purpose) {
+      console.log("Missing fields:", { studentId, mentorId, mentorName, purpose })
       return NextResponse.json(
         { error: "studentId, mentorId, mentorName, and purpose are required" },
         { status: 400 }
@@ -46,6 +47,11 @@ export async function POST(request: NextRequest) {
         returnTime: returnTime ? new Date(returnTime) : null,
       })
       .returning()
+
+    // Update student's special_pass status
+    await db.update(students)
+      .set({ special_pass: "YES" })
+      .where(eq(students.id, Number(studentId)))
 
     // Log the activity
     if (staffId) {

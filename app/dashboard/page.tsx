@@ -19,6 +19,16 @@ import {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
+const phoneStatusFetcher = (url: string) => fetch(url).then((res) => res.json()).then((data) => {
+  if (Array.isArray(data)) {
+    return data.reduce((acc: any, curr: any) => {
+      acc[curr.studentId] = curr
+      return acc
+    }, {})
+  }
+  return data
+})
+
 export default function DashboardPage() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
@@ -34,7 +44,7 @@ export default function DashboardPage() {
     dedupingInterval: 60000, // 1 minute
   })
 
-  const { data: activePasses = [], isLoading: loadingPasses } = useSWR("/api/special-pass/active", fetcher, {
+  const { data: activePasses, isLoading: loadingPasses } = useSWR("/api/special-pass/active", fetcher, {
     refreshInterval: 15000,
     dedupingInterval: 5000,
   })
@@ -47,20 +57,40 @@ export default function DashboardPage() {
       })
       // Initialize all passes in button states
       setSpecialPassButtonStates(prev => {
+        let hasChanges = false
         const updated = { ...prev }
         for (const [id, status] of Object.entries(newStates)) {
-          updated[parseInt(id)] = status
+          if (updated[parseInt(id)] !== status) {
+            updated[parseInt(id)] = status
+            hasChanges = true
+          }
         }
-        return updated
+        return hasChanges ? updated : prev
       })
     }
   }, [activePasses])
 
+  const [searchQuerySpecialPass, setSearchQuerySpecialPass] = useState("")
+
+  const filteredActivePasses = useMemo(() => {
+    if (!activePasses) return []
+    if (!searchQuerySpecialPass.trim()) return activePasses
+
+    const q = searchQuerySpecialPass.toLowerCase()
+    return activePasses.filter((pass: any) =>
+      (pass.studentName || pass.name || "").toLowerCase().includes(q) ||
+      (pass.admissionNumber || "").toLowerCase().includes(q) ||
+      (pass.lockerNumber || "").toLowerCase().includes(q)
+    )
+  }, [activePasses, searchQuerySpecialPass])
+
   const students = Array.isArray(studentsData) ? studentsData : []
 
-  const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 30000, // Refresh every 30 seconds instead of 10
-    dedupingInterval: 15000, // Dedupe for 15 seconds
+
+
+  const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", phoneStatusFetcher, {
+    refreshInterval: 30000,
+    dedupingInterval: 15000,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   })
@@ -103,7 +133,7 @@ export default function DashboardPage() {
 
   const filteredStudents = useMemo(() => {
     let filtered = students
-    
+
     if (selectedClass !== "all") {
       filtered = filtered.filter((s: any) => s.class_name === selectedClass)
     }
@@ -113,11 +143,11 @@ export default function DashboardPage() {
     }
 
     if (!searchQuery.trim()) return filtered
-    
+
     const q = searchQuery.toLowerCase()
-    return filtered.filter((s: any) => 
-      s.name.toLowerCase().includes(q) || 
-      s.admission_number.toLowerCase().includes(q) || 
+    return filtered.filter((s: any) =>
+      s.name.toLowerCase().includes(q) ||
+      s.admission_number.toLowerCase().includes(q) ||
       s.locker_number.toLowerCase().includes(q) ||
       (s.roll_no && s.roll_no.toLowerCase().includes(q))
     )
@@ -126,13 +156,13 @@ export default function DashboardPage() {
   const handleTogglePhoneStatus = useCallback(async (studentId: number, currentStatus: string) => {
     setTogglingStudentId(studentId)
     const newStatus = currentStatus === "IN" ? "OUT" : "IN"
-    
+
     console.log(`Toggling phone status for student ${studentId}: ${currentStatus} → ${newStatus}`)
 
     // Get staffId first to ensure we have it before making the request
     const staffId = localStorage.getItem("staffId")
     const staffName = localStorage.getItem("staffName")
-    
+
     if (!staffId) {
       toast.error("Authentication error: Staff ID not found. Please log in again.")
       setTogglingStudentId(null)
@@ -150,7 +180,7 @@ export default function DashboardPage() {
       setTogglingStudentId(null);
       return;
     }
-    
+
     if (!userPermissions.includes("in_out_control")) {
       toast.error("Permission denied: You don't have permission to change phone status.");
       setTogglingStudentId(null);
@@ -161,23 +191,23 @@ export default function DashboardPage() {
     const oldPhoneStatus = { ...phoneStatus }
 
     // Optimistic update - show change immediately
-    const optimisticStatus = { 
-      ...phoneStatus, 
-      [studentId]: { 
-        status: newStatus, 
-        last_updated: new Date().toISOString() 
-      } 
+    const optimisticStatus = {
+      ...phoneStatus,
+      [studentId]: {
+        status: newStatus,
+        last_updated: new Date().toISOString()
+      }
     }
-    
+
     mutate("/api/phone-status", optimisticStatus, false)
 
     try {
       const response = await fetch(`/api/phone-status/${studentId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: newStatus,
-          staffId: parseInt(staffId), // Convert to number as expected by API
+          updatedBy: parseInt(staffId), // Use updatedBy as expected by API
           notes: ""
         }),
       })
@@ -188,17 +218,17 @@ export default function DashboardPage() {
       if (!response.ok) {
         throw new Error(responseData?.error || `HTTP ${response.status}: Failed to update status`)
       }
-      
+
       toast.success(`✓ Phone marked as ${newStatus}`)
       console.log(`Successfully marked student ${studentId} phone as ${newStatus}`)
-      
+
       // Revalidate in background after a brief delay
       setTimeout(() => {
         mutate("/api/phone-status")
       }, 300)
     } catch (error) {
       console.error(`Error toggling phone status for student ${studentId}:`, error)
-      
+
       // Revert optimistic update on error
       toast.error(error instanceof Error ? error.message : "Failed to update phone status. Please try again.")
       mutate("/api/phone-status", oldPhoneStatus, false)
@@ -216,16 +246,24 @@ export default function DashboardPage() {
 
   const handleOutPass = async (grantId: number) => {
     setTogglingStudentId(grantId)
-    
+
     // Update button state INSTANTLY for visual feedback
     setSpecialPassButtonStates(prev => ({
       ...prev,
       [grantId]: "OUT"
     }))
 
+    // Optimistic UI update for list
+    if (activePasses) {
+      const optimisticPasses = activePasses.map((p: any) =>
+        p.id === grantId ? { ...p, status: 'OUT' } : p
+      )
+      mutate("/api/special-pass/active", optimisticPasses, false)
+    }
+
     try {
       console.log(`Marking special pass ${grantId} as OUT`)
-      
+
       const response = await fetch(`/api/special-pass/out/${grantId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -240,20 +278,21 @@ export default function DashboardPage() {
 
       toast.success("✓ Special pass marked as OUT")
       console.log(`Successfully marked pass ${grantId} as OUT`)
-      
-      // Refresh the active passes list after a brief delay
-      setTimeout(() => {
-        mutate("/api/special-pass/active")
-      }, 300)
+
+      // Revalidate to sync with server
+      mutate("/api/special-pass/active")
     } catch (error) {
       console.error(`Error marking pass ${grantId} as OUT:`, error)
-      
+
       // Revert button state on error
       setSpecialPassButtonStates(prev => ({
         ...prev,
         [grantId]: "IN"
       }))
-      
+
+      // Revert list state on error
+      mutate("/api/special-pass/active")
+
       const errorMessage = error instanceof Error ? error.message : "Failed to mark special pass as OUT"
       toast.error(errorMessage)
     } finally {
@@ -263,16 +302,22 @@ export default function DashboardPage() {
 
   const handleReturnPass = async (grantId: number) => {
     setTogglingStudentId(grantId)
-    
+
     // Update button state INSTANTLY for visual feedback
     setSpecialPassButtonStates(prev => ({
       ...prev,
       [grantId]: "IN"
     }))
 
+    // Optimistic UI update for list - Remove it immediately
+    if (activePasses) {
+      const optimisticPasses = activePasses.filter((p: any) => p.id !== grantId)
+      mutate("/api/special-pass/active", optimisticPasses, false)
+    }
+
     try {
       console.log(`Returning special pass ${grantId}`)
-      
+
       const response = await fetch(`/api/special-pass/return/${grantId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -287,20 +332,21 @@ export default function DashboardPage() {
 
       toast.success("✓ Special pass submitted successfully")
       console.log(`Successfully returned pass ${grantId}`)
-      
-      // Refresh the active passes list after a brief delay
-      setTimeout(() => {
-        mutate("/api/special-pass/active")
-      }, 300)
+
+      // Revalidate to sync with server
+      mutate("/api/special-pass/active")
     } catch (error) {
       console.error(`Error returning pass ${grantId}:`, error)
-      
+
       // Revert button state on error
       setSpecialPassButtonStates(prev => ({
         ...prev,
         [grantId]: "OUT"
       }))
-      
+
+      // Revert list state on error
+      mutate("/api/special-pass/active")
+
       const errorMessage = error instanceof Error ? error.message : "Failed to submit special pass"
       toast.error(errorMessage)
     } finally {
@@ -321,8 +367,8 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-4">
             {(permissions.includes("manage_special_pass") || permissions.includes("manage_users") || specialPass === "YES") && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => router.push("/admin")}
                 className="gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/50"
               >
@@ -331,8 +377,8 @@ export default function DashboardPage() {
               </Button>
             )}
             {(permissions.includes("manage_special_pass") || permissions.includes("manage_users")) && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => router.push("/special-pass")}
                 className="gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/50"
               >
@@ -353,42 +399,64 @@ export default function DashboardPage() {
         {/* Active Special Passes Section */}
         {activePasses && activePasses.length > 0 && (
           <Card className="mb-8 border-yellow-500/50 bg-yellow-500/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
-                <Star className="w-5 h-5 fill-current" />
-                Active Special Passes
-              </CardTitle>
-              <CardDescription>Students currently authorized for special phone usage</CardDescription>
+            <CardHeader className="pb-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
+                  <Star className="w-5 h-5 fill-current" />
+                  Active Special Passes
+                </CardTitle>
+                <CardDescription>Students currently authorized for special phone usage</CardDescription>
+              </div>
+              <div className="relative w-full md:w-64 mt-4 md:mt-0">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search active passes..."
+                  className="pl-8 bg-background border-yellow-500/20"
+                  value={searchQuerySpecialPass}
+                  onChange={(e) => setSearchQuerySpecialPass(e.target.value)}
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activePasses.map((pass: any) => (
+                {filteredActivePasses.map((pass: any) => (
                   <div key={pass.id} className="p-4 rounded-xl border border-yellow-500/20 bg-card shadow-sm flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold">{pass.name}</h4>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                          pass.status === 'OUT' 
-                            ? "bg-orange-100 text-orange-700" 
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}>
+                        <h4 className="font-bold text-lg">{pass.studentName || pass.name}</h4>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${pass.status === 'OUT'
+                          ? "bg-orange-100 text-orange-700 border border-orange-200"
+                          : "bg-yellow-100 text-yellow-700 border border-yellow-200"
+                          }`}>
                           {pass.status}
                         </span>
                       </div>
-                      <div className="space-y-1 text-xs text-muted-foreground">
-                        <p>Adm: {pass.admissionNumber}</p>
-                        <p>Mentor: {pass.mentorName}</p>
-                        <p className="font-medium text-yellow-600 dark:text-yellow-400">Return: {pass.returnTime ? new Date(pass.returnTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}</p>
-                        <p className="italic mt-1 border-t border-yellow-500/10 pt-1 line-clamp-2">{pass.purpose}</p>
+                      <div className="space-y-2 text-xs text-muted-foreground bg-accent/30 p-3 rounded-lg">
+                        <div className="grid grid-cols-2 gap-2">
+                          <p><span className="font-semibold">Adm:</span> {pass.admissionNumber}</p>
+                          <p><span className="font-semibold">Locker:</span> {pass.lockerNumber}</p>
+                          <p><span className="font-semibold">Class:</span> {pass.className || "-"}</p>
+                          <p><span className="font-semibold">Roll:</span> {pass.rollNo || "-"}</p>
+                        </div>
+                        <div className="border-t border-border/50 pt-2 space-y-1">
+                          <p><span className="font-semibold">Mentor:</span> {pass.mentorName}</p>
+                          <p><span className="font-semibold">Issue:</span> {pass.issueTime ? new Date(pass.issueTime).toLocaleString() : "-"}</p>
+                          <p><span className="font-semibold text-yellow-600 dark:text-yellow-400">Exp. Return:</span> {pass.returnTime ? new Date(pass.returnTime).toLocaleString() : "-"}</p>
+                        </div>
+                        <div className="border-t border-border/50 pt-2">
+                          <span className="font-semibold">Purpose:</span>
+                          <p className="italic mt-0.5">{pass.purpose}</p>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4">
                       {specialPassButtonStates[pass.id] !== 'OUT' ? (
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={() => handleOutPass(pass.id)}
                           disabled={togglingStudentId === pass.id}
-                          className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                          className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-md hover:shadow-lg transition-all"
                         >
                           {togglingStudentId === pass.id ? (
                             <Loader2 className="w-4 h-4 animate-spin mr-1" />
@@ -396,11 +464,11 @@ export default function DashboardPage() {
                           Submit Out
                         </Button>
                       ) : (
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={() => handleReturnPass(pass.id)}
                           disabled={togglingStudentId === pass.id}
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
+                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold shadow-md hover:shadow-lg transition-all"
                         >
                           {togglingStudentId === pass.id ? (
                             <Loader2 className="w-4 h-4 animate-spin mr-1" />
@@ -411,6 +479,11 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
+                {filteredActivePasses.length === 0 && (
+                  <div className="col-span-full text-center py-8 text-muted-foreground bg-yellow-50/50 rounded-xl border border-dashed border-yellow-200">
+                    No active passes found matching your search.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -526,9 +599,8 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={student.id}
-                      className={`flex items-center justify-between p-5 rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-300 ${
-                        hasNoPhone ? "bg-yellow-50/80 dark:bg-yellow-900/20 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]" : isPhoneIn ? "led-in" : "led-out"
-                      }`}
+                      className={`flex items-center justify-between p-5 rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-300 ${hasNoPhone ? "bg-yellow-50/80 dark:bg-yellow-900/20 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]" : isPhoneIn ? "led-in" : "led-out"
+                        }`}
                     >
                       <div className="flex-1">
                         <div className="text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
@@ -538,9 +610,9 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           {permissions.includes("manage_special_pass") && student.special_pass !== "YES" && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="h-7 text-[10px] uppercase font-bold border-yellow-500/50 text-yellow-600 hover:bg-yellow-50"
                               onClick={() => router.push(`/admin/special-pass/grant/${student.id}`)}
                             >
@@ -609,13 +681,12 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-6">
                         <div className="text-right">
                           <div
-                            className={`font-bold px-3 py-1 rounded-full text-xs tracking-wider uppercase shadow-inner ${
-                              hasNoPhone
-                                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
-                                : isPhoneIn
+                            className={`font-bold px-3 py-1 rounded-full text-xs tracking-wider uppercase shadow-inner ${hasNoPhone
+                              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
+                              : isPhoneIn
                                 ? "bg-green-100/80 text-green-700 dark:bg-green-900/40 dark:text-green-300"
                                 : "bg-orange-100/80 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
-                            }`}
+                              }`}
                           >
                             {hasNoPhone ? "NO PHONE" : status?.status || "UNKNOWN"}
                           </div>
@@ -630,11 +701,10 @@ export default function DashboardPage() {
                           <Button
                             onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
                             size="lg"
-                            className={`rounded-xl px-6 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 ${
-                              isPhoneIn 
-                                ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
-                                : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                            }`}
+                            className={`rounded-xl px-6 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 ${isPhoneIn
+                              ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                              : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                              }`}
                             disabled={isToggling}
                           >
                             {isToggling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}

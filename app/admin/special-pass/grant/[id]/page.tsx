@@ -15,13 +15,13 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
   const router = useRouter()
   const resolvedParams = use(params)
   const studentId = resolvedParams.id
-  
+
   const [student, setStudent] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [mentorName, setMentorName] = useState("")
   const [mentorId, setMentorId] = useState("")
-  
+
   const [formData, setFormData] = useState({
     purpose: "",
     returnTime: "",
@@ -48,7 +48,7 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
-    
+
     try {
       // Check if student already has an active or out pass before submitting
       const activeRes = await fetch("/api/special-pass/active")
@@ -66,7 +66,7 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           studentId: Number(studentId),
-          mentorId: Number(mentorId),
+          mentorId: parseInt(mentorId) || 0, // Ensure mentorId is sent as number
           mentorName,
           purpose: formData.purpose,
           returnTime: formData.returnTime,
@@ -100,7 +100,7 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
       <Button variant="ghost" onClick={() => router.back()} className="mb-6 gap-2">
         <ArrowLeft className="w-4 h-4" /> Back
       </Button>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Grant Special Pass</CardTitle>
@@ -132,21 +132,21 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
 
             <div className="space-y-2">
               <Label>Expected Return Time</Label>
-              <Input 
-                type="datetime-local" 
-                required 
+              <Input
+                type="datetime-local"
+                required
                 value={formData.returnTime}
-                onChange={e => setFormData({...formData, returnTime: e.target.value})}
+                onChange={e => setFormData({ ...formData, returnTime: e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
               <Label>Purpose</Label>
-              <Textarea 
+              <Textarea
                 placeholder="Reason for granting special pass..."
                 required
                 value={formData.purpose}
-                onChange={e => setFormData({...formData, purpose: e.target.value})}
+                onChange={e => setFormData({ ...formData, purpose: e.target.value })}
               />
             </div>
 

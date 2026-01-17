@@ -77,23 +77,24 @@ export default function ManageStudents() {
 
     setIsAuthorized(true)
     setStaffName(name || "Staff")
-    
-    const fetchStudentsData = async () => {
-      try {
-        const response = await fetch("/api/students")
-        const data = await response.json()
-        const studentList = Array.isArray(data) ? data : []
-        setStudents(studentList)
-        setFilteredStudents(studentList)
-        setLoading(false)
-      } catch (error) {
-        console.error("Failed to fetch students:", error)
-        setLoading(false)
-      }
-    }
-    
-    fetchStudentsData()
+
+
+    fetchStudents()
   }, [router])
+
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch("/api/students")
+      const data = await response.json()
+      const studentList = Array.isArray(data) ? data : []
+      setStudents(studentList)
+      setFilteredStudents(studentList)
+      setLoading(false)
+    } catch (error) {
+      console.error("Failed to fetch students:", error)
+      setLoading(false)
+    }
+  }
 
   if (loading || !isAuthorized) {
     return (
@@ -110,7 +111,7 @@ export default function ManageStudents() {
     setSearchQuery(query)
     setSelectedClass(className)
     setSelectedLocker(lockerNo)
-    
+
     let filtered = students
 
     if (className !== "all") {
@@ -132,7 +133,7 @@ export default function ManageStudents() {
           (student.roll_no && student.roll_no.toLowerCase().includes(q))
       )
     }
-    
+
     setFilteredStudents(filtered)
   }
 
@@ -177,7 +178,7 @@ export default function ManageStudents() {
       if (!response.ok) {
         let errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student`
         let errorDetails = ""
-        
+
         try {
           const errorData = await response.json()
           console.error("❌ Error response data:", errorData)
@@ -190,22 +191,22 @@ export default function ManageStudents() {
           errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student: ${statusText}`
           errorDetails = statusText
         }
-        
+
         console.error(`❌ API Error [${response.status}]:`, errorDetails)
         throw new Error(errorMessage)
       }
 
       const savedStudent = await response.json()
       console.log("✅ Student saved successfully:", savedStudent)
-      
+
       // Update with real data from server
-      const finalStudents = isEditing 
+      const finalStudents = isEditing
         ? students.map(s => s.id === editingId ? savedStudent : s)
         : oldStudents.concat(savedStudent)
-      
+
       setStudents(finalStudents)
       setFilteredStudents(finalStudents)
-      
+
       setNewStudent({
         admission_number: "",
         name: "",
@@ -265,7 +266,7 @@ export default function ManageStudents() {
           const findValue = (possibleKeys: string[]) => {
             const key = Object.keys(row).find(k => {
               const cleanKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-              return possibleKeys.some(pk => 
+              return possibleKeys.some(pk =>
                 cleanKey === pk.toLowerCase().replace(/[^a-z0-9]/g, '') ||
                 cleanKey.includes(pk.toLowerCase().replace(/[^a-z0-9]/g, ''))
               );
@@ -296,7 +297,7 @@ export default function ManageStudents() {
           id: tempIdStart + index,
           special_pass: "NO"
         }));
-        
+
         setStudents(prev => [...prev, ...optimisticStudents]);
         setFilteredStudents(prev => [...prev, ...optimisticStudents]);
         setShowBulkModal(false);
@@ -342,7 +343,7 @@ export default function ManageStudents() {
       const updated = students.filter((s) => s.id !== id)
       setStudents(updated)
       setFilteredStudents(updated)
-      
+
       try {
         const response = await fetch(`/api/students?id=${id}`, {
           method: "DELETE",
@@ -376,7 +377,7 @@ export default function ManageStudents() {
       const oldStudents = [...students]
       setStudents([])
       setFilteredStudents([])
-      
+
       try {
         const response = await fetch("/api/students?action=deleteAll", {
           method: "PATCH",
@@ -556,7 +557,7 @@ export default function ManageStudents() {
                   <tbody>
                     {filteredStudents.map((student) => {
                       const hasNoPhone = !student.phone_name || student.phone_name.toLowerCase() === "nill" || student.phone_name.toLowerCase() === "nil" || student.phone_name.toLowerCase() === "none"
-                      
+
                       return (
                         <tr key={student.id} className={`border-b hover:bg-muted/50 transition-colors ${hasNoPhone ? "bg-yellow-50/50 dark:bg-yellow-900/10" : ""}`}>
                           <td className="py-3 px-4 font-medium">{student.name}</td>

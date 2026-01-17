@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { specialPassGrants, students } from "@/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, inArray } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       })
       .from(specialPassGrants)
       .innerJoin(students, eq(specialPassGrants.studentId, students.id))
-      .where(eq(specialPassGrants.status, "ACTIVE"))
+      .where(inArray(specialPassGrants.status, ["ACTIVE", "OUT"]))
       .orderBy(desc(specialPassGrants.issueTime))
 
     return NextResponse.json(activePasses)

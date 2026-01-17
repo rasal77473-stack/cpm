@@ -39,18 +39,18 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Database error in GET /api/students:", error)
     const errorMessage = error?.message || "Failed to fetch students"
-    
+
     // If the table doesn't exist yet, return an empty array instead of 500
     if (error.code === '42P01' || errorMessage.includes("does not exist")) {
       console.log("Students table doesn't exist yet, returning empty array")
       return NextResponse.json([])
     }
-    
+
     // Log more detailed error info
     if (error.code) {
       console.error("PostgreSQL Error Code:", error.code)
     }
-    
+
     return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
@@ -69,11 +69,11 @@ export async function POST(request: NextRequest) {
       class_name: data.class_name,
       roll_no: data.roll_no,
     }).returning()
-    
+
     if (data.staffId) {
       await logActivity(Number(data.staffId), "ADD_STUDENT", `Added student: ${data.name} (${data.admission_number})`)
     }
-    
+
     return NextResponse.json(newStudent[0])
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to create student"
@@ -102,6 +102,7 @@ export async function PUT(request: NextRequest) {
         phone_name: updateData.phone_name,
         class_name: updateData.class_name,
         roll_no: updateData.roll_no,
+        special_pass: updateData.special_pass,
       })
       .where(eq(students.id, Number(id)))
       .returning()
@@ -131,7 +132,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete related phone status records first
     await db.delete(phoneStatus).where(eq(phoneStatus.studentId, studentId))
-    
+
     // Then delete the student
     const deleted = await db.delete(students).where(eq(students.id, studentId)).returning()
 
@@ -160,7 +161,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, message: "All students deleted successfully" })
     }
 
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 })
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to delete all students"
     console.error("PATCH /api/students error:", errorMessage, error)

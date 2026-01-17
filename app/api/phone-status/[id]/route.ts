@@ -118,8 +118,8 @@ export async function PUT(
       result = created
     }
 
-    // Log the activity if updatedBy is provided
-    if (updatedBy) {
+    // Log the activity if updatedBy is provided and is a valid number
+    if (updatedBy && updatedBy !== "system" && !isNaN(parseInt(updatedBy))) {
       const [student] = await db
         .select()
         .from(students)

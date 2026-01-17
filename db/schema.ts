@@ -12,6 +12,7 @@ export const students = pgTable("students", {
   phone_name: text("phone_name"),
   class_name: text("class_name"),
   roll_no: text("roll_no"),
+  special_pass: text("special_pass").default("NO"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -21,7 +22,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   role: text("role").notNull().default("mentor"), // admin, mentor
-  permissions: text("permissions").array().notNull().default(sql`'{"view_only"}'::text[]`), 
+  permissions: text("permissions").array().notNull().default(sql`'{"view_only"}'::text[]`),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

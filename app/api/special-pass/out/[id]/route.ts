@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { specialPassGrants, userActivityLogs } from "@/db/schema"
+import { specialPassGrants, userActivityLogs, phoneStatus } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 export async function POST(
@@ -32,6 +32,27 @@ export async function POST(
       })
       .where(eq(specialPassGrants.id, grantId))
       .returning()
+
+    // Sync main phone status to OUT
+    const studentId = grant.studentId
+    const [existingStatus] = await db
+      .select()
+      .from(phoneStatus)
+      .where(eq(phoneStatus.studentId, studentId))
+
+    if (existingStatus) {
+      await db.update(phoneStatus)
+        .set({ status: "OUT", lastUpdated: new Date(), updatedBy: "special_pass" })
+        .where(eq(phoneStatus.studentId, studentId))
+    } else {
+      await db.insert(phoneStatus)
+        .values({
+          studentId,
+          status: "OUT",
+          updatedBy: "special_pass",
+          lastUpdated: new Date()
+        })
+    }
 
     console.log(`Successfully marked pass ${grantId} as OUT`)
 
