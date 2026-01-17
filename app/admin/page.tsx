@@ -466,7 +466,7 @@ export default function AdminPanel() {
       <Dialog open={showPhoneInModal} onOpenChange={setShowPhoneInModal}>
         <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Phones Currently IN</DialogTitle>
+            <DialogTitle>Phones Currently IN ({phoneInDetails.length})</DialogTitle>
             <DialogDescription>Students who have their phones checked in</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -475,11 +475,17 @@ export default function AdminPanel() {
             ) : (
               phoneInDetails.map((student) => (
                 <div key={student.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
-                  <p className="font-medium">{student.name}</p>
-                  <p className="text-sm text-muted-foreground">Adm: {student.admission_number} | Locker: {student.locker_number}</p>
-                  <p className="text-sm text-muted-foreground">Class: {student.class_name || "-"} | Roll: {student.roll_no || "-"}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium">{student.name}</p>
+                      <p className="text-sm text-muted-foreground">Adm: {student.admission_number} | Locker: {student.locker_number}</p>
+                      <p className="text-sm text-muted-foreground">Class: {student.class_name || "-"} | Roll: {student.roll_no || "-"}</p>
+                    </div>
+                  </div>
                   <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    Last updated: {new Date(phoneStatus[student.id]?.last_updated).toLocaleDateString()}
+                    {phoneStatus[student.id]?.last_updated 
+                      ? `Last updated: ${new Date(phoneStatus[student.id].last_updated).toLocaleDateString()} ${new Date(phoneStatus[student.id].last_updated).toLocaleTimeString()}`
+                      : "No explicit record (default IN)"}
                   </p>
                 </div>
               ))
@@ -492,7 +498,7 @@ export default function AdminPanel() {
       <Dialog open={showPhoneOutModal} onOpenChange={setShowPhoneOutModal}>
         <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Phones Currently OUT</DialogTitle>
+            <DialogTitle>Phones Currently OUT ({phoneOutDetails.length})</DialogTitle>
             <DialogDescription>Students who have their phones checked out</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -501,11 +507,17 @@ export default function AdminPanel() {
             ) : (
               phoneOutDetails.map((student) => (
                 <div key={student.id} className="p-4 border rounded-lg bg-orange-50 dark:bg-orange-900/20">
-                  <p className="font-medium">{student.name}</p>
-                  <p className="text-sm text-muted-foreground">Adm: {student.admission_number} | Locker: {student.locker_number}</p>
-                  <p className="text-sm text-muted-foreground">Class: {student.class_name || "-"} | Roll: {student.roll_no || "-"}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium">{student.name}</p>
+                      <p className="text-sm text-muted-foreground">Adm: {student.admission_number} | Locker: {student.locker_number}</p>
+                      <p className="text-sm text-muted-foreground">Class: {student.class_name || "-"} | Roll: {student.roll_no || "-"}</p>
+                    </div>
+                  </div>
                   <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
-                    Last updated: {new Date(phoneStatus[student.id]?.last_updated).toLocaleDateString()}
+                    {phoneStatus[student.id]?.last_updated 
+                      ? `Last updated: ${new Date(phoneStatus[student.id].last_updated).toLocaleDateString()} ${new Date(phoneStatus[student.id].last_updated).toLocaleTimeString()}`
+                      : "Status: OUT"}
                   </p>
                 </div>
               ))
