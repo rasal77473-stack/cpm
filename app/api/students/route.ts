@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
       phone_name: data.phone_name ? String(data.phone_name).trim() : null,
       class_name: data.class_name ? String(data.class_name).trim() : null,
       roll_no: data.roll_no ? String(data.roll_no).trim() : null,
+      special_pass: data.special_pass ? String(data.special_pass).trim() : "NO",
     }).returning()
 
     if (data.staffId) {
@@ -111,6 +112,7 @@ export async function PUT(request: NextRequest) {
         phone_name: updateData.phone_name ? String(updateData.phone_name).trim() : undefined,
         class_name: updateData.class_name ? String(updateData.class_name).trim() : undefined,
         roll_no: updateData.roll_no ? String(updateData.roll_no).trim() : undefined,
+        special_pass: updateData.special_pass ? String(updateData.special_pass).trim() : undefined,
       })
       .where(eq(students.id, Number(id)))
       .returning()
