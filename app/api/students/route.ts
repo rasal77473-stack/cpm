@@ -58,17 +58,26 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
+    
+    // Validate required fields
+    if (!data.admission_number || !data.name || !data.locker_number) {
+      return NextResponse.json(
+        { error: "Missing required fields: admission_number, name, locker_number" },
+        { status: 400 }
+      )
+    }
+
     const newStudent = await db.insert(students).values({
-      admission_number: data.admission_number,
-      name: data.name,
-      locker_number: data.locker_number || "-",
-      phone_number: data.phone_number,
-      class: data.class,
-      roll_number: data.roll_number,
-      phone_name: data.phone_name,
-      class_name: data.class_name,
-      roll_no: data.roll_no,
-      special_pass: data.special_pass || "NO",
+      admission_number: String(data.admission_number).trim(),
+      name: String(data.name).trim(),
+      locker_number: String(data.locker_number || "-").trim(),
+      phone_number: data.phone_number ? String(data.phone_number).trim() : null,
+      class: data.class ? String(data.class).trim() : null,
+      roll_number: data.roll_number ? String(data.roll_number).trim() : null,
+      phone_name: data.phone_name ? String(data.phone_name).trim() : null,
+      class_name: data.class_name ? String(data.class_name).trim() : null,
+      roll_no: data.roll_no ? String(data.roll_no).trim() : null,
+      special_pass: data.special_pass ? String(data.special_pass).trim() : "NO",
     }).returning()
 
     if (data.staffId) {
@@ -94,16 +103,16 @@ export async function PUT(request: NextRequest) {
 
     const updated = await db.update(students)
       .set({
-        admission_number: updateData.admission_number,
-        name: updateData.name,
-        locker_number: updateData.locker_number,
-        phone_number: updateData.phone_number,
-        class: updateData.class,
-        roll_number: updateData.roll_number,
-        phone_name: updateData.phone_name,
-        class_name: updateData.class_name,
-        roll_no: updateData.roll_no,
-        special_pass: updateData.special_pass,
+        admission_number: updateData.admission_number ? String(updateData.admission_number).trim() : undefined,
+        name: updateData.name ? String(updateData.name).trim() : undefined,
+        locker_number: updateData.locker_number ? String(updateData.locker_number).trim() : undefined,
+        phone_number: updateData.phone_number ? String(updateData.phone_number).trim() : undefined,
+        class: updateData.class ? String(updateData.class).trim() : undefined,
+        roll_number: updateData.roll_number ? String(updateData.roll_number).trim() : undefined,
+        phone_name: updateData.phone_name ? String(updateData.phone_name).trim() : undefined,
+        class_name: updateData.class_name ? String(updateData.class_name).trim() : undefined,
+        roll_no: updateData.roll_no ? String(updateData.roll_no).trim() : undefined,
+        special_pass: updateData.special_pass ? String(updateData.special_pass).trim() : undefined,
       })
       .where(eq(students.id, Number(id)))
       .returning()
