@@ -19,21 +19,21 @@ export async function POST(request: NextRequest) {
     });
 
     // Batch insert to avoid exceeding parameter limits
-    // PostgreSQL typically has a limit around 65535 parameters
-    // With ~11 columns per student, we can safely batch 50-100 at a time
-    const BATCH_SIZE = 50;
-    const batches = [];
+    // Insert in batches of 25 to be extra safe with parameter limits
+    const BATCH_SIZE = 25;
+    let totalInserted = 0;
     
     for (let i = 0; i < studentsToInsert.length; i += BATCH_SIZE) {
       const batch = studentsToInsert.slice(i, i + BATCH_SIZE);
-      batches.push(batch);
-    }
-
-    // Execute batches sequentially
-    let totalInserted = 0;
-    for (const batch of batches) {
-      const result = await db.insert(students).values(batch).returning()
-      totalInserted += result.length;
+      
+      try {
+        const result = await db.insert(students).values(batch).returning()
+        totalInserted += result.length;
+        console.log(`✓ Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}: ${result.length} students`)
+      } catch (batchError) {
+        console.error(`✗ Failed to insert batch ${Math.floor(i / BATCH_SIZE) + 1}:`, batchError)
+        throw new Error(`Failed to insert batch at position ${i}: ${batchError instanceof Error ? batchError.message : String(batchError)}`)
+      }
     }
     
     return NextResponse.json({ 

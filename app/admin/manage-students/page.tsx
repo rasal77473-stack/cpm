@@ -302,29 +302,45 @@ export default function ManageStudents() {
         setFilteredStudents(prev => [...prev, ...optimisticStudents]);
         setShowBulkModal(false);
 
-        // Background bulk import
-        fetch("/api/students/bulk", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(optimisticStudents),
-        }).then(response => {
-          if (!response.ok) {
-            return response.json().then(data => {
-              throw new Error(data.error || "Bulk import failed")
-            }).catch(e => {
-              throw new Error(e.message || `Bulk import failed: ${response.statusText}`)
-            })
+        // Background bulk import with client-side batching
+        const BATCH_SIZE = 25;
+        let completed = 0;
+        let failed = false;
+
+        (async () => {
+          try {
+            for (let i = 0; i < optimisticStudents.length; i += BATCH_SIZE) {
+              if (failed) break;
+              
+              const batch = optimisticStudents.slice(i, i + BATCH_SIZE);
+              console.log(`Sending batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} students)...`);
+              
+              const response = await fetch("/api/students/bulk", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(batch),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Batch failed: ${response.statusText}`);
+              }
+
+              const result = await response.json();
+              completed += result.count;
+              console.log(`✓ Batch ${Math.floor(i / BATCH_SIZE) + 1} completed: ${result.count} students inserted`);
+            }
+
+            fetchStudents(); // Refresh to get real IDs
+            alert(`Successfully imported ${completed} students!`);
+          } catch (err) {
+            failed = true;
+            const errorMessage = err instanceof Error ? err.message : "Failed to import students. Please try again.";
+            console.error("Bulk import error:", errorMessage, err);
+            alert(errorMessage);
+            fetchStudents(); // Rollback on error
           }
-          return response.json()
-        }).then(result => {
-          fetchStudents() // Refresh to get real IDs in background
-          alert(`Successfully imported ${result.count} students!`)
-        }).catch(err => {
-          const errorMessage = err instanceof Error ? err.message : "Failed to import students. Please try again."
-          console.error("Bulk import error:", errorMessage, err)
-          alert(errorMessage)
-          fetchStudents(); // Rollback on error
-        });
+        })();
       }
       fileReader.readAsArrayBuffer(file)
     } catch (error) {
