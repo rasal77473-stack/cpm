@@ -12,7 +12,7 @@ export const students = pgTable("students", {
   phone_name: text("phone_name"),
   class_name: text("class_name"),
   roll_no: text("roll_no"),
-  special_pass: text("special_pass").default("NO"),
+  // special_pass: text("special_pass").default("NO"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
