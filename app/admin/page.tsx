@@ -75,14 +75,18 @@ export default function AdminPanel() {
       const studentList = Array.isArray(studentsData) ? studentsData : []
       const historyList = Array.isArray(historyData) ? historyData : []
       
-      // Convert status array to object indexed by student_id
+      // Convert status array to object indexed by studentId
       let statusMap: Record<number, PhoneStatus> = {}
       if (Array.isArray(statusData)) {
         statusMap = statusData.reduce((acc: Record<number, PhoneStatus>, status: any) => {
-          acc[status.student_id] = {
-            student_id: status.student_id,
+          // Handle both camelCase (studentId) and snake_case (student_id) from API
+          const studentId = status.studentId || status.student_id
+          const lastUpdated = status.lastUpdated || status.last_updated
+          
+          acc[studentId] = {
+            student_id: studentId,
             status: status.status,
-            last_updated: status.last_updated
+            last_updated: lastUpdated
           }
           return acc
         }, {})
