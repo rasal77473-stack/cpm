@@ -74,7 +74,21 @@ export default function AdminPanel() {
 
       const studentList = Array.isArray(studentsData) ? studentsData : []
       const historyList = Array.isArray(historyData) ? historyData : []
-      const statusMap = statusData && typeof statusData === 'object' ? statusData : {}
+      
+      // Convert status array to object indexed by student_id
+      let statusMap: Record<number, PhoneStatus> = {}
+      if (Array.isArray(statusData)) {
+        statusMap = statusData.reduce((acc: Record<number, PhoneStatus>, status: any) => {
+          acc[status.student_id] = {
+            student_id: status.student_id,
+            status: status.status,
+            last_updated: status.last_updated
+          }
+          return acc
+        }, {})
+      } else if (statusData && typeof statusData === 'object') {
+        statusMap = statusData
+      }
 
       setStudents(studentList)
       setPhoneHistory(historyList)
@@ -85,7 +99,7 @@ export default function AdminPanel() {
       // Count phone in and out
       let inCount = 0
       let outCount = 0
-      Object.values(statusData).forEach((status: any) => {
+      Object.values(statusMap).forEach((status: any) => {
         if (status.status === "IN") inCount++
         if (status.status === "OUT") outCount++
       })
