@@ -99,9 +99,15 @@ export default function AdminPanel() {
       // Count phone in and out
       let inCount = 0
       let outCount = 0
-      Object.values(statusMap).forEach((status: any) => {
-        if (status.status === "IN") inCount++
-        if (status.status === "OUT") outCount++
+      studentList.forEach((student: Student) => {
+        if (!statusMap[student.id]) {
+          // If no status record, default to IN
+          inCount++
+        } else if (statusMap[student.id].status === "IN") {
+          inCount++
+        } else if (statusMap[student.id].status === "OUT") {
+          outCount++
+        }
       })
       setPhoneInCount(inCount)
       setPhoneOutCount(outCount)
@@ -172,7 +178,11 @@ export default function AdminPanel() {
   }
 
   const phoneInDetails = Array.isArray(students) 
-    ? students.filter((s) => phoneStatus[s.id] && phoneStatus[s.id].status === "IN")
+    ? students.filter((s) => {
+        // If no status record exists, default to IN (phones start as IN)
+        if (!phoneStatus[s.id]) return true
+        return phoneStatus[s.id].status === "IN"
+      })
     : []
 
   const phoneOutDetails = Array.isArray(students)
