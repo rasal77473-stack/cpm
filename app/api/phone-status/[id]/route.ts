@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { phoneStatus, userActivityLogs, students } from "@/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { phoneStatus, userActivityLogs, students, specialPassGrants } from "@/db/schema"
+import { eq, desc, and } from "drizzle-orm"
 
 // GET - Retrieve latest phone status for a student
 export async function GET(
@@ -131,6 +131,34 @@ export async function PUT(
         action: "PHONE_STATUS_CHANGE",
         details: `Phone status changed to ${status} for student ${student?.name || studentId}`,
       })
+    }
+
+    // Sync active special pass with phone status
+    try {
+      const [activePass] = await db
+        .select()
+        .from(specialPassGrants)
+        .where(and(
+          eq(specialPassGrants.studentId, studentId),
+          eq(specialPassGrants.status, "ACTIVE")
+        ))
+        .limit(1)
+
+      if (activePass) {
+        // If phone marked OUT, special pass should be OUT
+        // If phone marked IN, special pass should return to IN (if not expired)
+        const passStatus = status === "OUT" ? "OUT" : "ACTIVE"
+        
+        if (passStatus !== activePass.status) {
+          await db
+            .update(specialPassGrants)
+            .set({ status: passStatus })
+            .where(eq(specialPassGrants.id, activePass.id))
+        }
+      }
+    } catch (err) {
+      console.error("Error syncing special pass with phone status:", err)
+      // Continue execution, sync error is non-critical
     }
 
     return NextResponse.json(
