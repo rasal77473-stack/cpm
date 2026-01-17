@@ -33,40 +33,40 @@ export async function POST(
       .where(eq(specialPassGrants.id, grantId))
       .returning()
 
-    // Sync main phone status to OUT
-    const studentId = grant.studentId
-    const [existingStatus] = await db
-      .select()
-      .from(phoneStatus)
-      .where(eq(phoneStatus.studentId, studentId))
-
-    if (existingStatus) {
-      await db.update(phoneStatus)
-        .set({ status: "OUT", lastUpdated: new Date(), updatedBy: "special_pass" })
-        .where(eq(phoneStatus.studentId, studentId))
-    } else {
-      await db.insert(phoneStatus)
-        .values({
-          studentId,
-          status: "OUT",
-          updatedBy: "special_pass",
-          lastUpdated: new Date()
-        })
-    }
-
     console.log(`Successfully marked pass ${grantId} as OUT`)
 
-    // Log the action
+    // Sync main phone status to OUT (fire and forget)
+    const studentId = grant.studentId
+    db.select()
+      .from(phoneStatus)
+      .where(eq(phoneStatus.studentId, studentId))
+      .limit(1)
+      .then(([existingStatus]) => {
+        if (existingStatus) {
+          db.update(phoneStatus)
+            .set({ status: "OUT", lastUpdated: new Date(), updatedBy: "special_pass" })
+            .where(eq(phoneStatus.studentId, studentId))
+            .catch(err => console.error("Error updating phone status:", err))
+        } else {
+          db.insert(phoneStatus)
+            .values({
+              studentId,
+              status: "OUT",
+              updatedBy: "special_pass",
+              lastUpdated: new Date()
+            })
+            .catch(err => console.error("Error creating phone status:", err))
+        }
+      })
+      .catch(err => console.error("Error fetching phone status:", err))
+
+    // Log the action in background (fire and forget)
     if (grant.mentorId) {
-      try {
-        await db.insert(userActivityLogs).values({
-          userId: grant.mentorId,
-          action: "OUT_SPECIAL_PASS",
-          details: `Student left with special pass. Student ID: ${grant.studentId}. Pass ID: ${grantId}`
-        })
-      } catch (logError) {
-        console.error("Failed to log activity:", logError)
-      }
+      db.insert(userActivityLogs).values({
+        userId: grant.mentorId,
+        action: "OUT_SPECIAL_PASS",
+        details: `Student left with special pass. Student ID: ${grant.studentId}. Pass ID: ${grantId}`
+      }).catch(err => console.error("Failed to log activity:", err))
     }
 
     return NextResponse.json({

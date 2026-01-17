@@ -42,54 +42,47 @@ export async function POST(
       .where(eq(specialPassGrants.id, grantId))
       .returning()
 
-    // Update student's special_pass status to NO
+    // Update student's special_pass status and sync phone status in background (fire and forget)
     if (grant) {
-      try {
-        await db.update(students)
-          .set({ special_pass: "NO" })
-          .where(eq(students.id, grant.studentId))
-      } catch (err) {
-        console.error("Error updating student special_pass status:", err)
-        // Continue execution, as this is non-critical for the response but important for data integrity
-      }
+      const studentId = grant.studentId
+      
+      // Update student status in background
+      db.update(students)
+        .set({ special_pass: "NO" })
+        .where(eq(students.id, studentId))
+        .catch(err => console.error("Error updating student special_pass status:", err))
 
-      // Sync main phone status to IN
-      try {
-        const studentId = grant.studentId
-        const [existingStatus] = await db
-          .select()
-          .from(phoneStatus)
-          .where(eq(phoneStatus.studentId, studentId))
+      // Sync main phone status to IN in background
+      db.select()
+        .from(phoneStatus)
+        .where(eq(phoneStatus.studentId, studentId))
+        .limit(1)
+        .then(([existingStatus]) => {
+          if (existingStatus) {
+            db.update(phoneStatus)
+              .set({ status: "IN", lastUpdated: new Date(), updatedBy: "special_pass" })
+              .where(eq(phoneStatus.studentId, studentId))
+              .catch(err => console.error("Error updating phone status:", err))
+          } else {
+            db.insert(phoneStatus)
+              .values({
+                studentId,
+                status: "IN",
+                updatedBy: "special_pass",
+                lastUpdated: new Date()
+              })
+              .catch(err => console.error("Error creating phone status:", err))
+          }
+        })
+        .catch(err => console.error("Error fetching phone status:", err))
 
-        if (existingStatus) {
-          await db.update(phoneStatus)
-            .set({ status: "IN", lastUpdated: new Date(), updatedBy: "special_pass" })
-            .where(eq(phoneStatus.studentId, studentId))
-        } else {
-          await db.insert(phoneStatus)
-            .values({
-              studentId,
-              status: "IN",
-              updatedBy: "special_pass",
-              lastUpdated: new Date()
-            })
-        }
-      } catch (err) {
-        console.error("Error syncing phone status:", err)
-        throw new Error("Failed to sync main phone status: " + (err instanceof Error ? err.message : String(err)))
-      }
-    }
-
-    // Log the action
-    if (grant.mentorId) {
-      try {
-        await db.insert(userActivityLogs).values({
+      // Log the action in background
+      if (grant.mentorId) {
+        db.insert(userActivityLogs).values({
           userId: grant.mentorId,
           action: "RETURN_SPECIAL_PASS",
           details: `Special pass returned for student ${grant.studentId}. Pass ID: ${grantId}`,
-        })
-      } catch (e) {
-        console.error("Logging failed:", e)
+        }).catch(err => console.error("Logging failed:", err))
       }
     }
 

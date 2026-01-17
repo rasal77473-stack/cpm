@@ -118,48 +118,45 @@ export async function PUT(
       result = created
     }
 
-    // Log the activity if updatedBy is provided and is a valid number
+    // Log activity and sync special pass in background (fire and forget)
     if (updatedBy && updatedBy !== "system" && !isNaN(parseInt(updatedBy))) {
-      const [student] = await db
-        .select()
+      // Run in background without awaiting
+      db.select()
         .from(students)
         .where(eq(students.id, studentId))
         .limit(1)
-
-      await db.insert(userActivityLogs).values({
-        userId: parseInt(updatedBy),
-        action: "PHONE_STATUS_CHANGE",
-        details: `Phone status changed to ${status} for student ${student?.name || studentId}`,
-      })
+        .then(([student]) => {
+          if (student) {
+            db.insert(userActivityLogs).values({
+              userId: parseInt(updatedBy),
+              action: "PHONE_STATUS_CHANGE",
+              details: `Phone status changed to ${status} for student ${student.name || studentId}`,
+            }).catch(err => console.error("Error logging activity:", err))
+          }
+        })
+        .catch(err => console.error("Error fetching student:", err))
     }
 
-    // Sync active special pass with phone status
-    try {
-      const [activePass] = await db
-        .select()
-        .from(specialPassGrants)
-        .where(and(
-          eq(specialPassGrants.studentId, studentId),
-          eq(specialPassGrants.status, "ACTIVE")
-        ))
-        .limit(1)
-
-      if (activePass) {
-        // If phone marked OUT, special pass should be OUT
-        // If phone marked IN, special pass should return to IN (if not expired)
-        const passStatus = status === "OUT" ? "OUT" : "ACTIVE"
-        
-        if (passStatus !== activePass.status) {
-          await db
-            .update(specialPassGrants)
-            .set({ status: passStatus })
-            .where(eq(specialPassGrants.id, activePass.id))
+    // Sync active special pass in background (fire and forget)
+    db.select()
+      .from(specialPassGrants)
+      .where(and(
+        eq(specialPassGrants.studentId, studentId),
+        eq(specialPassGrants.status, "ACTIVE")
+      ))
+      .limit(1)
+      .then(([activePass]) => {
+        if (activePass) {
+          const passStatus = status === "OUT" ? "OUT" : "ACTIVE"
+          if (passStatus !== activePass.status) {
+            db.update(specialPassGrants)
+              .set({ status: passStatus })
+              .where(eq(specialPassGrants.id, activePass.id))
+              .catch(err => console.error("Error syncing special pass:", err))
+          }
         }
-      }
-    } catch (err) {
-      console.error("Error syncing special pass with phone status:", err)
-      // Continue execution, sync error is non-critical
-    }
+      })
+      .catch(err => console.error("Error fetching special pass:", err))
 
     return NextResponse.json(
       { success: true, message: "Phone status updated successfully", data: result },
