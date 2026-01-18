@@ -40,9 +40,9 @@ export default function LoginPage() {
       localStorage.setItem("staffName", data.staffName)
       localStorage.setItem("role", data.role)
       localStorage.setItem("permissions", JSON.stringify(data.permissions))
-      
+
       // All users go to admin dashboard (button-based navigation)
-      router.push("/admin")
+      router.push("/dashboard")
     } catch (err) {
       setError("An error occurred. Please try again.")
       console.error(err)

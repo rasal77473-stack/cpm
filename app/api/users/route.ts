@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, userActivityLogs } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
@@ -15,7 +15,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { username, password, name, role, permissions } = body;
+    const { username, password, name, role, permissions, special_pass } = body;
 
     console.log("POST /api/users - Received body:", body);
 
@@ -30,6 +30,7 @@ export async function POST(req: Request) {
       name,
       role: role || "mentor",
       permissions: permissions || ["view_only"],
+      special_pass: special_pass || "NO",
     };
 
     console.log("POST /api/users - Creating user with data:", userData);
@@ -46,25 +47,34 @@ export async function POST(req: Request) {
   }
 }
 
-
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, username, password, name, role, permissions } = body;
+    const { id, username, password, name, role, permissions, special_pass } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
 
     const updatedUser = await db.update(users)
-      .set({ 
-        username, 
-        password, 
-        name, 
-        role, 
-        permissions 
+      .set({
+        username,
+        password,
+        name,
+        role,
+        permissions,
+        special_pass
       })
       .where(eq(users.id, id))
       .returning();
 
+    if (!updatedUser || updatedUser.length === 0) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     return NextResponse.json(updatedUser[0]);
   } catch (error) {
+    console.error("PUT /api/users - Update error:", error);
     return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
   }
 }
@@ -75,9 +85,20 @@ export async function DELETE(req: Request) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-    await db.delete(users).where(eq(users.id, parseInt(id)));
+    const userId = parseInt(id);
+
+    // Delete associated activity logs first to avoid FK constraints
+    await db.delete(userActivityLogs).where(eq(userActivityLogs.userId, userId));
+
+    // Note: If you have specialPassGrants tied to this user, you might need to handle them too.
+    // Assuming specialPassGrants don't have a strict ON DELETE constraint or you want to keep history.
+    // If deletion fails due to specialPassGrants, we need to decide whether to cascade or nullify.
+
+    await db.delete(users).where(eq(users.id, userId));
     return NextResponse.json({ success: true, message: "User deleted" });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
+    console.error("DELETE /api/users error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete user";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

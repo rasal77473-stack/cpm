@@ -11,6 +11,12 @@ export const metadata: Metadata = {
   title: "Caliph Phone Management",
   description: "Student phone deposit and withdrawal tracking system",
   generator: "v0.app",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
   icons: {
     icon: [
       {

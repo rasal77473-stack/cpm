@@ -165,3 +165,77 @@
 .animate-pulse-yellow {
   animation: pulse-yellow 2s ease-in-out infinite;
 }
+
+/* Mobile-Friendly Utilities */
+@layer utilities {
+  /* Scrollable tables on mobile */
+  .table-container {
+    @apply w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0;
+  }
+  
+  .table-container table {
+    @apply min-w-full;
+  }
+  
+  /* Touch-friendly buttons */
+  @media (max-width: 768px) {
+    button, .btn {
+      @apply min-h-[44px] min-w-[44px];
+    }
+  }
+  
+  /* Mobile-optimized text */
+  .mobile-text-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .mobile-text-xs {
+    @apply text-xs sm:text-sm;
+  }
+  
+  /* Mobile spacing */
+  .mobile-p-4 {
+    @apply p-3 sm:p-4 md:p-6;
+  }
+  
+  .mobile-px-4 {
+    @apply px-3 sm:px-4 md:px-6;
+  }
+  
+  .mobile-py-4 {
+    @apply py-3 sm:py-4 md:py-6;
+  }
+  
+  /* Mobile-friendly cards */
+  .mobile-card {
+    @apply rounded-lg sm:rounded-xl;
+  }
+  
+  /* Hide on mobile */
+  .hide-mobile {
+    @apply hidden sm:block;
+  }
+  
+  /* Show only on mobile */
+  .show-mobile {
+    @apply block sm:hidden;
+  }
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+  
+  /* Better table styling on mobile */
+  table {
+    font-size: 0.875rem;
+  }
+  
+  table th,
+  table td {
+    padding: 0.5rem 0.25rem;
+  }
+}
+

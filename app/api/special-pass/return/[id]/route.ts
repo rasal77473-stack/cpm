@@ -45,30 +45,33 @@ export async function POST(
     // Update student's special_pass status and sync phone status in background (fire and forget)
     if (grant) {
       const studentId = grant.studentId
-      
-      // Sync main phone status to IN in background
-      db.select()
+
+      // Sync main phone status to IN (synchronous)
+      const [existingStatus] = await db
+        .select()
         .from(phoneStatus)
         .where(eq(phoneStatus.studentId, studentId))
         .limit(1)
-        .then(([existingStatus]) => {
-          if (existingStatus) {
-            db.update(phoneStatus)
-              .set({ status: "IN", lastUpdated: new Date(), updatedBy: "special_pass" })
-              .where(eq(phoneStatus.studentId, studentId))
-              .catch(err => console.error("Error updating phone status:", err))
-          } else {
-            db.insert(phoneStatus)
-              .values({
-                studentId,
-                status: "IN",
-                updatedBy: "special_pass",
-                lastUpdated: new Date()
-              })
-              .catch(err => console.error("Error creating phone status:", err))
-          }
-        })
-        .catch(err => console.error("Error fetching phone status:", err))
+
+      if (existingStatus) {
+        await db.update(phoneStatus)
+          .set({
+            status: "IN",
+            lastUpdated: new Date(),
+            updatedBy: grant.mentorName,
+            notes: grant.purpose
+          })
+          .where(eq(phoneStatus.studentId, studentId))
+      } else {
+        await db.insert(phoneStatus)
+          .values({
+            studentId,
+            status: "IN",
+            updatedBy: grant.mentorName,
+            notes: grant.purpose,
+            lastUpdated: new Date()
+          })
+      }
 
       // Log the action in background
       if (grant.mentorId) {

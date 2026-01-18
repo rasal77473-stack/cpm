@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,10 +28,12 @@ export default function SpecialPassPage() {
   const [selectedClass, setSelectedClass] = useState("all")
   const [selectedLocker, setSelectedLocker] = useState("all")
   const [passStates, setPassStates] = useState<{ [key: number]: "OUT" | "IN" }>({})
-  const [phoneStatusFilter, setPhoneStatusFilter] = useState<"all" | "OUT" | "IN">("all")
   const [activeView, setActiveView] = useState<"phone-pass" | "phone-out" | "phone-in" | "all-students">("phone-pass")
-
-
+  const [canGrantPass, setCanGrantPass] = useState(false)
+  const [canViewLogs, setCanViewLogs] = useState(false)
+  const [canManageStatus, setCanManageStatus] = useState(false)
+  const [startDate, setStartDate] = useState<string>("")
+  const [endDate, setEndDate] = useState<string>("")
 
   // Fetch all students
   const { data: studentsData = [], isLoading: studentLoading } = useSWR("/api/students", fetcher, {
@@ -66,7 +68,7 @@ export default function SpecialPassPage() {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
     const permissions = localStorage.getItem("permissions")
-    
+
     if (!token) {
       router.push("/login")
       return
@@ -74,7 +76,20 @@ export default function SpecialPassPage() {
 
     // Allow access to admins and users with manage_special_pass permission
     const perms = permissions ? JSON.parse(permissions) : []
-    if (role !== "admin" && !perms.includes("manage_special_pass") && !perms.includes("view_special_pass_logs")) {
+
+    // Check if user can grant passes (admin or has issue_phone_pass permission)
+    const canGrant = role === "admin" || perms.includes("issue_phone_pass")
+    setCanGrantPass(canGrant)
+
+    // Check if user can view pass logs (admin or has view_phone_logs permission)
+    const canView = role === "admin" || perms.includes("view_phone_logs") || perms.includes("issue_phone_pass") || perms.includes("access_phone_pass")
+    setCanViewLogs(canView)
+
+    // Check if user can manage phone status lists
+    const canManage = role === "admin" || perms.includes("manage_phone_status")
+    setCanManageStatus(canManage)
+
+    if (role !== "admin" && !perms.includes("issue_phone_pass") && !perms.includes("view_phone_logs") && !perms.includes("access_phone_pass") && !perms.includes("manage_phone_status")) {
       // Regular users can still view if they have permission
       if (!perms.includes("in_out_control")) {
         router.replace("/dashboard")
@@ -82,8 +97,25 @@ export default function SpecialPassPage() {
       }
     }
 
+    // Force view to phone-pass if user doesn't have permission to see other views
+    if (!canManage) {
+      setActiveView("phone-pass")
+    }
+
     setStaffName(localStorage.getItem("staffName") || "Staff")
-  }, [router])
+  }, [router, activeView])
+
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const view = searchParams.get('view')
+    if (view && ["phone-pass", "phone-out", "phone-in", "all-students"].includes(view)) {
+      // Only allow switching to restricted views if authorized
+      if (canManageStatus || view === "phone-pass") {
+        setActiveView(view as any)
+      }
+    }
+  }, [searchParams, canManageStatus])
 
   // Filter passes based on search and filters
   const filteredPasses = useMemo(() => {
@@ -100,8 +132,25 @@ export default function SpecialPassPage() {
       )
     }
 
+    // Date range filter
+    if (startDate || endDate) {
+      filtered = filtered.filter((p: any) => {
+        if (!p.issueTime) return false
+        const passDate = new Date(p.issueTime).toISOString().split('T')[0]
+
+        if (startDate && endDate) {
+          return passDate >= startDate && passDate <= endDate
+        } else if (startDate) {
+          return passDate >= startDate
+        } else if (endDate) {
+          return passDate <= endDate
+        }
+        return true
+      })
+    }
+
     return filtered
-  }, [passes, searchQuery])
+  }, [passes, searchQuery, startDate, endDate])
 
   // Get unique classes and lockers for filtering
   const classes = useMemo(() => {
@@ -117,11 +166,11 @@ export default function SpecialPassPage() {
   // Filter and sort students for the grant modal
   const filteredStudents = useMemo(() => {
     let filtered = students.filter((s: any) => {
-      const matchesSearch = 
+      const matchesSearch =
         !studentSearchQuery.trim() ||
         s.name?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
         s.admission_number?.toLowerCase().includes(studentSearchQuery.toLowerCase())
-      
+
       const matchesClass = selectedClass === "all" || s.class_name === selectedClass
       const matchesLocker = selectedLocker === "all" || s.locker_number === selectedLocker
 
@@ -135,12 +184,15 @@ export default function SpecialPassPage() {
   // Filter students by phone status for manage students list
   const filteredStudentsByStatus = useMemo(() => {
     let filtered = students
-    
+
     // Filter by active view
     if (activeView === "phone-out") {
       filtered = filtered.filter((s: any) => phoneStatusMap.get(s.id) === "OUT")
     } else if (activeView === "phone-in") {
-      filtered = filtered.filter((s: any) => phoneStatusMap.get(s.id) === "IN")
+      filtered = filtered.filter((s: any) => {
+        const status = phoneStatusMap.get(s.id)
+        return status === "IN" || !status // Treat no status as IN
+      })
     }
     // For "all-students", no filter needed
 
@@ -148,61 +200,140 @@ export default function SpecialPassPage() {
     return filtered.sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""))
   }, [students, activeView, phoneStatusMap])
 
-  const handleSubmitOut = (passId: number) => {
-    // Change button state to "Submit In"
+  const handleSubmitOut = async (passId: number) => {
+    // Optimistic Update
     setPassStates(prev => ({
       ...prev,
       [passId]: "OUT"
     }))
+
+    // Optimistically update phone status for global list
+    mutate("/api/phone-status", (currentStatus: any[] | undefined) => {
+      if (!currentStatus) return []
+      const pass = passes.find((p: any) => p.id === passId)
+      if (!pass) return currentStatus
+
+      const existing = currentStatus.find(s => s.studentId === pass.studentId)
+      if (existing) {
+        return currentStatus.map(s => s.studentId === pass.studentId ? { ...s, status: "OUT" } : s)
+      }
+      return [...currentStatus, { studentId: pass.studentId, status: "OUT" }]
+    }, false)
+
+    toast.success("Phone marked as OUT")
+
+    try {
+      const response = await fetch(`/api/special-pass/out/${passId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to mark pass as OUT")
+      }
+
+      // Background validation
+      mutate("/api/phone-status")
+      mutate("/api/special-pass/all")
+
+    } catch (error) {
+      // Revert on failure
+      setPassStates(prev => {
+        const newStates = { ...prev }
+        delete newStates[passId]
+        return newStates
+      })
+      mutate("/api/phone-status")
+      toast.error("Failed to update status. Reverting...")
+    }
   }
 
   const handleSubmitIn = async (passId: number) => {
-    setReturningPassId(passId)
-    
+    // Optimistic Update: Immediately mark locally as returned
+    // We update the SWR cache directly for instant feedback
+    mutate("/api/special-pass/all", (currentPasses: any[] | undefined) => {
+      if (!currentPasses) return []
+      return currentPasses.map(p =>
+        p.id === passId ? { ...p, status: "COMPLETED", submissionTime: new Date().toISOString() } : p
+      )
+    }, false)
+
+    // Also update phone status cache optimistically
+    mutate("/api/phone-status", (currentStatus: any[] | undefined) => {
+      if (!currentStatus) return []
+      // Find student for this pass
+      const pass = passes.find((p: any) => p.id === passId)
+      if (!pass) return currentStatus
+
+      // Update or add status
+      const existing = currentStatus.find(s => s.studentId === pass.studentId)
+      if (existing) {
+        return currentStatus.map(s => s.studentId === pass.studentId ? { ...s, status: "IN" } : s)
+      }
+      return [...currentStatus, { studentId: pass.studentId, status: "IN" }]
+    }, false)
+
+    toast.success("Phone pass completed")
+
     try {
+      setReturningPassId(passId)
       const response = await fetch(`/api/special-pass/return/${passId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to complete pass")
+        throw new Error("Failed to complete pass")
       }
 
-      toast.success("✓ Phone pass completed successfully")
+      // Revalidate to ensure data consistency
       mutate("/api/special-pass/all")
-      
-      // Reset the state for this pass
+      mutate("/api/phone-status")
+
+      // Reset local state just in case
       setPassStates(prev => {
         const newStates = { ...prev }
         delete newStates[passId]
         return newStates
       })
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to complete pass")
+      // Revert is complex for SWR, simpler to just revalidate immediately to fetch true server state
+      mutate("/api/special-pass/all")
+      mutate("/api/phone-status")
+      toast.error("Failed to complete pass. Reverting...")
     } finally {
       setReturningPassId(null)
     }
   }
 
   const handleReturnPass = async (passId: number) => {
-    setReturningPassId(passId)
+    // Optimistic Update
+    mutate("/api/special-pass/all", (currentPasses: any[] | undefined) => {
+      if (!currentPasses) return []
+      return currentPasses.map(p =>
+        p.id === passId ? { ...p, status: "COMPLETED", submissionTime: new Date().toISOString() } : p
+      )
+    }, false)
+
+    toast.success("Phone pass returned")
+
     try {
+      setReturningPassId(passId)
       const response = await fetch(`/api/special-pass/return/${passId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to return pass")
+        throw new Error("Failed to return pass")
       }
 
-      toast.success("Phone pass returned successfully")
       mutate("/api/special-pass/all")
+      mutate("/api/phone-status")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to return pass")
+      mutate("/api/special-pass/all")
+      mutate("/api/phone-status")
+      toast.error("Failed to return pass")
     } finally {
       setReturningPassId(null)
     }
@@ -219,8 +350,8 @@ export default function SpecialPassPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto">
             <Button
               variant="ghost"
               size="icon"
@@ -231,28 +362,28 @@ export default function SpecialPassPage() {
                   router.push("/dashboard")
                 }
               }}
-              className="rounded-full"
+              className="rounded-full shrink-0"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-xl md:text-2xl font-bold text-foreground">
                 {showStudentList ? "Select Student" : "Phone Pass Management"}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {!showStudentList && (
-              <Button 
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            {!showStudentList && canGrantPass && (
+              <Button
                 onClick={() => setShowStudentList(true)}
-                className="gap-2 bg-green-600 hover:bg-green-700"
+                className="gap-2 bg-green-600 hover:bg-green-700 flex-1 md:flex-none"
               >
                 <Phone className="w-4 h-4" />
                 Grant Pass
               </Button>
             )}
-            <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
+            <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent flex-1 md:flex-none">
               <LogOut className="w-4 h-4" />
               Logout
             </Button>
@@ -267,14 +398,14 @@ export default function SpecialPassPage() {
             {/* Search Bar */}
             <Card>
               <CardHeader>
-                <CardTitle>Select Student to Grant Phone Pass</CardTitle>
+                <CardTitle>Select Student</CardTitle>
                 <CardDescription>Search and filter students to grant a phone pass</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="relative">
                   <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by student name or admission number..."
+                    placeholder="Search by name or admission..."
                     value={studentSearchQuery}
                     onChange={(e) => setStudentSearchQuery(e.target.value)}
                     className="pl-10"
@@ -366,307 +497,346 @@ export default function SpecialPassPage() {
         ) : (
           // Phone Pass Records Page
           <>
-        {/* Search Section */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Search Phone Passes</CardTitle>
-            <CardDescription>Find and manage phone pass grants</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by student name, admission, mentor, or purpose..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </CardContent>
-        </Card>
+            {/* Manage Students Section */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Manage Students by Phone Status</CardTitle>
+                <CardDescription>View students filtered by their current phone status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Phone Pass Button - Only show if user has permission */}
+                  {canViewLogs && (
+                    <Button
+                      onClick={() => setActiveView("phone-pass")}
+                      variant={activeView === "phone-pass" ? "default" : "outline"}
+                      className="h-auto py-4 flex flex-col gap-2"
+                    >
+                      <Phone className="w-6 h-6" />
+                      <span>Phone Pass</span>
+                      <span className="text-xs opacity-75">
+                        {passes.length} records
+                      </span>
+                    </Button>
+                  )}
 
-        {/* Manage Students Section */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Manage Students by Phone Status</CardTitle>
-            <CardDescription>View students filtered by their current phone status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-4 gap-4">
-              {/* Phone Pass Button */}
-              <Button
-                onClick={() => setActiveView("phone-pass")}
-                variant={activeView === "phone-pass" ? "default" : "outline"}
-                className="h-auto py-4 flex flex-col gap-2"
-              >
-                <Phone className="w-6 h-6" />
-                <span>Phone Pass</span>
-                <span className="text-xs opacity-75">
-                  {passes.length} records
-                </span>
-              </Button>
+                  {/* Phone Out Button */}
+                  {canManageStatus && (
+                    <Button
+                      onClick={() => setActiveView("phone-out")}
+                      variant={activeView === "phone-out" ? "default" : "outline"}
+                      className="h-auto py-4 flex flex-col gap-2"
+                    >
+                      <Phone className="w-6 h-6" />
+                      <span>Phone Out</span>
+                      <span className="text-xs opacity-75">
+                        {students.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length} students
+                      </span>
+                    </Button>
+                  )}
 
-              {/* Phone Out Button */}
-              <Button
-                onClick={() => setActiveView("phone-out")}
-                variant={activeView === "phone-out" ? "default" : "outline"}
-                className="h-auto py-4 flex flex-col gap-2"
-              >
-                <Phone className="w-6 h-6" />
-                <span>Phone Out</span>
-                <span className="text-xs opacity-75">
-                  {students.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length} students
-                </span>
-              </Button>
+                  {/* Phone In Button */}
+                  {canManageStatus && (
+                    <Button
+                      onClick={() => setActiveView("phone-in")}
+                      variant={activeView === "phone-in" ? "default" : "outline"}
+                      className="h-auto py-4 flex flex-col gap-2"
+                    >
+                      <CheckCircle2 className="w-6 h-6" />
+                      <span>Phone In</span>
+                      <span className="text-xs opacity-75">
+                        {students.filter((s: any) => {
+                          const status = phoneStatusMap.get(s.id)
+                          return status === "IN" || !status
+                        }).length} students
+                      </span>
+                    </Button>
+                  )}
 
-              {/* Phone In Button */}
-              <Button
-                onClick={() => setActiveView("phone-in")}
-                variant={phoneStatusFilter === "IN" ? "default" : "outline"}
-                className="h-auto py-4 flex flex-col gap-2"
-              >
-                <CheckCircle2 className="w-6 h-6" />
-                <span>Phone In</span>
-                <span className="text-xs opacity-75">
-                  {students.filter((s: any) => phoneStatusMap.get(s.id) === "IN").length} students
-                </span>
-              </Button>
+                  {/* All Students Button */}
+                  {canManageStatus && (
+                    <Button
+                      onClick={() => setActiveView("all-students")}
+                      variant={activeView === "all-students" ? "default" : "outline"}
+                      className="h-auto py-4 flex flex-col gap-2"
+                    >
+                      <Clock className="w-6 h-6" />
+                      <span>All Students</span>
+                      <span className="text-xs opacity-75">
+                        {students.length} total
+                      </span>
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* All Students Button */}
-              <Button
-                onClick={() => setActiveView("all-students")}
-                variant={activeView === "all-students" ? "default" : "outline"}
-                className="h-auto py-4 flex flex-col gap-2"
-              >
-                <Clock className="w-6 h-6" />
-                <span>All Students</span>
-                <span className="text-xs opacity-75">
-                  {students.length} total
-                </span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Search Section (Moved below Buttons) */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Search Phone Passes</CardTitle>
+                <CardDescription>Find and manage phone pass grants</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search passes..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Student Management List - Only show for student views */}
-        {activeView !== "phone-pass" && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>
-              {activeView === "phone-out" && "Students with Phone Out"}
-              {activeView === "phone-in" && "Students with Phone In"}
-              {activeView === "all-students" && "All Students List"}
-            </CardTitle>
-            <CardDescription>Showing in alphabetical order with status and details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {studentLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading students...</div>
-            ) : filteredStudentsByStatus.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No students found with this status</div>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {filteredStudentsByStatus.map((student: any) => {
-                  const status = phoneStatusMap.get(student.id) || "Unknown"
-                  return (
-                    <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-1">
-                        <p className="font-semibold text-foreground">{student.name}</p>
-                        <div className="text-xs text-muted-foreground mt-1 grid grid-cols-4 gap-2">
-                          <span>Adm: {student.admission_number}</span>
-                          <span>Class: {student.class_name || "-"}</span>
-                          <span>Locker: {student.locker_number || "-"}</span>
-                          <span>Roll: {student.roll_no || "-"}</span>
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap ${
-                          status === "OUT"
-                            ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
-                            : status === "IN"
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                            : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400"
-                        }`}>
-                          {status}
-                        </span>
-                      </div>
+            {/* Student Management List - Only show for student views */}
+            {activeView !== "phone-pass" && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>
+                    {activeView === "phone-out" && "Students with Phone Out"}
+                    {activeView === "phone-in" && "Students with Phone In"}
+                    {activeView === "all-students" && "All Students List"}
+                  </CardTitle>
+                  <CardDescription>Showing in alphabetical order with status and details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {studentLoading ? (
+                    <div className="text-center py-8 text-muted-foreground">Loading students...</div>
+                  ) : filteredStudentsByStatus.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">No students found with this status</div>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {filteredStudentsByStatus.map((student: any) => {
+                        const status = phoneStatusMap.get(student.id) || "IN"
+                        return (
+                          <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex-1">
+                              <p className="font-semibold text-foreground">{student.name}</p>
+                              <div className="text-xs text-muted-foreground mt-1 grid grid-cols-4 gap-2">
+                                <span>Adm: {student.admission_number}</span>
+                                <span>Class: {student.class_name || "-"}</span>
+                                <span>Locker: {student.locker_number || "-"}</span>
+                                <span>Roll: {student.roll_no || "-"}</span>
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <span className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap ${status === "OUT"
+                                ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
+                                : status === "IN"
+                                  ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                  : "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400"
+                                }`}>
+                                {status}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  )
-                })}
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Separator */}
+            {activeView === "phone-pass" && canViewLogs && <div className="my-8 border-t" />}
+
+            {/* Phone Pass Records Grid - Only show for phone-pass view and if user has permission */}
+            {activeView === "phone-pass" && canViewLogs && (
+              <div>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                      <Clock className="w-6 h-6" />
+                      Phone Pass Records ({filteredPasses.length})
+                    </h2>
+                    <p className="text-muted-foreground">View and manage all phone pass grants</p>
+                  </div>
+
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <div className="flex-1 md:w-[150px]">
+                      <Input
+                        type="date"
+                        placeholder="From Date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex-1 md:w-[150px]">
+                      <Input
+                        type="date"
+                        placeholder="To Date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {passesLoading ? (
+                  <div className="text-center py-12 text-muted-foreground">Loading passes...</div>
+                ) : filteredPasses.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    {searchQuery ? "No matching passes found" : "No special passes yet"}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredPasses.map((pass: any) => (
+                      <Card key={pass.id} className="flex flex-col border-2 border-yellow-500/20 bg-yellow-50/50 dark:bg-yellow-900/10 hover:shadow-lg transition-all">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg text-yellow-900 dark:text-yellow-400">{pass.studentName || "Unknown"}</CardTitle>
+                              <CardDescription className="text-xs mt-1">Admission: {pass.admissionNumber}</CardDescription>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {pass.status === "ACTIVE" && (
+                                <>
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                                  <span className="text-xs font-bold text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded-full">ACTIVE</span>
+                                </>
+                              )}
+                              {pass.status === "COMPLETED" && (
+                                <>
+                                  <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500" />
+                                  <span className="text-xs font-bold text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">COMPLETED</span>
+                                  {pass.submissionTime && pass.returnTime && new Date(pass.submissionTime) > new Date(pass.returnTime) && (
+                                    <span className="text-xs font-bold text-red-600 dark:text-red-500 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">LATE</span>
+                                  )}
+                                </>
+                              )}
+                              {pass.status === "OUT" && (
+                                <>
+                                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                                  <span className="text-xs font-bold text-orange-600 dark:text-orange-500 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">OUT</span>
+                                </>
+                              )}
+                              {pass.status === "EXPIRED" && (
+                                <>
+                                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-500" />
+                                  <span className="text-xs font-bold text-red-600 dark:text-red-500 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">EXPIRED</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="flex-1 space-y-3">
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
+                              <p className="text-xs font-semibold text-muted-foreground">Mentor</p>
+                              <p className="font-medium text-foreground mt-0.5 text-xs">{pass.mentorName}</p>
+                            </div>
+                            <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
+                              <p className="text-xs font-semibold text-muted-foreground">Class</p>
+                              <p className="font-medium text-foreground mt-0.5 text-xs">{pass.className || "-"}</p>
+                            </div>
+                            <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
+                              <p className="text-xs font-semibold text-muted-foreground">Locker</p>
+                              <p className="font-medium text-foreground mt-0.5 text-xs">{pass.lockerNumber || "-"}</p>
+                            </div>
+                            <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
+                              <p className="text-xs font-semibold text-muted-foreground">Roll No</p>
+                              <p className="font-medium text-foreground mt-0.5 text-xs">{pass.rollNo || "-"}</p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
+                              <p className="font-semibold text-muted-foreground">Phone Name</p>
+                              <p className="font-medium text-foreground mt-0.5">{pass.phoneNumber || "-"}</p>
+                            </div>
+                            <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
+                              <p className="font-semibold text-muted-foreground">Admission</p>
+                              <p className="font-medium text-foreground mt-0.5">{pass.admissionNumber || "-"}</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-white dark:bg-background/50 p-3 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Purpose</p>
+                            <p className="text-sm font-medium text-foreground italic">{pass.purpose}</p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
+                              <p className="text-xs font-semibold text-muted-foreground">Issued</p>
+                              <p className="font-medium text-foreground mt-0.5 text-xs">
+                                {pass.issueTime ? new Date(pass.issueTime).toLocaleString() : "-"}
+                              </p>
+                            </div>
+                            <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
+                              <p className="text-xs font-semibold text-muted-foreground">Expected Return</p>
+                              <p className="font-medium text-foreground mt-0.5 text-xs">
+                                {pass.returnTime ? new Date(pass.returnTime).toLocaleString() : "-"}
+                              </p>
+                            </div>
+                          </div>
+
+                          {pass.status === "COMPLETED" && pass.submissionTime && (
+                            <div className={`p-3 rounded-lg border ${new Date(pass.submissionTime) > new Date(pass.returnTime || 0)
+                              ? "bg-red-50 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/30"
+                              : "bg-green-50 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/30"
+                              }`}>
+                              <p className="text-xs font-semibold text-muted-foreground mb-1">
+                                {new Date(pass.submissionTime) > new Date(pass.returnTime || 0) ? "Submitted Late" : "Submitted On Time"}
+                              </p>
+                              <p className={`font-medium text-xs ${new Date(pass.submissionTime) > new Date(pass.returnTime || 0)
+                                ? "text-red-700 dark:text-red-400"
+                                : "text-green-700 dark:text-green-400"
+                                }`}>
+                                {new Date(pass.submissionTime).toLocaleString()}
+                              </p>
+                            </div>
+                          )}
+                        </CardContent>
+                        <div className="px-6 py-3 border-t border-yellow-200/50 dark:border-yellow-800/30 space-y-2">
+                          {pass.status === "ACTIVE" || pass.status === "OUT" ? (
+                            <>
+                              {pass.status === "OUT" || passStates[pass.id] === "OUT" ? (
+                                // Show "Submit In" button if status is OUT or local state thinks it's OUT
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+                                  onClick={() => handleSubmitIn(pass.id)}
+                                  disabled={returningPassId === pass.id}
+                                >
+                                  {returningPassId === pass.id ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                      Completing...
+                                    </>
+                                  ) : (
+                                    "Submit In"
+                                  )}
+                                </Button>
+                              ) : (
+                                // Show "Submit Out" button initially
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold"
+                                  onClick={() => handleSubmitOut(pass.id)}
+                                  disabled={returningPassId === pass.id}
+                                >
+                                  Submit Out
+                                </Button>
+                              )}
+                            </>
+                          ) : (
+                            <Button size="sm" variant="outline" className="w-full" disabled>
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              {pass.status}
+                            </Button>
+                          )}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </CardContent>
-        </Card>
-        )}
-
-        {/* Separator */}
-        {activeView === "phone-pass" && <div className="my-8 border-t" />}
-
-        {/* Phone Pass Records Grid - Only show for phone-pass view */}
-        {activeView === "phone-pass" && (
-        <div>
-          <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
-            <Clock className="w-6 h-6" />
-            Phone Pass Records ({filteredPasses.length})
-          </h2>
-          <p className="text-muted-foreground mb-6">View and manage all phone pass grants</p>
-
-          {passesLoading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading passes...</div>
-          ) : filteredPasses.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              {searchQuery ? "No matching passes found" : "No special passes yet"}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredPasses.map((pass: any) => (
-                <Card key={pass.id} className="flex flex-col border-2 border-yellow-500/20 bg-yellow-50/50 dark:bg-yellow-900/10 hover:shadow-lg transition-all">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg text-yellow-900 dark:text-yellow-400">{pass.studentName || "Unknown"}</CardTitle>
-                        <CardDescription className="text-xs mt-1">Admission: {pass.admissionNumber}</CardDescription>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {pass.status === "ACTIVE" && (
-                          <>
-                            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                            <span className="text-xs font-bold text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded-full">ACTIVE</span>
-                          </>
-                        )}
-                        {pass.status === "COMPLETED" && (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-500" />
-                            <span className="text-xs font-bold text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">COMPLETED</span>
-                            {pass.submissionTime && pass.returnTime && new Date(pass.submissionTime) > new Date(pass.returnTime) && (
-                              <span className="text-xs font-bold text-red-600 dark:text-red-500 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">LATE</span>
-                            )}
-                          </>
-                        )}
-                        {pass.status === "EXPIRED" && (
-                          <>
-                            <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-500" />
-                            <span className="text-xs font-bold text-red-600 dark:text-red-500 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">EXPIRED</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-1 space-y-3">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
-                        <p className="text-xs font-semibold text-muted-foreground">Mentor</p>
-                        <p className="font-medium text-foreground mt-0.5 text-xs">{pass.mentorName}</p>
-                      </div>
-                      <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
-                        <p className="text-xs font-semibold text-muted-foreground">Class</p>
-                        <p className="font-medium text-foreground mt-0.5 text-xs">{pass.className || "-"}</p>
-                      </div>
-                      <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
-                        <p className="text-xs font-semibold text-muted-foreground">Locker</p>
-                        <p className="font-medium text-foreground mt-0.5 text-xs">{pass.lockerNumber || "-"}</p>
-                      </div>
-                      <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
-                        <p className="text-xs font-semibold text-muted-foreground">Roll No</p>
-                        <p className="font-medium text-foreground mt-0.5 text-xs">{pass.rollNo || "-"}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
-                        <p className="font-semibold text-muted-foreground">Phone Name</p>
-                        <p className="font-medium text-foreground mt-0.5">{pass.phoneNumber || "-"}</p>
-                      </div>
-                      <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
-                        <p className="font-semibold text-muted-foreground">Admission</p>
-                        <p className="font-medium text-foreground mt-0.5">{pass.admissionNumber || "-"}</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-background/50 p-3 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">Purpose</p>
-                      <p className="text-sm font-medium text-foreground italic">{pass.purpose}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
-                        <p className="text-xs font-semibold text-muted-foreground">Issued</p>
-                        <p className="font-medium text-foreground mt-0.5 text-xs">
-                          {pass.issueTime ? new Date(pass.issueTime).toLocaleString() : "-"}
-                        </p>
-                      </div>
-                      <div className="bg-white dark:bg-background/50 p-2 rounded-lg border border-yellow-200/50 dark:border-yellow-800/30">
-                        <p className="text-xs font-semibold text-muted-foreground">Expected Return</p>
-                        <p className="font-medium text-foreground mt-0.5 text-xs">
-                          {pass.returnTime ? new Date(pass.returnTime).toLocaleString() : "-"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {pass.status === "COMPLETED" && pass.submissionTime && (
-                      <div className={`p-3 rounded-lg border ${
-                        new Date(pass.submissionTime) > new Date(pass.returnTime || 0)
-                          ? "bg-red-50 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/30"
-                          : "bg-green-50 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/30"
-                      }`}>
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">
-                          {new Date(pass.submissionTime) > new Date(pass.returnTime || 0) ? "Submitted Late" : "Submitted On Time"}
-                        </p>
-                        <p className={`font-medium text-xs ${
-                          new Date(pass.submissionTime) > new Date(pass.returnTime || 0)
-                            ? "text-red-700 dark:text-red-400"
-                            : "text-green-700 dark:text-green-400"
-                        }`}>
-                          {new Date(pass.submissionTime).toLocaleString()}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                  <div className="px-6 py-3 border-t border-yellow-200/50 dark:border-yellow-800/30 space-y-2">
-                    {pass.status === "ACTIVE" ? (
-                      <>
-                        {passStates[pass.id] === "OUT" ? (
-                          // Show "Submit In" button after "Submit Out" was clicked
-                          <Button
-                            size="sm"
-                            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
-                            onClick={() => handleSubmitIn(pass.id)}
-                            disabled={returningPassId === pass.id}
-                          >
-                            {returningPassId === pass.id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                Completing...
-                              </>
-                            ) : (
-                              "Submit In"
-                            )}
-                          </Button>
-                        ) : (
-                          // Show "Submit Out" button initially
-                          <Button
-                            size="sm"
-                            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold"
-                            onClick={() => handleSubmitOut(pass.id)}
-                            disabled={returningPassId === pass.id}
-                          >
-                            Submit Out
-                          </Button>
-                        )}
-                      </>
-                    ) : (
-                      <Button size="sm" variant="outline" className="w-full" disabled>
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        {pass.status}
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-        )}
           </>
         )}
       </main>

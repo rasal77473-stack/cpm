@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { userActivityLogs, specialPassGrants, students } from "@/db/schema"
-import { eq, and } from "drizzle-orm"
+import { eq, and, inArray } from "drizzle-orm"
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(specialPassGrants.studentId, Number(studentId)),
-          eq(specialPassGrants.status, "ACTIVE")
+          inArray(specialPassGrants.status, ["ACTIVE", "OUT"])
         )
       )
       .limit(1)
@@ -48,6 +48,12 @@ export async function POST(request: NextRequest) {
         submissionTime: submissionTime ? new Date(submissionTime) : new Date(),
       })
       .returning()
+
+    // Update student's special_pass status to "YES"
+    await db
+      .update(students)
+      .set({ special_pass: "YES" })
+      .where(eq(students.id, Number(studentId)))
 
     // Log the activity
     if (staffId) {

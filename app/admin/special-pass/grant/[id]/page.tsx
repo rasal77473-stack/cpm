@@ -50,45 +50,35 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
     setSubmitting(true)
 
     try {
-      // Check if student already has an active or out pass before submitting
-      const activeRes = await fetch("/api/special-pass/active")
-      const activePasses = await activeRes.json()
-      const hasActivePass = activePasses.some((p: any) => p.student_id === Number(studentId))
-
-      if (hasActivePass) {
-        toast.error("Student already has an active special pass")
-        setSubmitting(false)
-        return
-      }
-
       const res = await fetch("/api/special-pass/grant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           studentId: Number(studentId),
-          mentorId: parseInt(mentorId) || 0, // Ensure mentorId is sent as number
+          mentorId: parseInt(mentorId) || 0,
           mentorName,
           purpose: formData.purpose,
           returnTime: formData.returnTime,
           submissionTime: new Date().toISOString(),
-          staffId: mentorId // for logging
+          staffId: mentorId
         })
       })
 
+      const data = await res.json()
+
       if (res.ok) {
         toast.success("Special pass granted successfully!")
-        // Force revalidation of student data and special passes
-        await mutate("/api/students")
-        await mutate("/api/special-pass/all")
-        // Redirect to special-pass records to show the newly granted pass
-        setTimeout(() => {
-          router.push("/admin/special-pass?tab=logs")
-        }, 800)
+        // Non-blocking cache updates
+        mutate("/api/students")
+        mutate("/api/special-pass/all")
+
+        // Instant redirect
+        router.push("/special-pass")
       } else {
-        throw new Error("Failed to grant pass")
+        throw new Error(data.error || "Failed to grant pass")
       }
     } catch (err) {
-      toast.error("An error occurred")
+      toast.error(err instanceof Error ? err.message : "An error occurred")
       setSubmitting(false)
     }
   }

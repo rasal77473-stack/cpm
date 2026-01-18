@@ -35,30 +35,33 @@ export async function POST(
 
     console.log(`Successfully marked pass ${grantId} as OUT`)
 
-    // Sync main phone status to OUT (fire and forget)
+    // Sync main phone status to OUT (synchronous)
     const studentId = grant.studentId
-    db.select()
+    const [existingStatus] = await db
+      .select()
       .from(phoneStatus)
       .where(eq(phoneStatus.studentId, studentId))
       .limit(1)
-      .then(([existingStatus]) => {
-        if (existingStatus) {
-          db.update(phoneStatus)
-            .set({ status: "OUT", lastUpdated: new Date(), updatedBy: "special_pass" })
-            .where(eq(phoneStatus.studentId, studentId))
-            .catch(err => console.error("Error updating phone status:", err))
-        } else {
-          db.insert(phoneStatus)
-            .values({
-              studentId,
-              status: "OUT",
-              updatedBy: "special_pass",
-              lastUpdated: new Date()
-            })
-            .catch(err => console.error("Error creating phone status:", err))
-        }
-      })
-      .catch(err => console.error("Error fetching phone status:", err))
+
+    if (existingStatus) {
+      await db.update(phoneStatus)
+        .set({
+          status: "OUT",
+          lastUpdated: new Date(),
+          updatedBy: grant.mentorName,
+          notes: grant.purpose
+        })
+        .where(eq(phoneStatus.studentId, studentId))
+    } else {
+      await db.insert(phoneStatus)
+        .values({
+          studentId,
+          status: "OUT",
+          updatedBy: grant.mentorName,
+          notes: grant.purpose,
+          lastUpdated: new Date()
+        })
+    }
 
     // Log the action in background (fire and forget)
     if (grant.mentorId) {

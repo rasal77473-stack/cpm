@@ -15,10 +15,11 @@ const PERMISSIONS = [
   { id: "view_only", label: "View Only" },
   { id: "in_out_control", label: "In/Out Control" },
   { id: "manage_students", label: "Manage Students" },
-  { id: "manage_special_pass", label: "Special Pass Authority" },
-  { id: "view_special_pass_logs", label: "View Special Pass Logs" },
+  { id: "issue_phone_pass", label: "Issue Phone Pass" },
+  { id: "access_phone_pass", label: "Phone Pass Page Access" },
+  { id: "view_phone_logs", label: "View Phone Logs" },
+  { id: "manage_phone_status", label: "Manage Phone Status Lists" },
   { id: "manage_users", label: "User Management" },
-  { id: "ban_unban", label: "Ban/Unban Students" },
 ];
 
 export default function UserManagement() {
@@ -108,14 +109,14 @@ export default function UserManagement() {
 
       const text = await res.text();
       console.log("Response text:", text);
-      
+
       let responseData = {};
       try {
         responseData = JSON.parse(text);
       } catch (e) {
         console.warn("Could not parse response as JSON");
       }
-      
+
       console.log("Response data:", responseData);
 
       if (res.ok) {
@@ -176,7 +177,7 @@ export default function UserManagement() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-3xl font-bold">User Management</h1>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -186,19 +187,19 @@ export default function UserManagement() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Name</Label>
-                <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
               </div>
               <div className="space-y-2">
                 <Label>Username</Label>
-                <Input value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} required />
+                <Input value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} required />
               </div>
               <div className="space-y-2">
                 <Label>Password</Label>
-                <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
+                <Input type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} required />
               </div>
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={formData.role} onValueChange={v => setFormData({...formData, role: v})}>
+                <Select value={formData.role} onValueChange={v => setFormData({ ...formData, role: v })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -209,10 +210,10 @@ export default function UserManagement() {
                 </Select>
               </div>
               <div className="flex items-center space-x-2 py-2">
-                <Checkbox 
-                  id="special_pass" 
+                <Checkbox
+                  id="special_pass"
                   checked={formData.special_pass === "YES"}
-                  onCheckedChange={(checked) => setFormData({...formData, special_pass: checked ? "YES" : "NO"})}
+                  onCheckedChange={(checked) => setFormData({ ...formData, special_pass: checked ? "YES" : "NO" })}
                 />
                 <Label htmlFor="special_pass" className="text-yellow-600 font-bold">Grant Special Pass (Admin Access)</Label>
               </div>
@@ -221,8 +222,8 @@ export default function UserManagement() {
                 <div className="grid grid-cols-1 gap-2">
                   {PERMISSIONS.map(perm => (
                     <div key={perm.id} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={perm.id} 
+                      <Checkbox
+                        id={perm.id}
                         checked={formData.permissions.includes(perm.id)}
                         onCheckedChange={() => togglePermission(perm.id)}
                       />

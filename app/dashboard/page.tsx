@@ -1,19 +1,22 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, Users, Phone, Settings, BarChart3, Eye } from "lucide-react"
+import { LogOut, Users, Phone, Settings, BarChart3 } from "lucide-react"
 
-export default function DashboardPage() {
+export default function Dashboard() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
   const [permissions, setPermissions] = useState<string[]>([])
+  const [role, setRole] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
+    const role = localStorage.getItem("role")
     const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
@@ -23,140 +26,137 @@ export default function DashboardPage() {
 
     setIsAuthorized(true)
     setPermissions(perms)
+    setRole(role || "")
     setStaffName(name || "Staff")
   }, [router])
 
   if (!isAuthorized) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground animate-pulse">Verifying credentials...</p>
+        </div>
+      </div>
+    )
   }
 
   const handleLogout = () => {
-    localStorage.clear()
+    localStorage.removeItem("token")
+    localStorage.removeItem("staffId")
+    localStorage.removeItem("staffName")
+    localStorage.removeItem("role")
+    localStorage.removeItem("permissions")
     router.push("/login")
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Caliph Phone Management</h1>
-            <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">Welcome, {staffName}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="gap-2">
-            <LogOut className="w-4 h-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleLogout} className="gap-2">
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
-      {/* Main Navigation Grid */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* See Phone Pass */}
-          {(permissions.includes("manage_special_pass") || permissions.length === 0) && (
-            <Card className="cursor-pointer hover:shadow-lg transition-all border-green-500/20 bg-green-500/5" onClick={() => router.push("/special-pass")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle className="text-green-700 dark:text-green-400">See Phone Pass</CardTitle>
-                  <CardDescription className="mt-1">View active phone passes</CardDescription>
-                </div>
-                <Eye className="w-8 h-8 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                  View Passes
-                </Button>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Students Management */}
-          {(permissions.includes("manage_students") || permissions.length === 0) && (
-            <Card className="cursor-pointer hover:shadow-lg transition-all border-blue-500/20 bg-blue-500/5" onClick={() => router.push("/admin/manage-students")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle className="text-blue-700 dark:text-blue-400">Students Management</CardTitle>
-                  <CardDescription className="mt-1">Manage student records</CardDescription>
-                </div>
-                <Users className="w-8 h-8 text-blue-600" />
+          {(role === "admin" || permissions.includes("manage_students") || permissions.length === 0) && (
+            <Card className="group hover:shadow-lg transition-all hover:border-green-500 cursor-pointer" onClick={() => router.push("/admin/manage-students")}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="w-5 h-5 text-green-600" />
+                  Students Management
+                </CardTitle>
+                <CardDescription>Manage and view student records</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                  Manage Students
+                <Button className="w-full" variant="outline" asChild>
+                  <div>Manage Students</div>
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* Phone History */}
-          {(permissions.includes("in_out_control") || permissions.length === 0) && (
-            <Card className="cursor-pointer hover:shadow-lg transition-all border-purple-500/20 bg-purple-500/5" onClick={() => router.push("/history")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle className="text-purple-700 dark:text-purple-400">Phone History</CardTitle>
-                  <CardDescription className="mt-1">View phone status history</CardDescription>
-                </div>
-                <BarChart3 className="w-8 h-8 text-purple-600" />
+          {/* History */}
+          {(role === "admin" || permissions.includes("view_phone_logs") || permissions.length === 0) && (
+            <Card className="group hover:shadow-lg transition-all hover:border-purple-500 cursor-pointer" onClick={() => router.push("/history")}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <BarChart3 className="w-5 h-5 text-purple-600" />
+                  Phone History
+                </CardTitle>
+                <CardDescription>View phone transaction history</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                  View History
+                <Button className="w-full" variant="outline" asChild>
+                  <div>View History</div>
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* System Settings */}
-          {(permissions.includes("manage_system") || permissions.length === 0) && (
-            <Card className="cursor-pointer hover:shadow-lg transition-all border-red-500/20 bg-red-500/5" onClick={() => router.push("/admin/settings")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle className="text-red-700 dark:text-red-400">System Settings</CardTitle>
-                  <CardDescription className="mt-1">Configure system options</CardDescription>
-                </div>
-                <Settings className="w-8 h-8 text-red-600" />
+          {/* System Settings - Only for explicit admin role */}
+          {(role === "admin") && (
+            <Card className="group hover:shadow-lg transition-all hover:border-orange-500 cursor-pointer" onClick={() => router.push("/admin/settings")}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Settings className="w-5 h-5 text-orange-600" />
+                  System Settings
+                </CardTitle>
+                <CardDescription>Configure system preferences</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
-                  Settings
+                <Button className="w-full" variant="outline" asChild>
+                  <div>System Settings</div>
                 </Button>
               </CardContent>
             </Card>
           )}
 
           {/* User Management */}
-          {(permissions.includes("manage_users") || permissions.length === 0) && (
-            <Card className="cursor-pointer hover:shadow-lg transition-all border-orange-500/20 bg-orange-500/5" onClick={() => router.push("/admin/users")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle className="text-orange-700 dark:text-orange-400">User Management</CardTitle>
-                  <CardDescription className="mt-1">Manage users and roles</CardDescription>
-                </div>
-                <Users className="w-8 h-8 text-orange-600" />
+          {(role === "admin" || permissions.includes("manage_users")) && (
+            <Card className="group hover:shadow-lg transition-all hover:border-red-500 cursor-pointer" onClick={() => router.push("/admin/users")}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="w-5 h-5 text-red-600" />
+                  User Management
+                </CardTitle>
+                <CardDescription>Manage mentors and assign permissions</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white">
-                  Manage Users
+                <Button className="w-full" variant="outline" asChild>
+                  <div>Manage Users</div>
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* Phone Pass */}
-          {(permissions.includes("manage_special_pass") || permissions.length === 0) && (
-            <Card className="cursor-pointer hover:shadow-lg transition-all border-yellow-500/20 bg-yellow-500/5" onClick={() => router.push("/special-pass")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle className="text-yellow-700 dark:text-yellow-400">Phone Pass</CardTitle>
-                  <CardDescription className="mt-1">Grant phone passes</CardDescription>
-                </div>
-                <Phone className="w-8 h-8 text-yellow-600" />
+          {/* Phone Pass / Grant Pass */}
+          {(role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.includes("manage_phone_status") || permissions.length === 0) && (
+            <Card className="group hover:shadow-lg transition-all hover:border-yellow-500 cursor-pointer" onClick={() => router.push("/special-pass")}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Phone className="w-5 h-5 text-yellow-600" />
+                  Phone Pass
+                </CardTitle>
+                <CardDescription>Grant phone access to students</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="w-full bg-yellow-600 hover:bg-yellow-700 text-white">
-                  Manage Passes
+                <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-white" asChild>
+                  <div>Grant Phone Pass</div>
                 </Button>
               </CardContent>
             </Card>
