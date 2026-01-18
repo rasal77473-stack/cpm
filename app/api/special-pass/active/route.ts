@@ -13,12 +13,14 @@ export async function GET(request: NextRequest) {
         studentName: students.name,
         admissionNumber: students.admission_number,
         lockerNumber: students.locker_number,
-        className: students.class_name,
-        rollNo: students.roll_no,
+        className: students.class,
+        rollNo: students.roll_number,
+        phoneNumber: students.phone_name,
         mentorName: specialPassGrants.mentorName,
         purpose: specialPassGrants.purpose,
         issueTime: specialPassGrants.issueTime,
         returnTime: specialPassGrants.returnTime,
+        submissionTime: specialPassGrants.submissionTime,
         status: specialPassGrants.status,
       })
       .from(specialPassGrants)

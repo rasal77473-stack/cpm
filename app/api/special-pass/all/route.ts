@@ -11,14 +11,19 @@ export async function GET(request: NextRequest) {
         studentId: specialPassGrants.studentId,
         studentName: students.name,
         admissionNumber: students.admission_number,
+        className: students.class,
+        lockerNumber: students.locker_number,
+        rollNo: students.roll_number,
+        phoneNumber: students.phone_name,
         mentorName: specialPassGrants.mentorName,
         purpose: specialPassGrants.purpose,
         issueTime: specialPassGrants.issueTime,
         returnTime: specialPassGrants.returnTime,
+        submissionTime: specialPassGrants.submissionTime,
         status: specialPassGrants.status,
       })
       .from(specialPassGrants)
-      .leftJoin(students, eq(specialPassGrants.studentId, students.id))
+      .innerJoin(students, eq(specialPassGrants.studentId, students.id))
       .orderBy(desc(specialPassGrants.issueTime))
 
     return NextResponse.json(allPasses)

@@ -32,12 +32,12 @@ export async function POST(
       )
     }
 
-    // Mark pass as completed
+    // Mark pass as completed with submission time
     const [updated] = await db
       .update(specialPassGrants)
       .set({
         status: "COMPLETED",
-        returnTime: new Date(),
+        submissionTime: new Date(),
       })
       .where(eq(specialPassGrants.id, grantId))
       .returning()
@@ -46,12 +46,6 @@ export async function POST(
     if (grant) {
       const studentId = grant.studentId
       
-      // Update student status in background
-      db.update(students)
-        .set({ special_pass: "NO" })
-        .where(eq(students.id, studentId))
-        .catch(err => console.error("Error updating student special_pass status:", err))
-
       // Sync main phone status to IN in background
       db.select()
         .from(phoneStatus)

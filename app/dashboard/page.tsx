@@ -1,360 +1,39 @@
 "use client"
-
-import { useEffect, useState, useMemo, useCallback } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { LogOut, Search, Phone, Loader2, Star, Users } from "lucide-react"
-import useSWR, { mutate } from "swr"
-import { toast } from "sonner"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
-
-const phoneStatusFetcher = (url: string) => fetch(url).then((res) => res.json()).then((data) => {
-  if (Array.isArray(data)) {
-    return data.reduce((acc: any, curr: any) => {
-      acc[curr.studentId] = curr
-      return acc
-    }, {})
-  }
-  return data
-})
+import { LogOut, Users, Phone, Settings, BarChart3, Eye } from "lucide-react"
 
 export default function DashboardPage() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedClass, setSelectedClass] = useState("all")
-  const [selectedLocker, setSelectedLocker] = useState("all")
-  const [togglingStudentId, setTogglingStudentId] = useState<number | null>(null)
-  const [specialPassButtonStates, setSpecialPassButtonStates] = useState<Record<number, "OUT" | "IN">>({})
-
-  const { data: studentsData = [], isLoading: loadingStudents } = useSWR("/api/students", fetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    dedupingInterval: 60000, // 1 minute
-  })
-
-  const { data: activePasses, isLoading: loadingPasses } = useSWR("/api/special-pass/active", fetcher, {
-    refreshInterval: 15000,
-    dedupingInterval: 5000,
-  })
-
-  useEffect(() => {
-    if (activePasses && Array.isArray(activePasses)) {
-      const newStates: Record<number, "OUT" | "IN"> = {}
-      activePasses.forEach((pass: any) => {
-        newStates[pass.id] = pass.status === "OUT" ? "OUT" : "IN"
-      })
-      // Initialize all passes in button states
-      setSpecialPassButtonStates(prev => {
-        let hasChanges = false
-        const updated = { ...prev }
-        for (const [id, status] of Object.entries(newStates)) {
-          if (updated[parseInt(id)] !== status) {
-            updated[parseInt(id)] = status
-            hasChanges = true
-          }
-        }
-        return hasChanges ? updated : prev
-      })
-    }
-  }, [activePasses])
-
-  const [searchQuerySpecialPass, setSearchQuerySpecialPass] = useState("")
-
-  const filteredActivePasses = useMemo(() => {
-    if (!activePasses) return []
-    if (!searchQuerySpecialPass.trim()) return activePasses
-
-    const q = searchQuerySpecialPass.toLowerCase()
-    return activePasses.filter((pass: any) =>
-      (pass.studentName || pass.name || "").toLowerCase().includes(q) ||
-      (pass.admissionNumber || "").toLowerCase().includes(q) ||
-      (pass.lockerNumber || "").toLowerCase().includes(q)
-    )
-  }, [activePasses, searchQuerySpecialPass])
-
-  const students = Array.isArray(studentsData) ? studentsData : []
-
-
-
-  const { data: phoneStatus = {}, isLoading: loadingStatus } = useSWR("/api/phone-status", phoneStatusFetcher, {
-    refreshInterval: 30000,
-    dedupingInterval: 15000,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-  })
-
   const [permissions, setPermissions] = useState<string[]>([])
-  const [specialPass, setSpecialPass] = useState("NO")
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
+    const name = localStorage.getItem("staffName")
+    const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
+
     if (!token) {
       router.push("/login")
       return
     }
-    setStaffName(localStorage.getItem("staffName") || "Staff")
-    setSpecialPass(localStorage.getItem("special_pass") || "NO")
-    try {
-      const storedPerms = localStorage.getItem("permissions")
-      setPermissions(storedPerms ? JSON.parse(storedPerms) : [])
-    } catch (e) {
-      setPermissions([])
-    }
+
+    setIsAuthorized(true)
+    setPermissions(perms)
+    setStaffName(name || "Staff")
   }, [router])
 
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query)
-  }, [])
-
-  const { lockers, classes } = useMemo(() => {
-    const classSet = new Set<string>()
-    const lockerSet = new Set<string>()
-    students.forEach((s: any) => {
-      if (s.class_name) classSet.add(s.class_name)
-      if (s.locker_number) lockerSet.add(s.locker_number)
-    })
-    return {
-      classes: ["all", ...Array.from(classSet).sort()],
-      lockers: ["all", ...Array.from(lockerSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))]
-    }
-  }, [students])
-
-  const filteredStudents = useMemo(() => {
-    let filtered = students
-
-    if (selectedClass !== "all") {
-      filtered = filtered.filter((s: any) => s.class_name === selectedClass)
-    }
-
-    if (selectedLocker !== "all") {
-      filtered = filtered.filter((s: any) => s.locker_number === selectedLocker)
-    }
-
-    if (!searchQuery.trim()) return filtered
-
-    const q = searchQuery.toLowerCase()
-    return filtered.filter((s: any) =>
-      s.name.toLowerCase().includes(q) ||
-      s.admission_number.toLowerCase().includes(q) ||
-      s.locker_number.toLowerCase().includes(q) ||
-      (s.roll_no && s.roll_no.toLowerCase().includes(q))
-    )
-  }, [students, searchQuery, selectedClass, selectedLocker])
-
-  const handleTogglePhoneStatus = useCallback(async (studentId: number, currentStatus: string) => {
-    setTogglingStudentId(studentId)
-    const newStatus = currentStatus === "IN" ? "OUT" : "IN"
-
-    console.log(`Toggling phone status for student ${studentId}: ${currentStatus} → ${newStatus}`)
-
-    // Get staffId first to ensure we have it before making the request
-    const staffId = localStorage.getItem("staffId")
-    const staffName = localStorage.getItem("staffName")
-
-    if (!staffId) {
-      toast.error("Authentication error: Staff ID not found. Please log in again.")
-      setTogglingStudentId(null)
-      return
-    }
-
-    // Check permissions
-    let userPermissions: string[] = [];
-    try {
-      const storedPerms = localStorage.getItem("permissions");
-      userPermissions = storedPerms ? JSON.parse(storedPerms) : [];
-    } catch (e) {
-      console.error("Failed to parse permissions from localStorage", e);
-      toast.error("Permission error: Unable to verify permissions. Please log in again.");
-      setTogglingStudentId(null);
-      return;
-    }
-
-    if (!userPermissions.includes("in_out_control")) {
-      toast.error("Permission denied: You don't have permission to change phone status.");
-      setTogglingStudentId(null);
-      return;
-    }
-
-    // Store old status for potential revert
-    const oldPhoneStatus = { ...phoneStatus }
-
-    // Optimistic update - show change immediately
-    const optimisticStatus = {
-      ...phoneStatus,
-      [studentId]: {
-        status: newStatus,
-        last_updated: new Date().toISOString()
-      }
-    }
-
-    mutate("/api/phone-status", optimisticStatus, false)
-
-    try {
-      const response = await fetch(`/api/phone-status/${studentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: newStatus,
-          updatedBy: parseInt(staffId), // Use updatedBy as expected by API
-          notes: ""
-        }),
-      })
-
-      const responseData = await response.json()
-      console.log(`Phone status update response for student ${studentId}:`, responseData)
-
-      if (!response.ok) {
-        throw new Error(responseData?.error || `HTTP ${response.status}: Failed to update status`)
-      }
-
-      toast.success(`✓ Phone marked as ${newStatus}`)
-      console.log(`Successfully marked student ${studentId} phone as ${newStatus}`)
-
-      // Revalidate in background after a brief delay
-      setTimeout(() => {
-        mutate("/api/phone-status")
-      }, 300)
-    } catch (error) {
-      console.error(`Error toggling phone status for student ${studentId}:`, error)
-
-      // Revert optimistic update on error
-      toast.error(error instanceof Error ? error.message : "Failed to update phone status. Please try again.")
-      mutate("/api/phone-status", oldPhoneStatus, false)
-    } finally {
-      setTogglingStudentId(null)
-    }
-  }, [phoneStatus])
+  if (!isAuthorized) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  }
 
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("staffId")
-    localStorage.removeItem("staffName")
+    localStorage.clear()
     router.push("/login")
   }
-
-  const handleOutPass = async (grantId: number) => {
-    setTogglingStudentId(grantId)
-
-    // Update button state INSTANTLY for visual feedback
-    setSpecialPassButtonStates(prev => ({
-      ...prev,
-      [grantId]: "OUT"
-    }))
-
-    // Optimistic UI update for list
-    if (activePasses) {
-      const optimisticPasses = activePasses.map((p: any) =>
-        p.id === grantId ? { ...p, status: 'OUT' } : p
-      )
-      mutate("/api/special-pass/active", optimisticPasses, false)
-    }
-
-    try {
-      console.log(`Marking special pass ${grantId} as OUT`)
-
-      const response = await fetch(`/api/special-pass/out/${grantId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      })
-
-      const responseData = await response.json()
-      console.log("Out pass response:", responseData)
-
-      if (!response.ok) {
-        throw new Error(responseData?.error || `HTTP ${response.status}: Failed to mark out`)
-      }
-
-      toast.success("✓ Special pass marked as OUT")
-      console.log(`Successfully marked pass ${grantId} as OUT`)
-
-      // Revalidate to sync with server
-      mutate("/api/special-pass/active")
-    } catch (error) {
-      console.error(`Error marking pass ${grantId} as OUT:`, error)
-
-      // Revert button state on error
-      setSpecialPassButtonStates(prev => ({
-        ...prev,
-        [grantId]: "IN"
-      }))
-
-      // Revert list state on error
-      mutate("/api/special-pass/active")
-
-      const errorMessage = error instanceof Error ? error.message : "Failed to mark special pass as OUT"
-      toast.error(errorMessage)
-    } finally {
-      setTogglingStudentId(null)
-    }
-  }
-
-  const handleReturnPass = async (grantId: number) => {
-    setTogglingStudentId(grantId)
-
-    // Update button state INSTANTLY for visual feedback
-    setSpecialPassButtonStates(prev => ({
-      ...prev,
-      [grantId]: "IN"
-    }))
-
-    // Optimistic UI update for list - Remove it immediately
-    if (activePasses) {
-      const optimisticPasses = activePasses.filter((p: any) => p.id !== grantId)
-      mutate("/api/special-pass/active", optimisticPasses, false)
-    }
-
-    try {
-      console.log(`Returning special pass ${grantId}`)
-
-      const response = await fetch(`/api/special-pass/return/${grantId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      })
-
-      const responseData = await response.json()
-      console.log("Return pass response:", responseData)
-
-      if (!response.ok) {
-        throw new Error(responseData?.error || `HTTP ${response.status}: Failed to return pass`)
-      }
-
-      toast.success("✓ Special pass submitted successfully")
-      console.log(`Successfully returned pass ${grantId}`)
-
-      // Revalidate to sync with server
-      mutate("/api/special-pass/active")
-    } catch (error) {
-      console.error(`Error returning pass ${grantId}:`, error)
-
-      // Revert button state on error
-      setSpecialPassButtonStates(prev => ({
-        ...prev,
-        [grantId]: "OUT"
-      }))
-
-      // Revert list state on error
-      mutate("/api/special-pass/active")
-
-      const errorMessage = error instanceof Error ? error.message : "Failed to submit special pass"
-      toast.error(errorMessage)
-    } finally {
-      setTogglingStudentId(null)
-    }
-  }
-
-  const loading = loadingStudents || (loadingStatus && students.length === 0)
 
   return (
     <div className="min-h-screen bg-background">
@@ -365,360 +44,124 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-foreground">Caliph Phone Management</h1>
             <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
           </div>
-          <div className="flex items-center gap-4">
-            {(permissions.includes("manage_special_pass") || permissions.includes("manage_users") || specialPass === "YES") && (
-              <Button
-                variant="outline"
-                onClick={() => router.push("/admin")}
-                className="gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/50"
-              >
-                <Users className="w-4 h-4" />
-                Admin Panel
-              </Button>
-            )}
-            {(permissions.includes("manage_special_pass") || permissions.includes("manage_users")) && (
-              <Button
-                variant="outline"
-                onClick={() => router.push("/special-pass")}
-                className="gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/50"
-              >
-                <Star className="w-4 h-4 fill-current" />
-                Special Pass List
-              </Button>
-            )}
-            <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
-              <LogOut className="w-4 h-4" />
-              Logout
-            </Button>
-          </div>
+          <Button variant="outline" onClick={handleLogout} className="gap-2">
+            <LogOut className="w-4 h-4" />
+            Logout
+          </Button>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Navigation Grid */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Active Special Passes Section */}
-        {activePasses && activePasses.length > 0 && (
-          <Card className="mb-8 border-yellow-500/50 bg-yellow-500/5">
-            <CardHeader className="pb-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
-                  <Star className="w-5 h-5 fill-current" />
-                  Active Special Passes
-                </CardTitle>
-                <CardDescription>Students currently authorized for special phone usage</CardDescription>
-              </div>
-              <div className="relative w-full md:w-64 mt-4 md:mt-0">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search active passes..."
-                  className="pl-8 bg-background border-yellow-500/20"
-                  value={searchQuerySpecialPass}
-                  onChange={(e) => setSearchQuerySpecialPass(e.target.value)}
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredActivePasses.map((pass: any) => (
-                  <div key={pass.id} className="p-4 rounded-xl border border-yellow-500/20 bg-card shadow-sm flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-lg">{pass.studentName || pass.name}</h4>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${pass.status === 'OUT'
-                          ? "bg-orange-100 text-orange-700 border border-orange-200"
-                          : "bg-yellow-100 text-yellow-700 border border-yellow-200"
-                          }`}>
-                          {pass.status}
-                        </span>
-                      </div>
-                      <div className="space-y-2 text-xs text-muted-foreground bg-accent/30 p-3 rounded-lg">
-                        <div className="grid grid-cols-2 gap-2">
-                          <p><span className="font-semibold">Adm:</span> {pass.admissionNumber}</p>
-                          <p><span className="font-semibold">Locker:</span> {pass.lockerNumber}</p>
-                          <p><span className="font-semibold">Class:</span> {pass.className || "-"}</p>
-                          <p><span className="font-semibold">Roll:</span> {pass.rollNo || "-"}</p>
-                        </div>
-                        <div className="border-t border-border/50 pt-2 space-y-1">
-                          <p><span className="font-semibold">Mentor:</span> {pass.mentorName}</p>
-                          <p><span className="font-semibold">Issue:</span> {pass.issueTime ? new Date(pass.issueTime).toLocaleString() : "-"}</p>
-                          <p><span className="font-semibold text-yellow-600 dark:text-yellow-400">Exp. Return:</span> {pass.returnTime ? new Date(pass.returnTime).toLocaleString() : "-"}</p>
-                        </div>
-                        <div className="border-t border-border/50 pt-2">
-                          <span className="font-semibold">Purpose:</span>
-                          <p className="italic mt-0.5">{pass.purpose}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      {specialPassButtonStates[pass.id] !== 'OUT' ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleOutPass(pass.id)}
-                          disabled={togglingStudentId === pass.id}
-                          className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-md hover:shadow-lg transition-all"
-                        >
-                          {togglingStudentId === pass.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                          ) : null}
-                          Submit Out
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => handleReturnPass(pass.id)}
-                          disabled={togglingStudentId === pass.id}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold shadow-md hover:shadow-lg transition-all"
-                        >
-                          {togglingStudentId === pass.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                          ) : null}
-                          Submit In
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {filteredActivePasses.length === 0 && (
-                  <div className="col-span-full text-center py-8 text-muted-foreground bg-yellow-50/50 rounded-xl border border-dashed border-yellow-200">
-                    No active passes found matching your search.
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Quick Access Actions based on permissions */}
-        {(permissions.length > 0 || specialPass === "YES") && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {permissions.includes("manage_students") && (
-              <Card className="cursor-pointer hover:bg-accent transition-colors border-blue-500/20 bg-blue-500/5 shadow-sm" onClick={() => router.push("/admin/manage-students")}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-bold text-blue-700 dark:text-blue-400 uppercase tracking-tight">Manage Students</CardTitle>
-                  <Users className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Add, edit or import student records</p>
-                </CardContent>
-              </Card>
-            )}
-            {(permissions.includes("manage_special_pass") || permissions.includes("view_special_pass_logs")) && (
-              <Card className="cursor-pointer hover:bg-accent transition-colors border-yellow-500/20 bg-yellow-500/5 shadow-sm" onClick={() => router.push("/admin/special-pass")}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-bold text-yellow-700 dark:text-yellow-400 uppercase tracking-tight">Special Pass Management</CardTitle>
-                  <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Grant, revoke or view special phone permissions</p>
-                </CardContent>
-              </Card>
-            )}
-            {permissions.includes("manage_users") && (
-              <Card className="cursor-pointer hover:bg-accent transition-colors border-purple-500/20 bg-purple-500/5 shadow-sm" onClick={() => router.push("/admin/users")}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-bold text-purple-700 dark:text-purple-400 uppercase tracking-tight">User Management</CardTitle>
-                  <Users className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Manage mentors and roles</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Search Students</CardTitle>
-            <CardDescription>Find students by name, admission number, or room number</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, admission number, or roll..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <div className="flex-1 flex flex-col md:flex-row gap-2">
-                <div className="w-full md:w-48">
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="all">All Classes</option>
-                    {classes.filter(c => c !== "all").map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* See Phone Pass */}
+          {(permissions.includes("manage_special_pass") || permissions.length === 0) && (
+            <Card className="cursor-pointer hover:shadow-lg transition-all border-green-500/20 bg-green-500/5" onClick={() => router.push("/special-pass")}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle className="text-green-700 dark:text-green-400">See Phone Pass</CardTitle>
+                  <CardDescription className="mt-1">View active phone passes</CardDescription>
                 </div>
-                <div className="w-full md:w-48">
-                  <select
-                    value={selectedLocker}
-                    onChange={(e) => setSelectedLocker(e.target.value)}
-                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="all">All Lockers</option>
-                    {lockers.filter(l => l !== "all").map(l => (
-                      <option key={l} value={l}>Locker {l}</option>
-                    ))}
-                  </select>
+                <Eye className="w-8 h-8 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                  View Passes
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Students Management */}
+          {(permissions.includes("manage_students") || permissions.length === 0) && (
+            <Card className="cursor-pointer hover:shadow-lg transition-all border-blue-500/20 bg-blue-500/5" onClick={() => router.push("/admin/manage-students")}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle className="text-blue-700 dark:text-blue-400">Students Management</CardTitle>
+                  <CardDescription className="mt-1">Manage student records</CardDescription>
                 </div>
-              </div>
-              <Button onClick={() => { setSearchQuery(""); setSelectedClass("all"); setSelectedLocker("all"); }} variant="outline">
-                Clear
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <Users className="w-8 h-8 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                  Manage Students
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Students List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Students ({filteredStudents.length})</CardTitle>
-            <CardDescription>Click action button to submit phone status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading...</div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No students found</div>
-            ) : (
-              <div className="space-y-3">
-                {filteredStudents.map((student: any) => {
-                  const status = phoneStatus[student.id]
-                  const isPhoneIn = status?.status === "IN"
-                  const isToggling = togglingStudentId === student.id
-                  const phoneVal = (student.phone_name || "").toLowerCase().trim()
-                  const hasNoPhone = !phoneVal || phoneVal === "nill" || phoneVal === "nil" || phoneVal === "none" || phoneVal === "-"
+          {/* Phone History */}
+          {(permissions.includes("in_out_control") || permissions.length === 0) && (
+            <Card className="cursor-pointer hover:shadow-lg transition-all border-purple-500/20 bg-purple-500/5" onClick={() => router.push("/history")}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle className="text-purple-700 dark:text-purple-400">Phone History</CardTitle>
+                  <CardDescription className="mt-1">View phone status history</CardDescription>
+                </div>
+                <BarChart3 className="w-8 h-8 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                  View History
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-                  return (
-                    <div
-                      key={student.id}
-                      className={`flex items-center justify-between p-5 rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-300 ${hasNoPhone ? "bg-yellow-50/80 dark:bg-yellow-900/20 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]" : isPhoneIn ? "led-in" : "led-out"
-                        }`}
-                    >
-                      <div className="flex-1">
-                        <div className="text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
-                          {student.name}
-                          {student.special_pass === "YES" && <Star className="w-4 h-4 fill-current text-yellow-500" />}
-                          {hasNoPhone && <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest bg-yellow-100 dark:bg-yellow-900/50 px-2 py-0.5 rounded-full border border-yellow-200 dark:border-yellow-800">No Phone (Nill)</span>}
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          {permissions.includes("manage_special_pass") && student.special_pass !== "YES" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-[10px] uppercase font-bold border-yellow-500/50 text-yellow-600 hover:bg-yellow-50"
-                              onClick={() => router.push(`/admin/special-pass/grant/${student.id}`)}
-                            >
-                              Grant Pass
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
-                          <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Adm: {student.admission_number}</span>
-                          <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Locker: {student.locker_number}</span>
-                          <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Class: {student.class_name || "-"}</span>
-                          <span className="bg-secondary px-2 py-0.5 rounded-full border border-border/50">Roll: {student.roll_no || "-"}</span>
-                          <span className={`bg-secondary px-2 py-0.5 rounded-full border border-border/50 ${hasNoPhone ? "text-yellow-600 dark:text-yellow-400 font-bold" : ""}`}>
-                            Ph: {student.phone_name || "Nill"}
-                          </span>
-                        </div>
-                        {student.special_pass === "YES" && (
-                          <div className="mt-4">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/50 gap-2">
-                                  <Star className="w-4 h-4 fill-current" />
-                                  View Special Pass
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="sm:max-w-md">
-                                <DialogHeader>
-                                  <DialogTitle className="flex items-center gap-2 text-yellow-600">
-                                    <Star className="w-5 h-5 fill-current" />
-                                    Special Phone Pass Details
-                                  </DialogTitle>
-                                  <DialogDescription>
-                                    This student has been granted a special phone pass by the administration.
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                  <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div className="space-y-1">
-                                      <p className="text-muted-foreground">Student Name</p>
-                                      <p className="font-medium">{student.name}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <p className="text-muted-foreground">Admission No</p>
-                                      <p className="font-medium">{student.admission_number}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <p className="text-muted-foreground">Class & Roll</p>
-                                      <p className="font-medium">{student.class_name} / {student.roll_no}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <p className="text-muted-foreground">Locker No</p>
-                                      <p className="font-medium">{student.locker_number}</p>
-                                    </div>
-                                  </div>
-                                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                                    <p className="text-xs text-yellow-700 dark:text-yellow-300 font-semibold uppercase tracking-wider mb-1">Authorization Status</p>
-                                    <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">VALID PASS GRANTED</p>
-                                  </div>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        )}
-                      </div>
+          {/* System Settings */}
+          {(permissions.includes("manage_system") || permissions.length === 0) && (
+            <Card className="cursor-pointer hover:shadow-lg transition-all border-red-500/20 bg-red-500/5" onClick={() => router.push("/admin/settings")}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle className="text-red-700 dark:text-red-400">System Settings</CardTitle>
+                  <CardDescription className="mt-1">Configure system options</CardDescription>
+                </div>
+                <Settings className="w-8 h-8 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
+                  Settings
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <div
-                            className={`font-bold px-3 py-1 rounded-full text-xs tracking-wider uppercase shadow-inner ${hasNoPhone
-                              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
-                              : isPhoneIn
-                                ? "bg-green-100/80 text-green-700 dark:bg-green-900/40 dark:text-green-300"
-                                : "bg-orange-100/80 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
-                              }`}
-                          >
-                            {hasNoPhone ? "NO PHONE" : status?.status || "UNKNOWN"}
-                          </div>
-                          {status?.last_updated && !hasNoPhone && (
-                            <div className="text-[10px] font-medium text-muted-foreground mt-1.5 opacity-70 italic">
-                              {new Date(status.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                          )}
-                        </div>
+          {/* User Management */}
+          {(permissions.includes("manage_users") || permissions.length === 0) && (
+            <Card className="cursor-pointer hover:shadow-lg transition-all border-orange-500/20 bg-orange-500/5" onClick={() => router.push("/admin/users")}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle className="text-orange-700 dark:text-orange-400">User Management</CardTitle>
+                  <CardDescription className="mt-1">Manage users and roles</CardDescription>
+                </div>
+                <Users className="w-8 h-8 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white">
+                  Manage Users
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-                        {permissions.includes("in_out_control") && !hasNoPhone && (
-                          <Button
-                            onClick={() => handleTogglePhoneStatus(student.id, status?.status)}
-                            size="lg"
-                            className={`rounded-xl px-6 font-semibold shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 ${isPhoneIn
-                              ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                              : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                              }`}
-                            disabled={isToggling}
-                          >
-                            {isToggling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
-                            <span className="ml-2">{isPhoneIn ? "Submit OUT" : "Submit IN"}</span>
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* Phone Pass */}
+          {(permissions.includes("manage_special_pass") || permissions.length === 0) && (
+            <Card className="cursor-pointer hover:shadow-lg transition-all border-yellow-500/20 bg-yellow-500/5" onClick={() => router.push("/special-pass")}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle className="text-yellow-700 dark:text-yellow-400">Phone Pass</CardTitle>
+                  <CardDescription className="mt-1">Grant phone passes</CardDescription>
+                </div>
+                <Phone className="w-8 h-8 text-yellow-600" />
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full bg-yellow-600 hover:bg-yellow-700 text-white">
+                  Manage Passes
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </main>
     </div>
   )

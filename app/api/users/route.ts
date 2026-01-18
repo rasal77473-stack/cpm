@@ -15,7 +15,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { username, password, name, role, permissions, special_pass } = body;
+    const { username, password, name, role, permissions } = body;
 
     console.log("POST /api/users - Received body:", body);
 
@@ -29,7 +29,6 @@ export async function POST(req: Request) {
       password,
       name,
       role: role || "mentor",
-      special_pass: special_pass || "NO",
       permissions: permissions || ["view_only"],
     };
 
@@ -51,7 +50,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, username, password, name, role, permissions, special_pass } = body;
+    const { id, username, password, name, role, permissions } = body;
 
     const updatedUser = await db.update(users)
       .set({ 
@@ -59,7 +58,6 @@ export async function PUT(req: Request) {
         password, 
         name, 
         role, 
-        special_pass: special_pass || "NO",
         permissions 
       })
       .where(eq(users.id, id))

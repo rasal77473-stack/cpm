@@ -42,6 +42,7 @@ export const specialPassGrants = pgTable("special_pass_grants", {
   purpose: text("purpose").notNull(),
   issueTime: timestamp("issue_time").defaultNow(),
   returnTime: timestamp("return_time"),
+  submissionTime: timestamp("submission_time"),
   status: text("status").default("ACTIVE"), // ACTIVE, COMPLETED, EXPIRED
 });
 
