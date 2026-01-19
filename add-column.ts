@@ -1,4 +1,4 @@
-import { db } from './db/index.ts';
+import { db } from './db/index';
 import { sql } from 'drizzle-orm';
 
 async function addColumn() {

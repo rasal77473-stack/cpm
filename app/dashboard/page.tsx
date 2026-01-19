@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, Users, Phone, Settings, BarChart3 } from "lucide-react"
+import { LogOut, Users, Phone, Settings, BarChart3, History } from "lucide-react"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -139,6 +139,24 @@ export default function Dashboard() {
               <CardContent>
                 <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-white" asChild>
                   <div>Grant Phone Pass</div>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Phone History */}
+          {(role === "admin" || permissions.includes("view_phone_history")) && (
+            <Card className="group hover:shadow-lg transition-all hover:border-blue-500 cursor-pointer" onClick={() => router.push("/history")}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <History className="w-5 h-5 text-blue-600" />
+                  Phone History
+                </CardTitle>
+                <CardDescription>View phone deposit and withdrawal history</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full" variant="outline" asChild>
+                  <div>View History</div>
                 </Button>
               </CardContent>
             </Card>
