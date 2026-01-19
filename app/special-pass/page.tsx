@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,7 @@ import {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-export default function SpecialPassPage() {
+function SpecialPassContent() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
@@ -841,5 +841,20 @@ export default function SpecialPassPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function SpecialPassPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground animate-pulse">Loading Phone Pass Management...</p>
+        </div>
+      </div>
+    }>
+      <SpecialPassContent />
+    </Suspense>
   )
 }
