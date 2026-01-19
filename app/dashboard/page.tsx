@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, Users, Phone, Settings, BarChart3, History } from "lucide-react"
+import { LogOut, Users, Phone, Settings, BarChart3, History, CalendarDays } from "lucide-react"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -157,6 +157,24 @@ export default function Dashboard() {
               <CardContent>
                 <Button className="w-full" variant="outline" asChild>
                   <div>View History</div>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Monthly Leave - Admin Only */}
+          {role === "admin" && (
+            <Card className="group hover:shadow-lg transition-all hover:border-purple-500 cursor-pointer" onClick={() => router.push("/admin/monthly-leave")}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CalendarDays className="w-5 h-5 text-purple-600" />
+                  Monthly Leave
+                </CardTitle>
+                <CardDescription>Schedule leave days and auto-grant passes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white" asChild>
+                  <div>Manage Leave</div>
                 </Button>
               </CardContent>
             </Card>

@@ -55,3 +55,28 @@ export const phoneStatus = pgTable("phone_status", {
   updatedBy: text("updated_by"),
   notes: text("notes"),
 });
+
+// Monthly Leave Schedule
+export const monthlyLeaves = pgTable("monthly_leaves", {
+  id: serial("id").primaryKey(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  startTime: text("start_time").notNull(), // HH:MM format
+  endTime: text("end_time").notNull(), // HH:MM format
+  reason: text("reason").default("Monthly Leave"),
+  createdBy: integer("created_by").notNull(),
+  createdByName: text("created_by_name").notNull(),
+  status: text("status").default("ACTIVE"), // ACTIVE, COMPLETED, CANCELLED
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Students excluded from monthly leave (ineligible)
+export const leaveExclusions = pgTable("leave_exclusions", {
+  id: serial("id").primaryKey(),
+  leaveId: integer("leave_id").references(() => monthlyLeaves.id).notNull(),
+  studentId: integer("student_id").references(() => students.id).notNull(),
+  excludedBy: integer("excluded_by").notNull(),
+  excludedByName: text("excluded_by_name").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
