@@ -90,24 +90,6 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* History */}
-          {(role === "admin" || permissions.includes("view_phone_logs") || permissions.length === 0) && (
-            <Card className="group hover:shadow-lg transition-all hover:border-purple-500 cursor-pointer" onClick={() => router.push("/history")}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <BarChart3 className="w-5 h-5 text-purple-600" />
-                  Phone History
-                </CardTitle>
-                <CardDescription>View phone transaction history</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" variant="outline" asChild>
-                  <div>View History</div>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
           {/* System Settings - Only for explicit admin role */}
           {(role === "admin") && (
             <Card className="group hover:shadow-lg transition-all hover:border-orange-500 cursor-pointer" onClick={() => router.push("/admin/settings")}>
