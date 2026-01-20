@@ -311,10 +311,10 @@ export default function ManageStudents() {
           try {
             for (let i = 0; i < optimisticStudents.length; i += BATCH_SIZE) {
               if (failed) break;
-              
+
               const batch = optimisticStudents.slice(i, i + BATCH_SIZE);
               console.log(`Sending batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} students)...`);
-              
+
               const response = await fetch("/api/students/bulk", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -513,29 +513,32 @@ export default function ManageStudents() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={() => setShowAddModal(true)}
-                  className="flex-1 gap-2"
+                  className="w-full sm:flex-1 gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Single Student
+                  <span className="hidden sm:inline">Add Single Student</span>
+                  <span className="sm:hidden">Add Student</span>
                 </Button>
                 <Button
                   onClick={() => setShowBulkModal(true)}
                   variant="outline"
-                  className="flex-1 gap-2"
+                  className="w-full sm:flex-1 gap-2"
                 >
                   <Upload className="w-4 h-4" />
-                  Bulk Import (Excel)
+                  <span className="hidden sm:inline">Bulk Import (Excel)</span>
+                  <span className="sm:hidden">Import Excel</span>
                 </Button>
                 <Button
                   onClick={handleDeleteAllStudents}
                   variant="destructive"
-                  className="flex-1 gap-2"
+                  className="w-full sm:flex-1 gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Delete All Students
+                  <span className="hidden sm:inline">Delete All Students</span>
+                  <span className="sm:hidden">Delete All</span>
                 </Button>
               </div>
             </div>

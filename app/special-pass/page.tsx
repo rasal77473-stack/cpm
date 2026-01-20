@@ -452,7 +452,7 @@ function SpecialPassContent() {
 
           {/* Only show Date filters for History (Phone Pass) */}
           {activeTab === "phone-pass" && (
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 space-y-1">
                 <label className="text-xs text-muted-foreground pl-1">Start Date</label>
                 <div className="relative">
@@ -460,7 +460,7 @@ function SpecialPassContent() {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="h-11 rounded-xl border-blue-400 text-blue-600 bg-white"
+                    className="h-11 rounded-xl border-blue-400 text-blue-600 bg-white w-full"
                   />
                 </div>
               </div>
@@ -471,7 +471,7 @@ function SpecialPassContent() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="h-11 rounded-xl border-blue-400 text-blue-600 bg-white"
+                    className="h-11 rounded-xl border-blue-400 text-blue-600 bg-white w-full"
                   />
                 </div>
               </div>

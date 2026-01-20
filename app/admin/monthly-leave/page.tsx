@@ -359,7 +359,8 @@ export default function MonthlyLeavePage() {
                                     ) : (
                                         <>
                                             <Gift className="w-5 h-5 mr-2" />
-                                            Create Monthly Leave & Select Students
+                                            <span className="hidden sm:inline">Create Monthly Leave & Select Students</span>
+                                            <span className="sm:hidden">Create Leave</span>
                                         </>
                                     )}
                                 </Button>
@@ -396,10 +397,10 @@ export default function MonthlyLeavePage() {
                                                     </p>
                                                 </div>
                                                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${leave.status === "ACTIVE"
-                                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                                        : leave.status === "COMPLETED"
-                                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                                            : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+                                                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                                    : leave.status === "COMPLETED"
+                                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                        : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
                                                     }`}>
                                                     {leave.status}
                                                 </span>
@@ -494,8 +495,8 @@ export default function MonthlyLeavePage() {
                                                             <tr
                                                                 key={student.id}
                                                                 className={`border-t cursor-pointer transition-colors ${isExcluded
-                                                                        ? "bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
-                                                                        : "hover:bg-muted/50"
+                                                                    ? "bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                                                    : "hover:bg-muted/50"
                                                                     }`}
                                                                 onClick={() => toggleExclusion(student.id)}
                                                             >
