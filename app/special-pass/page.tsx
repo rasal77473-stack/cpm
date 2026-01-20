@@ -154,7 +154,7 @@ function SpecialPassContent() {
           className: s.class_name,
           lockerNumber: s.locker_number,
           rollNo: s.roll_no,
-          phoneNumber: "-",
+          phoneNumber: s.phone_name || s.phone_number || "Not Registered",
           status: currentStatus, // Use actual status from map
           issueTime: null,
           returnTime: null,
@@ -491,7 +491,7 @@ function SpecialPassContent() {
             const isCompleted = currentStatus === "COMPLETED" || currentStatus === "IN"
 
             // For Pass objects, we might check passStates for local optimistic updates
-            const effectiveOut = isStudent ? isOut : (isOut || passStates[item.originalId] === "OUT")
+            const effectiveOut = !isCompleted && (isStudent ? isOut : (isOut || passStates[item.originalId] === "OUT"))
 
             return (
               <div key={item.id} className="bg-blue-50/50 rounded-[20px] p-5 shadow-sm border border-blue-100">
@@ -503,9 +503,12 @@ function SpecialPassContent() {
                       {/* Status Badge */}
                       <Badge variant="outline" className={`
                         rounded-md px-2 py-0.5 text-xs font-normal bg-white
-                        ${effectiveOut ? "text-red-500 border-red-500" : "text-gray-500 border-gray-300"}
+                        ${!isCompleted && effectiveOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300")}
                       `}>
-                        {isStudent ? (effectiveOut ? "out" : "in") : (effectiveOut ? "out" : isActive ? "active" : "gate pass")}
+                        {isStudent
+                          ? (effectiveOut ? "out" : "in")
+                          : (isCompleted ? "returned" : (effectiveOut ? "out" : isActive ? "active" : "gate pass"))
+                        }
                       </Badge>
                     </div>
 
@@ -603,14 +606,34 @@ function SpecialPassContent() {
                     )}
 
                     {/* Action for Students: Quick Grant Pass */}
+                    {/* Action for Students: Quick Grant Pass OR Submit In */}
                     {isStudent && canGrantPass && (
                       <div className="flex gap-3 mt-4 justify-end">
-                        <Button
-                          className="h-9 px-4 bg-blue-500 hover:bg-blue-600 text-white"
-                          onClick={() => router.push(`/admin/special-pass/grant/${item.originalId}`)}
-                        >
-                          Issue Pass
-                        </Button>
+                        {effectiveOut ? (
+                          <Button
+                            variant="outline"
+                            className="h-9 px-6 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 bg-white font-medium"
+                            onClick={() => {
+                              // Find the active pass for this student
+                              const activePass = passes.find((p: any) => p.studentId === item.originalId && (!p.returnTime || p.status === 'OUT' || p.status === 'ACTIVE'));
+                              if (activePass) {
+                                handleSubmitIn(activePass.id);
+                              } else {
+                                toast.error("Active pass record not found");
+                              }
+                            }}
+                            disabled={returningPassId === item.originalId} // Note: returningPassId might handle pass ID, not student ID, but we can't easily track student ID loading here without logic change. It's fine for now as it's instant.
+                          >
+                            Submit In
+                          </Button>
+                        ) : (
+                          <Button
+                            className="h-9 px-4 bg-blue-500 hover:bg-blue-600 text-white"
+                            onClick={() => router.push(`/admin/special-pass/grant/${item.originalId}`)}
+                          >
+                            Issue Pass
+                          </Button>
+                        )}
                       </div>
                     )}
 

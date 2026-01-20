@@ -10,7 +10,8 @@ import {
   GraduationCap,
   Ticket,
   History,
-  ArrowRightCircle
+  ArrowRightCircle,
+  LogOut
 } from "lucide-react"
 
 export default function Dashboard() {
@@ -54,6 +55,7 @@ export default function Dashboard() {
     localStorage.removeItem("staffName")
     localStorage.removeItem("role")
     localStorage.removeItem("permissions")
+    document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
     router.push("/login")
   }
 
@@ -62,9 +64,14 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-md mx-auto px-6 py-6 pb-20">
         {/* Welcome Section */}
-        <div className="mb-8 mt-2">
-          <h1 className="text-3xl font-bold text-gray-900">Hello,</h1>
-          <p className="text-xl text-gray-400 font-medium">{staffName}</p>
+        <div className="mb-8 mt-2 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Hello,</h1>
+            <p className="text-xl text-gray-400 font-medium">{staffName}</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-400 hover:text-red-500">
+            <LogOut className="w-6 h-6" />
+          </Button>
         </div>
 
         {/* Grid Menu */}
@@ -80,7 +87,7 @@ export default function Dashboard() {
 
           <MenuCard
             icon={Ticket}
-            label="Gate Pass"
+            label="Phone Pass"
             color="text-orange-500"
             href="/special-pass"
             visible={role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.includes("manage_phone_status") || permissions.length === 0}
@@ -99,7 +106,7 @@ export default function Dashboard() {
             label="Monthly Leave"
             color="text-purple-600"
             href="/admin/monthly-leave"
-            visible={role === "admin"}
+            visible={role === "admin" || permissions.includes("manage_monthly_leave")}
           />
 
           <MenuCard

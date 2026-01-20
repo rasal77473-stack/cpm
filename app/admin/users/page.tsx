@@ -20,6 +20,7 @@ const PERMISSIONS = [
   { id: "view_phone_logs", label: "View Phone Logs" },
   { id: "manage_phone_status", label: "Manage Phone Status Lists" },
   { id: "manage_users", label: "User Management" },
+  { id: "manage_monthly_leave", label: "Manage Monthly Leave" },
 ];
 
 export default function UserManagement() {

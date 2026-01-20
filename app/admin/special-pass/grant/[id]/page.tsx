@@ -141,6 +141,10 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
                 <p className="font-bold">{student.locker_number}</p>
               </div>
               <div>
+                <Label className="text-xs text-muted-foreground uppercase">Phone</Label>
+                <p className="font-bold">{student.phone_name || student.phone_number || "Not Registered"}</p>
+              </div>
+              <div>
                 <Label className="text-xs text-muted-foreground uppercase">Mentor</Label>
                 <p className="font-bold">{mentorName}</p>
               </div>
