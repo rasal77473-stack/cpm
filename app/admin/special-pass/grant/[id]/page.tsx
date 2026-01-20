@@ -49,6 +49,21 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
     e.preventDefault()
     setSubmitting(true)
 
+    // Prepare optimistic data
+    const optimisticPass = {
+      id: Date.now(), // Temporary ID until refresh
+      studentId: Number(studentId),
+      studentName: student.name,
+      admissionNumber: student.admission_number,
+      className: student.class_name,
+      phoneNumber: "-", // Assuming data
+      issueTime: new Date().toISOString(),
+      returnTime: formData.returnTime,
+      purpose: formData.purpose,
+      status: "OUT", // Default for special pass
+      type: "pass"
+    }
+
     try {
       const res = await fetch("/api/special-pass/grant", {
         method: "POST",
@@ -68,11 +83,25 @@ export default function GrantSpecialPassPage({ params }: { params: Promise<{ id:
 
       if (res.ok) {
         toast.success("Special pass granted successfully!")
-        // Non-blocking cache updates
-        mutate("/api/students")
-        mutate("/api/special-pass/all")
 
-        // Instant redirect
+        // 1. Instant Cache Update for PASS LIST
+        // use the data from server which usually has real ID, or mix with optimistic
+        const finalPass = { ...optimisticPass, id: data.id || optimisticPass.id }
+
+        await mutate("/api/special-pass/all", (current: any[] = []) => {
+          return [finalPass, ...current]
+        }, false)
+
+        // 2. Instant Cache Update for PHONE STATUS
+        await mutate("/api/phone-status", (current: any[] = []) => {
+          const exists = current.find(s => s.studentId === Number(studentId))
+          if (exists) {
+            return current.map(s => s.studentId === Number(studentId) ? { ...s, status: "OUT" } : s)
+          }
+          return [...current, { studentId: Number(studentId), status: "OUT" }]
+        }, false)
+
+        // 3. Instant Redirect
         router.push("/special-pass")
       } else {
         throw new Error(data.error || "Failed to grant pass")

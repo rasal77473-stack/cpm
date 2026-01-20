@@ -4,7 +4,14 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, Users, Phone, Settings, BarChart3, History, CalendarDays } from "lucide-react"
+import {
+  Users,
+  Settings,
+  GraduationCap,
+  Ticket,
+  History,
+  ArrowRightCircle
+} from "lucide-react"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -51,136 +58,86 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-1">Welcome, {staffName}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handleLogout} className="gap-2">
-              <LogOut className="w-4 h-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <main className="max-w-md mx-auto px-6 py-6 pb-20">
+        {/* Welcome Section */}
+        <div className="mb-8 mt-2">
+          <h1 className="text-3xl font-bold text-gray-900">Hello,</h1>
+          <p className="text-xl text-gray-400 font-medium">{staffName}</p>
+        </div>
 
-          {/* Students Management */}
-          {(role === "admin" || permissions.includes("manage_students") || permissions.length === 0) && (
-            <Card className="group hover:shadow-lg transition-all hover:border-green-500 cursor-pointer" onClick={() => router.push("/admin/manage-students")}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="w-5 h-5 text-green-600" />
-                  Students Management
-                </CardTitle>
-                <CardDescription>Manage and view student records</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" variant="outline" asChild>
-                  <div>Manage Students</div>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+        {/* Grid Menu */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 
-          {/* System Settings - Only for explicit admin role */}
-          {(role === "admin") && (
-            <Card className="group hover:shadow-lg transition-all hover:border-orange-500 cursor-pointer" onClick={() => router.push("/admin/settings")}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Settings className="w-5 h-5 text-orange-600" />
-                  System Settings
-                </CardTitle>
-                <CardDescription>Configure system preferences</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" variant="outline" asChild>
-                  <div>System Settings</div>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <MenuCard
+            icon={GraduationCap}
+            label="Students"
+            color="text-blue-500"
+            href="/admin/manage-students"
+            visible={role === "admin" || permissions.includes("manage_students") || permissions.length === 0}
+          />
 
-          {/* User Management */}
-          {(role === "admin" || permissions.includes("manage_users")) && (
-            <Card className="group hover:shadow-lg transition-all hover:border-red-500 cursor-pointer" onClick={() => router.push("/admin/users")}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="w-5 h-5 text-red-600" />
-                  User Management
-                </CardTitle>
-                <CardDescription>Manage mentors and assign permissions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" variant="outline" asChild>
-                  <div>Manage Users</div>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <MenuCard
+            icon={Ticket}
+            label="Gate Pass"
+            color="text-orange-500"
+            href="/special-pass"
+            visible={role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.includes("manage_phone_status") || permissions.length === 0}
+          />
 
-          {/* Phone Pass / Grant Pass */}
-          {(role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.includes("manage_phone_status") || permissions.length === 0) && (
-            <Card className="group hover:shadow-lg transition-all hover:border-yellow-500 cursor-pointer" onClick={() => router.push("/special-pass")}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Phone className="w-5 h-5 text-yellow-600" />
-                  Phone Pass
-                </CardTitle>
-                <CardDescription>Grant phone access to students</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-white" asChild>
-                  <div>Grant Phone Pass</div>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <MenuCard
+            icon={History}
+            label="History"
+            color="text-indigo-500"
+            href="/history"
+            visible={role === "admin" || permissions.includes("view_phone_history")}
+          />
 
-          {/* Phone History */}
-          {(role === "admin" || permissions.includes("view_phone_history")) && (
-            <Card className="group hover:shadow-lg transition-all hover:border-blue-500 cursor-pointer" onClick={() => router.push("/history")}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <History className="w-5 h-5 text-blue-600" />
-                  Phone History
-                </CardTitle>
-                <CardDescription>View phone deposit and withdrawal history</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" variant="outline" asChild>
-                  <div>View History</div>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <MenuCard
+            icon={ArrowRightCircle}
+            label="Monthly Leave"
+            color="text-purple-600"
+            href="/admin/monthly-leave"
+            visible={role === "admin"}
+          />
 
-          {/* Monthly Leave - Admin Only */}
-          {role === "admin" && (
-            <Card className="group hover:shadow-lg transition-all hover:border-purple-500 cursor-pointer" onClick={() => router.push("/admin/monthly-leave")}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <CalendarDays className="w-5 h-5 text-purple-600" />
-                  Monthly Leave
-                </CardTitle>
-                <CardDescription>Schedule leave days and auto-grant passes</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white" asChild>
-                  <div>Manage Leave</div>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <MenuCard
+            icon={Users}
+            label="Users"
+            color="text-red-500"
+            href="/admin/users"
+            visible={role === "admin" || permissions.includes("manage_users")}
+          />
+
+          <MenuCard
+            icon={Settings}
+            label="Settings"
+            color="text-gray-600"
+            href="/admin/settings"
+            visible={role === "admin"}
+          />
+
         </div>
       </main>
     </div>
+  )
+}
+
+import Link from "next/link"
+
+// ... (Dashboard component remains the same)
+
+function MenuCard({ icon: Icon, label, color, href, visible }: { icon: any, label: string, color: string, href: string, visible: boolean }) {
+  if (!visible) return null
+  return (
+    <Link href={href} className="block">
+      <div
+        className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-gray-50 h-full w-full"
+      >
+        <Icon className={`w-8 h-8 ${color}`} strokeWidth={1.5} />
+        <span className="text-xs font-semibold text-gray-700 text-center leading-tight">{label}</span>
+      </div>
+    </Link>
   )
 }
