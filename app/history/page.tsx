@@ -26,8 +26,10 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true)
   const [staffName, setStaffName] = useState("")
   const [filterAction, setFilterAction] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
 
@@ -51,6 +53,19 @@ export default function HistoryPage() {
       console.error("Failed to fetch history:", error)
       setLoading(false)
     }
+  }
+
+  const formatDate = (timestamp: string) => {
+    if (!mounted) return ""
+    return new Date(timestamp).toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    })
   }
 
   const applyFilters = (query: string, action: string | null) => {
@@ -97,13 +112,13 @@ export default function HistoryPage() {
             <h1 className="text-2xl font-bold text-foreground">Phone Management History</h1>
             <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => router.push("/dashboard")} variant="outline">
+          <div className="flex gap-3" suppressHydrationWarning>
+            <Button onClick={() => router.push("/dashboard")} variant="outline" className="font-medium">
               Dashboard
             </Button>
-            <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
+            <Button variant="outline" onClick={handleLogout} className="gap-2">
               <LogOut className="w-4 h-4" />
-              Logout
+              <span>Logout</span>
             </Button>
           </div>
         </div>
@@ -117,7 +132,7 @@ export default function HistoryPage() {
             <CardTitle>Filters</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex gap-2" suppressHydrationWarning>
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -125,6 +140,7 @@ export default function HistoryPage() {
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10"
+                  suppressHydrationWarning
                 />
               </div>
               <Button onClick={() => handleSearchChange("")} variant="outline">
@@ -132,21 +148,29 @@ export default function HistoryPage() {
               </Button>
             </div>
 
-            <div className="flex gap-2">
-              <Button variant={filterAction === null ? "default" : "outline"} onClick={() => handleActionFilter(null)}>
+            <div className="flex flex-wrap gap-2" suppressHydrationWarning>
+              <Button
+                variant={filterAction === null ? "default" : "outline"}
+                onClick={() => handleActionFilter(null)}
+                className="font-medium"
+              >
                 All Actions
               </Button>
               <Button
                 variant={filterAction === "IN" ? "default" : "outline"}
                 onClick={() => handleActionFilter("IN")}
-                className={filterAction === "IN" ? "bg-green-600 hover:bg-green-700" : ""}
+                className={filterAction === "IN"
+                  ? "bg-green-600 hover:bg-green-700 text-white font-medium"
+                  : "hover:bg-green-50 hover:text-green-700 hover:border-green-300 font-medium"}
               >
                 Mark IN
               </Button>
               <Button
                 variant={filterAction === "OUT" ? "default" : "outline"}
                 onClick={() => handleActionFilter("OUT")}
-                className={filterAction === "OUT" ? "bg-orange-600 hover:bg-orange-700" : ""}
+                className={filterAction === "OUT"
+                  ? "bg-orange-600 hover:bg-orange-700 text-white font-medium"
+                  : "hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 font-medium"}
               >
                 Mark OUT
               </Button>
@@ -170,33 +194,38 @@ export default function HistoryPage() {
                 <table className="w-full text-sm">
                   <thead className="border-b border-border">
                     <tr className="text-left text-muted-foreground">
-                      <th className="pb-3 font-medium">Student Name</th>
-                      <th className="pb-3 font-medium">Action</th>
-                      <th className="pb-3 font-medium">Staff</th>
-                      <th className="pb-3 font-medium">Notes</th>
-                      <th className="pb-3 font-medium">Date & Time</th>
+                      <th className="pb-3 px-2 font-medium w-[25%]">Student Name</th>
+                      <th className="pb-3 px-2 font-medium w-[12%]">Action</th>
+                      <th className="pb-3 px-2 font-medium w-[18%]">Staff</th>
+                      <th className="pb-3 px-2 font-medium w-[20%]">Notes</th>
+                      <th className="pb-3 px-2 font-medium w-[25%]">Date & Time</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredHistory.map((entry) => (
                       <tr key={entry.id} className="hover:bg-muted/50 transition-colors">
-                        <td className="py-3 font-medium">{entry.student_name}</td>
-                        <td className="py-3">
+                        <td className="py-3 px-2 font-medium">{entry.student_name}</td>
+                        <td className="py-3 px-2">
                           <span
-                            className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                              entry.action === "IN"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
-                                : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200"
-                            }`}
+                            className={`inline-block px-2 py-1 rounded-lg text-xs font-medium ${entry.action === "IN"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
+                              : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200"
+                              }`}
                           >
                             {entry.action}
                           </span>
                         </td>
-                        <td className="py-3 text-muted-foreground">{entry.staff_name}</td>
-                        <td className="py-3 text-muted-foreground">{entry.notes || "-"}</td>
-                        <td className="py-3 text-muted-foreground flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(entry.timestamp).toLocaleString()}
+                        <td className="py-3 px-2 text-muted-foreground">{entry.staff_name}</td>
+                        <td className="py-3 px-2 text-muted-foreground max-w-[200px] truncate" title={entry.notes || "-"}>
+                          {entry.notes || "-"}
+                        </td>
+                        <td className="py-3 px-2 text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 flex-shrink-0" />
+                            <span className="whitespace-nowrap" suppressHydrationWarning>
+                              {formatDate(entry.timestamp)}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { phoneStatus, students } from "@/db/schema"
-import { desc, eq } from "drizzle-orm"
+import { phoneStatus, students, users } from "@/db/schema"
+import { desc, eq, sql } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,13 +14,14 @@ export async function GET(request: NextRequest) {
         student_id: phoneStatus.studentId,
         student_name: students.name,
         staff_id: phoneStatus.updatedBy,
-        staff_name: phoneStatus.updatedBy, // Using updatedBy as staff_name for now
+        staff_name: sql<string>`COALESCE(${users.name}, ${phoneStatus.updatedBy}, 'Unknown')`,
         action: phoneStatus.status,
         notes: phoneStatus.notes,
         timestamp: phoneStatus.lastUpdated,
       })
       .from(phoneStatus)
       .innerJoin(students, eq(phoneStatus.studentId, students.id))
+      .leftJoin(users, eq(users.username, phoneStatus.updatedBy))
       .orderBy(desc(phoneStatus.lastUpdated))
 
     if (studentId) {

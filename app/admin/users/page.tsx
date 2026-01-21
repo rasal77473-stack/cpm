@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner";
 import { History, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const PERMISSIONS = [
   { id: "view_only", label: "View Only" },
@@ -22,6 +23,20 @@ const PERMISSIONS = [
   { id: "manage_users", label: "User Management" },
   { id: "manage_monthly_leave", label: "Manage Monthly Leave" },
 ];
+
+const PERMISSION_LABELS: Record<string, string> = {
+  view_only: "View Only",
+  in_out_control: "In/Out Control",
+  manage_students: "Manage Students",
+  issue_phone_pass: "Issue Phone Pass",
+  access_phone_pass: "Phone Pass Page Access",
+  view_phone_logs: "View Phone Logs",
+  manage_phone_status: "Manage Phone Status Lists",
+  manage_users: "User Management",
+  manage_monthly_leave: "Manage Monthly Leave",
+  manage_special_pass: "Manage Special Pass",
+  view_admin_panel: "View Admin Panel",
+};
 
 export default function UserManagement() {
   const [users, setUsers] = useState<any[]>([]);
@@ -264,9 +279,9 @@ export default function UserManagement() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {user.permissions?.map((p: string) => (
-                      <span key={p} className="px-2 py-0.5 bg-secondary text-secondary-foreground rounded text-xs">
-                        {p}
-                      </span>
+                      <Badge key={p} variant="secondary" className="px-2 py-0.5 text-xs font-normal">
+                        {PERMISSION_LABELS[p] || p}
+                      </Badge>
                     ))}
                   </div>
                 </div>

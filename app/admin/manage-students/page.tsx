@@ -457,9 +457,9 @@ export default function ManageStudents() {
               <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="gap-2 bg-transparent">
+          <Button variant="outline" onClick={handleLogout} className="gap-2">
             <LogOut className="w-4 h-4" />
-            Logout
+            <span>Logout</span>
           </Button>
         </div>
       </header>

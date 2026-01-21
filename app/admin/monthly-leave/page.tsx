@@ -245,7 +245,7 @@ export default function MonthlyLeavePage() {
                     </div>
                     <Button variant="outline" onClick={handleLogout} className="gap-2">
                         <LogOut className="w-4 h-4" />
-                        Logout
+                        <span>Logout</span>
                     </Button>
                 </div>
             </header>
