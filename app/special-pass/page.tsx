@@ -488,7 +488,7 @@ function SpecialPassContent() {
             const currentStatus = item.status || "IN"
             const isOut = currentStatus === "OUT" // Valid for both pass object and student object (if status mapped)
             const isActive = currentStatus === "ACTIVE"
-            const isCompleted = currentStatus === "COMPLETED" || currentStatus === "IN"
+            const isCompleted = currentStatus === "COMPLETED" // Only COMPLETED status means completed, not IN
 
             // For Pass objects, we might check passStates for local optimistic updates
             const effectiveOut = !isCompleted && (isStudent ? isOut : (isOut || passStates[item.originalId] === "OUT"))
@@ -583,7 +583,7 @@ function SpecialPassContent() {
                     {/* Action Buttons - Only for Passes */}
                     {!isStudent && (
                       <div className="flex gap-3 mt-4 justify-end items-center">
-                        {isActive && !isCompleted && (
+                        {!isCompleted && (
                           <div className="flex items-center gap-3">
                             {/* Status Badge - Red rounded for OUT, Green for IN */}
                             <Badge className={`rounded-full px-4 py-1 text-xs font-semibold border-2 ${effectiveOut ? "bg-red-50 text-red-600 border-red-400" : "bg-green-50 text-green-600 border-green-400"}`}>
