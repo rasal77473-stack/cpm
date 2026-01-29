@@ -1,0 +1,10 @@
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  out: "out",
+  schema: "./db/schema.ts",
+  dialect: "postgresql",
+  dbCredentials: {
+    url: "postgresql://cpm_user:OQ0iug8OXf2JPILmyuVk2U99bamhii6T@dpg-d5age8ruibrs73brk60g-a.virginia-postgres.render.com/cpm?ssl=true",
+  },
+});

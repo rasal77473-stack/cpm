@@ -1,0 +1,325 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { toast } from "sonner";
+import { History, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+const PERMISSIONS = [
+  { id: "view_only", label: "View Only" },
+  { id: "in_out_control", label: "In/Out Control" },
+  { id: "manage_students", label: "Manage Students" },
+  { id: "issue_phone_pass", label: "Issue Phone Pass" },
+  { id: "access_phone_pass", label: "Phone Pass Page Access" },
+  { id: "view_phone_logs", label: "View Phone Logs" },
+  { id: "manage_phone_status", label: "Manage Phone Status Lists" },
+  { id: "manage_users", label: "User Management" },
+  { id: "manage_monthly_leave", label: "Manage Monthly Leave" },
+];
+
+const PERMISSION_LABELS: Record<string, string> = {
+  view_only: "View Only",
+  in_out_control: "In/Out Control",
+  manage_students: "Manage Students",
+  issue_phone_pass: "Issue Phone Pass",
+  access_phone_pass: "Phone Pass Page Access",
+  view_phone_logs: "View Phone Logs",
+  manage_phone_status: "Manage Phone Status Lists",
+  manage_users: "User Management",
+  manage_monthly_leave: "Manage Monthly Leave",
+  manage_special_pass: "Manage Special Pass",
+  view_admin_panel: "View Admin Panel",
+};
+
+export default function UserManagement() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [selectedUserLogs, setSelectedUserLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [selectedUserForLogs, setSelectedUserForLogs] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+    name: "",
+    role: "mentor",
+    special_pass: "NO",
+    permissions: ["view_only"],
+  });
+
+  const [isAuthorized, setIsAuthorized] = useState(false)
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Fetch users error:", err);
+      setUsers([]);
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    const role = localStorage.getItem("role")
+    const specialPass = localStorage.getItem("special_pass")
+    if (!token || (role !== "admin" && specialPass !== "YES")) {
+      window.location.replace(token ? "/dashboard" : "/login")
+      return
+    }
+    setIsAuthorized(true)
+    fetchUsers();
+  }, []);
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground animate-pulse">Restricted Access - Verifying...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const fetchUserLogs = async (user: any) => {
+    setLoadingLogs(true);
+    setSelectedUserForLogs(user);
+    setShowLogsModal(true);
+    try {
+      const res = await fetch(`/api/users/${user.id}/logs`);
+      const data = await res.json();
+      setSelectedUserLogs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      toast.error("Failed to fetch logs");
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = "/api/users";
+      const method = isEditing ? "PUT" : "POST";
+      const body = isEditing ? { ...formData, id: editingId } : formData;
+
+      console.log("Sending request:", { method, body });
+
+      const res = await fetch(url, {
+        method,
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      console.log("Response status:", res.status, "StatusText:", res.statusText, "OK:", res.ok);
+
+      const text = await res.text();
+      console.log("Response text:", text);
+
+      let responseData = {};
+      try {
+        responseData = JSON.parse(text);
+      } catch (e) {
+        console.warn("Could not parse response as JSON");
+      }
+
+      console.log("Response data:", responseData);
+
+      if (res.ok) {
+        toast.success(isEditing ? "User updated successfully" : "User created successfully");
+        await fetchUsers();
+        resetForm();
+      } else {
+        const errorMsg = (responseData as any)?.error || `HTTP ${res.status}: ${res.statusText}`;
+        toast.error(errorMsg);
+        console.error("API Error:", { status: res.status, statusText: res.statusText, data: responseData });
+      }
+    } catch (error) {
+      toast.error("An error occurred while processing the request");
+      console.error("Submit error:", error);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ username: "", password: "", name: "", role: "mentor", special_pass: "NO", permissions: ["view_only"] });
+    setIsEditing(false);
+    setEditingId(null);
+  };
+
+  const handleEdit = (user: any) => {
+    setFormData({
+      username: user.username,
+      password: user.password,
+      name: user.name,
+      role: user.role,
+      special_pass: user.special_pass || "NO",
+      permissions: user.permissions || ["view_only"],
+    });
+    setIsEditing(true);
+    setEditingId(user.id);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+    const res = await fetch(`/api/users?id=${id}`, { method: "DELETE" });
+    if (res.ok) {
+      toast.success("User deleted successfully");
+      fetchUsers();
+    } else {
+      toast.error("Failed to delete user");
+    }
+  };
+
+
+  const togglePermission = (permId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: prev.permissions.includes(permId)
+        ? prev.permissions.filter(p => p !== permId)
+        : [...prev.permissions, permId]
+    }));
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-3xl font-bold">User Management</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{isEditing ? "Edit User" : "Create New User"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Username</Label>
+                <Input value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Password</Label>
+                <Input type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select value={formData.role} onValueChange={v => setFormData({ ...formData, role: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="mentor">Mentor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2 py-2">
+                <Checkbox
+                  id="special_pass"
+                  checked={formData.special_pass === "YES"}
+                  onCheckedChange={(checked) => setFormData({ ...formData, special_pass: checked ? "YES" : "NO" })}
+                />
+                <Label htmlFor="special_pass" className="text-yellow-600 font-bold">Grant Special Pass (Admin Access)</Label>
+              </div>
+              <div className="space-y-3">
+                <Label>Permissions</Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {PERMISSIONS.map(perm => (
+                    <div key={perm.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={perm.id}
+                        checked={formData.permissions.includes(perm.id)}
+                        onCheckedChange={() => togglePermission(perm.id)}
+                      />
+                      <Label htmlFor={perm.id}>{perm.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1">{isEditing ? "Update User" : "Create User"}</Button>
+                {isEditing && <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>}
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Existing Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {users.map((user: any) => (
+                <div key={user.id} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold">{user.name} ({user.username})</p>
+                      <p className="text-sm text-muted-foreground">Role: {user.role}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => fetchUserLogs(user)} title="View Activity Logs">
+                        <History className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>Edit</Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(user.id)}>Delete</Button>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {user.permissions?.map((p: string) => (
+                      <Badge key={p} variant="secondary" className="px-2 py-0.5 text-xs font-normal">
+                        {PERMISSION_LABELS[p] || p}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog open={showLogsModal} onOpenChange={setShowLogsModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Activity Logs: {selectedUserForLogs?.name}</DialogTitle>
+            <DialogDescription>
+              Chronological history of actions performed by this user.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingLogs ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : selectedUserLogs.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">No activity logs found.</p>
+          ) : (
+            <div className="space-y-4">
+              {selectedUserLogs.map((log: any) => (
+                <div key={log.id} className="p-3 border rounded-lg bg-accent/50">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="font-bold text-sm uppercase tracking-wider text-primary">{log.action.replace(/_/g, " ")}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</span>
+                  </div>
+                  <p className="text-sm">{log.details}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
