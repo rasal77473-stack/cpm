@@ -491,7 +491,8 @@ function SpecialPassContent() {
             const isCompleted = currentStatus === "COMPLETED" // Only COMPLETED status means completed, not IN
 
             // For Pass objects, we might check passStates for local optimistic updates
-            const effectiveOut = !isCompleted && (isStudent ? isOut : (isOut || passStates[item.originalId] === "OUT"))
+            // effectiveOut checks: local passStates first, then the actual status
+            const effectiveOut = !isCompleted && (isStudent ? isOut : (passStates[item.originalId] === "OUT" || isOut))
 
             return (
               <div key={item.id} className="bg-blue-50/50 rounded-[20px] p-5 shadow-sm border border-blue-100">
