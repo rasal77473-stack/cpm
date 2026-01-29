@@ -584,17 +584,26 @@ function SpecialPassContent() {
                     {!isStudent && (
                       <div className="flex gap-3 mt-4 justify-end items-center">
                         {isActive && !isCompleted && (
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className={`rounded-md px-2 py-0.5 text-xs font-normal bg-white ${effectiveOut ? "text-red-500 border-red-500" : "text-green-600 border-green-200"}`}>
-                              {effectiveOut ? "out" : "in"}
+                          <div className="flex items-center gap-3">
+                            {/* Status Badge - Red rounded for OUT, Green for IN */}
+                            <Badge className={`rounded-full px-4 py-1 text-xs font-semibold border-2 ${effectiveOut ? "bg-red-50 text-red-600 border-red-400" : "bg-green-50 text-green-600 border-green-400"}`}>
+                              {effectiveOut ? "OUT" : "IN"}
                             </Badge>
 
+                            {/* Action Button - Yellow/Orange rounded toggle button */}
                             <Button
-                              className={`h-8 px-3 rounded-md text-xs font-medium ${effectiveOut ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-100 text-red-700 border border-red-200"}`}
+                              className="h-9 px-6 rounded-full text-xs font-semibold bg-yellow-400 hover:bg-yellow-500 text-gray-900 border-none transition-all"
                               onClick={() => effectiveOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
                               disabled={returningPassId === item.originalId}
                             >
-                              {returningPassId === item.originalId ? <Loader2 className="h-4 w-4 animate-spin" /> : (effectiveOut ? "Submit In" : "Submit Out")}
+                              {returningPassId === item.originalId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  {effectiveOut ? "Submit In" : "Submit Out"}
+                                  {!effectiveOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
+                                </>
+                              )}
                             </Button>
                           </div>
                         )}
