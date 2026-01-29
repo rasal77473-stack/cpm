@@ -599,7 +599,7 @@ function SpecialPassContent() {
                           </div>
                         )}
                       </div>
-                    )} 
+                    )}
 
                     {/* Action for Students: Quick Grant Pass */}
                     {/* Action for Students: Quick Grant Pass OR Submit In */}
