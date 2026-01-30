@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -11,7 +12,9 @@ import {
   Ticket,
   History,
   ArrowRightCircle,
-  LogOut
+  LogOut,
+  ChevronDown,
+  X
 } from "lucide-react"
 
 export default function Dashboard() {
@@ -20,6 +23,7 @@ export default function Dashboard() {
   const [permissions, setPermissions] = useState<string[]>([])
   const [role, setRole] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -75,65 +79,90 @@ export default function Dashboard() {
         </div>
 
         {/* Grid Menu */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="space-y-4">
+          {/* Phone Pass Button with Dropdown Menu */}
+          <div className="relative">
+            <Button
+              onClick={() => setShowMenu(!showMenu)}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-6 rounded-2xl flex items-center justify-between px-6 active:scale-95 transition-transform"
+            >
+              <div className="flex items-center gap-3">
+                <Ticket className="w-6 h-6" />
+                <span>Phone Pass</span>
+              </div>
+              <ChevronDown className={`w-5 h-5 transition-transform ${showMenu ? "rotate-180" : ""}`} />
+            </Button>
 
-          <MenuCard
-            icon={GraduationCap}
-            label="Students"
-            color="text-blue-500"
-            href="/admin/manage-students"
-            visible={role === "admin" || permissions.includes("manage_students") || permissions.length === 0}
-          />
+            {/* Dropdown Menu */}
+            {showMenu && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg z-10 overflow-hidden">
+                <div className="space-y-1 p-2">
+                  {/* Students */}
+                  {(role === "admin" || permissions.includes("manage_students") || permissions.length === 0) && (
+                    <Link href="/admin/manage-students" onClick={() => setShowMenu(false)}>
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors">
+                        <GraduationCap className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
+                        <span className="font-medium text-gray-900">Students</span>
+                      </div>
+                    </Link>
+                  )}
 
-          <MenuCard
-            icon={Ticket}
-            label="Phone Pass"
-            color="text-orange-500"
-            href="/special-pass"
-            visible={role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.includes("manage_phone_status") || permissions.length === 0}
-          />
+                  {/* Phone Pass */}
+                  {(role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.includes("manage_phone_status") || permissions.length === 0) && (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 cursor-pointer">
+                      <Ticket className="h-5 w-5 text-orange-500" strokeWidth={1.5} />
+                      <span className="font-medium text-gray-900">Phone Pass</span>
+                    </div>
+                  )}
 
-          <MenuCard
-            icon={History}
-            label="History"
-            color="text-indigo-500"
-            href="/history"
-            visible={role === "admin" || permissions.includes("view_phone_history")}
-          />
+                  {/* History */}
+                  {(role === "admin" || permissions.includes("view_phone_history")) && (
+                    <Link href="/history" onClick={() => setShowMenu(false)}>
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 cursor-pointer transition-colors">
+                        <History className="h-5 w-5 text-indigo-500" strokeWidth={1.5} />
+                        <span className="font-medium text-gray-900">History</span>
+                      </div>
+                    </Link>
+                  )}
 
-          <MenuCard
-            icon={ArrowRightCircle}
-            label="Monthly Leave"
-            color="text-purple-600"
-            href="/admin/monthly-leave"
-            visible={role === "admin" || permissions.includes("manage_monthly_leave")}
-          />
+                  {/* Monthly Leave */}
+                  {(role === "admin" || permissions.includes("manage_monthly_leave")) && (
+                    <Link href="/admin/monthly-leave" onClick={() => setShowMenu(false)}>
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 cursor-pointer transition-colors">
+                        <ArrowRightCircle className="h-5 w-5 text-purple-600" strokeWidth={1.5} />
+                        <span className="font-medium text-gray-900">Monthly Leave</span>
+                      </div>
+                    </Link>
+                  )}
 
-          <MenuCard
-            icon={Users}
-            label="Users"
-            color="text-red-500"
-            href="/admin/users"
-            visible={role === "admin" || permissions.includes("manage_users")}
-          />
+                  {/* Users */}
+                  {(role === "admin" || permissions.includes("manage_users")) && (
+                    <Link href="/admin/users" onClick={() => setShowMenu(false)}>
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 cursor-pointer transition-colors">
+                        <Users className="h-5 w-5 text-red-500" strokeWidth={1.5} />
+                        <span className="font-medium text-gray-900">Users</span>
+                      </div>
+                    </Link>
+                  )}
 
-          <MenuCard
-            icon={Settings}
-            label="Settings"
-            color="text-gray-600"
-            href="/admin/settings"
-            visible={role === "admin"}
-          />
-
+                  {/* Settings */}
+                  {role === "admin" && (
+                    <Link href="/admin/settings" onClick={() => setShowMenu(false)}>
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                        <Settings className="h-5 w-5 text-gray-600" strokeWidth={1.5} />
+                        <span className="font-medium text-gray-900">Settings</span>
+                      </div>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>
   )
 }
-
-import Link from "next/link"
-
-// ... (Dashboard component remains the same)
 
 function MenuCard({ icon: Icon, label, color, href, visible }: { icon: any, label: string, color: string, href: string, visible: boolean }) {
   if (!visible) return null
