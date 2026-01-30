@@ -75,11 +75,11 @@ function SpecialPassContent() {
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 10000,
   })
-  // Filter ONLY phone passes - exclude gate passes
+  // Filter ONLY phone passes - strictly exclude all gate passes
   const passes = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
-    // Show if purpose starts with "PHONE:" or doesn't have "GATE:" prefix
-    if (!p.purpose) return true
-    return p.purpose.startsWith("PHONE:") || !p.purpose.includes("GATE:")
+    // Show ONLY phone passes (those that start with "PHONE:")
+    if (!p.purpose) return false
+    return p.purpose.startsWith("PHONE:")
   }) : []
 
   // Fetch phone statuses
