@@ -28,11 +28,14 @@ export async function POST(request: NextRequest) {
         const { startDate, endDate, startTime, endTime, createdBy, createdByName, excludedStudents } = body;
 
         if (!startDate || !endDate || !startTime || !endTime || !createdBy || !createdByName) {
+            console.error("Missing required fields:", { startDate, endDate, startTime, endTime, createdBy, createdByName });
             return NextResponse.json(
                 { error: "Missing required fields" },
                 { status: 400 }
             );
         }
+
+        console.log("Creating monthly leave with:", { startDate, endDate, startTime, endTime });
 
         // Create the monthly leave record
         const [newLeave] = await db
@@ -48,6 +51,8 @@ export async function POST(request: NextRequest) {
                 status: "ACTIVE",
             })
             .returning();
+
+        console.log("Monthly leave created:", newLeave);
 
         // Add exclusions if any
         if (excludedStudents && excludedStudents.length > 0) {
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error("POST /api/monthly-leave error:", error);
         return NextResponse.json(
-            { error: "Failed to create monthly leave" },
+            { error: "Failed to create monthly leave", details: String(error) },
             { status: 500 }
         );
     }

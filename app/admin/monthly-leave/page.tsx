@@ -122,7 +122,11 @@ export default function MonthlyLeavePage() {
             return
         }
 
-        if (new Date(startDate) > new Date(endDate)) {
+        // Convert date strings to ISO datetime strings with time component
+        const startDateTime = new Date(`${startDate}T${startTime}:00`)
+        const endDateTime = new Date(`${endDate}T${endTime}:00`)
+
+        if (startDateTime > endDateTime) {
             toast.error("Start date cannot be after end date")
             return
         }
@@ -134,8 +138,8 @@ export default function MonthlyLeavePage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    startDate,
-                    endDate,
+                    startDate: startDateTime.toISOString(),
+                    endDate: endDateTime.toISOString(),
                     startTime,
                     endTime,
                     createdBy: staffId,
@@ -145,7 +149,8 @@ export default function MonthlyLeavePage() {
             })
 
             if (!response.ok) {
-                throw new Error("Failed to create monthly leave")
+                const errorData = await response.json()
+                throw new Error(errorData.error || "Failed to create monthly leave")
             }
 
             const data = await response.json()
@@ -165,7 +170,9 @@ export default function MonthlyLeavePage() {
             setActiveLeaveToGrant(data.id)
             setShowConfirmDialog(true)
         } catch (error) {
-            toast.error("Failed to create monthly leave")
+            const errorMessage = error instanceof Error ? error.message : "Failed to create monthly leave"
+            console.error("Error creating monthly leave:", error)
+            toast.error(errorMessage)
         } finally {
             setIsSubmitting(false)
         }
