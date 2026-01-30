@@ -74,7 +74,14 @@ export default function MonthlyLeavePage() {
 
         setIsAuthorized(true)
         setStaffName(name || "Admin")
-        setStaffId(id ? parseInt(id) : null)
+        
+        // Parse staffId safely
+        if (id && !isNaN(parseInt(id))) {
+            setStaffId(parseInt(id))
+        } else {
+            // If no valid staffId, try to get from a default or set to 0
+            setStaffId(0)
+        }
     }, [router])
 
     // Get unique classes for filtering
@@ -122,7 +129,7 @@ export default function MonthlyLeavePage() {
             return
         }
 
-        if (!staffId || !staffName) {
+        if (staffId === null || staffId === undefined || !staffName) {
             toast.error("Admin info not loaded. Please refresh the page and login again.")
             console.error("Missing admin info:", { staffId, staffName })
             return
@@ -361,7 +368,7 @@ export default function MonthlyLeavePage() {
                                 {/* Submit Button */}
                                 <Button
                                     onClick={handleSubmit}
-                                    disabled={isSubmitting || !startDate || !endDate || !staffId || !staffName}
+                                    disabled={isSubmitting || !startDate || !endDate || staffId === null || staffId === undefined || !staffName}
                                     className="w-full bg-purple-600 hover:bg-purple-700 text-white h-12 text-lg"
                                 >
                                     {isSubmitting ? (
