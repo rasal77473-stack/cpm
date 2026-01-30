@@ -56,17 +56,10 @@ export default function GatePassMenu() {
       visible: role === "admin" || permissions.includes("manage_students") || permissions.length === 0,
     },
     {
-      icon: Ticket,
-      label: "Phone Pass",
-      color: "text-green-600",
-      href: "/phone-pass-menu",
-      visible: role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.length === 0,
-    },
-    {
       icon: DoorOpen,
       label: "Gate Pass",
       color: "text-green-600",
-      href: "/gate-pass",
+      href: "/special-pass",
       visible: role === "admin" || permissions.includes("issue_gate_pass") || permissions.length === 0,
     },
     {
