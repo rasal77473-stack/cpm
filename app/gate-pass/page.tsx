@@ -58,15 +58,16 @@ function GatePassContent() {
   })
   const students = Array.isArray(studentsData) ? studentsData : []
 
-  // Fetch gate passes
-  const { data: allGatePasses = [], isLoading: gatePassesLoading } = useSWR("/api/gate-pass/all", fetcher, {
-    refreshInterval: 10000,
+  // Fetch gate passes (from special-pass/all since we use same table)
+  const { data: allGatePasses = [], isLoading: gatePassesLoading } = useSWR("/api/special-pass/all", fetcher, {
+    refreshInterval: 5000,
   })
   const gatePasses = Array.isArray(allGatePasses) ? allGatePasses : []
 
-  // Fetch gate pass statuses
-  const { data: gatePassStatusData = [] } = useSWR("/api/gate-pass-status", fetcher, {
+  // Fetch phone/gate pass statuses (same tracking)
+  const { data: gatePassStatusData = [] } = useSWR("/api/phone-status", fetcher, {
     revalidateOnFocus: false,
+    refreshInterval: 5000,
   })
 
   const gatePassStatusMap = useMemo(() => {
@@ -171,7 +172,7 @@ function GatePassContent() {
 
   const handleSubmitOut = async (gatePassId: number) => {
     setGatePassStates(prev => ({ ...prev, [gatePassId]: "OUT" }))
-    mutate("/api/gate-pass-status", (current: any[] = []) => {
+    mutate("/api/phone-status", (current: any[] = []) => {
       const pass = gatePasses.find((p: any) => p.id === gatePassId)
       if (!pass) return current
       const existing = current.find(s => s.studentId === pass.studentId)
@@ -183,15 +184,15 @@ function GatePassContent() {
     toast.success("Student Marked OUT")
 
     try {
-      const res = await fetch(`/api/gate-pass/out/${gatePassId}`, { method: "POST" })
+      const res = await fetch(`/api/special-pass/out/${gatePassId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
-      mutate("/api/gate-pass-status")
-      mutate("/api/gate-pass/all")
+      mutate("/api/phone-status")
+      mutate("/api/special-pass/all")
     } catch (e) {
       setGatePassStates(prev => {
         const n = { ...prev }; delete n[gatePassId]; return n
       })
-      mutate("/api/gate-pass-status")
+      mutate("/api/phone-status")
       toast.error("Failed to update status")
     }
   }
@@ -200,11 +201,11 @@ function GatePassContent() {
     const pass = gatePasses.find((p: any) => p.id === gatePassId)
     if (!pass) return
 
-    mutate("/api/gate-pass/all", (current: any[] = []) => {
-      return current.map(p => p.id === gatePassId ? { ...p, status: "COMPLETED" } : p)
+    mutate("/api/special-pass/all", (current: any[] = []) => {
+      return current.map(p => p.id === gatePassId ? { ...p, status: "COMPLETED", submissionTime: new Date().toISOString() } : p)
     }, false)
 
-    mutate("/api/gate-pass-status", (current: any[] = []) => {
+    mutate("/api/phone-status", (current: any[] = []) => {
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
         ? current.map(s => s.studentId === pass.studentId ? { ...s, status: "IN" } : s)
@@ -215,14 +216,14 @@ function GatePassContent() {
 
     try {
       setReturningGatePassId(gatePassId)
-      const res = await fetch(`/api/gate-pass/in/${gatePassId}`, { method: "POST" })
+      const res = await fetch(`/api/special-pass/return/${gatePassId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
 
-      mutate("/api/gate-pass/all")
-      mutate("/api/gate-pass-status")
+      mutate("/api/special-pass/all")
+      mutate("/api/phone-status")
     } catch (e) {
-      mutate("/api/gate-pass/all")
-      mutate("/api/gate-pass-status")
+      mutate("/api/special-pass/all")
+      mutate("/api/phone-status")
       toast.error("Failed to complete gate pass")
     } finally {
       setReturningGatePassId(null)
