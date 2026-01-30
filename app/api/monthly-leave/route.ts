@@ -27,18 +27,19 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { startDate, endDate, startTime, endTime, createdBy, createdByName, excludedStudents } = body;
 
-        if (!startDate || !endDate || !startTime || !endTime || !createdBy || !createdByName) {
-            console.error("Missing required fields:", { 
-                startDate: !!startDate, 
-                endDate: !!endDate, 
-                startTime: !!startTime, 
-                endTime: !!endTime, 
-                createdBy: !!createdBy, 
-                createdByName: !!createdByName,
-                receivedBody: body
-            });
+        // Check each field and provide specific error message
+        const missingFields = [];
+        if (!startDate) missingFields.push("startDate");
+        if (!endDate) missingFields.push("endDate");
+        if (!startTime) missingFields.push("startTime");
+        if (!endTime) missingFields.push("endTime");
+        if (!createdBy && createdBy !== 0) missingFields.push("createdBy");
+        if (!createdByName) missingFields.push("createdByName");
+
+        if (missingFields.length > 0) {
+            console.error("Missing required fields:", missingFields, "Received:", body);
             return NextResponse.json(
-                { error: "Missing required fields" },
+                { error: `Missing required fields: ${missingFields.join(", ")}` },
                 { status: 400 }
             );
         }
