@@ -12,7 +12,15 @@ import {
   Search,
   Plus,
   ArrowUpRight,
-  Loader2
+  Loader2,
+  Menu,
+  X,
+  GraduationCap,
+  Ticket,
+  History,
+  ArrowRightCircle,
+  Users,
+  Settings
 } from "lucide-react"
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
@@ -23,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import Link from "next/link"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -36,6 +45,7 @@ function SpecialPassContent() {
   // App States
   const [returningPassId, setReturningPassId] = useState<number | null>(null)
   const [showStudentList, setShowStudentList] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const [activeTab, setActiveTab] = useState<"phone-pass" | "phone-in" | "phone-out" | "all-students">("phone-pass")
 
   // Student List Filter States (for Grant Pass view)
@@ -397,22 +407,74 @@ function SpecialPassContent() {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-8">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2">
             <ChevronLeft className="h-6 w-6" />
           </Button>
           <h1 className="text-xl font-bold">Gate Pass</h1>
         </div>
-        {canGrantPass && (
+        <div className="flex items-center gap-2">
+          {canGrantPass && (
+            <Button
+              className="bg-blue-500 hover:bg-blue-600 text-white gap-1 rounded-lg px-4"
+              onClick={() => setShowStudentList(true)}
+            >
+              Add <Plus className="h-4 w-4" />
+            </Button>
+          )}
           <Button
-            className="bg-blue-500 hover:bg-blue-600 text-white gap-1 rounded-lg px-4"
-            onClick={() => setShowStudentList(true)}
+            variant="outline"
+            size="icon"
+            onClick={() => setShowMenu(!showMenu)}
+            className="relative"
           >
-            Add <Plus className="h-4 w-4" />
+            {showMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-        )}
+        </div>
       </header>
+
+      {/* Phone Pass Menu Dropdown */}
+      {showMenu && (
+        <div className="sticky top-16 z-40 bg-background border-b">
+          <div className="px-4 py-4 space-y-2">
+            <Link href="/admin/manage-students" onClick={() => setShowMenu(false)}>
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <GraduationCap className="h-5 w-5 text-blue-500" />
+                <span className="font-medium">Students</span>
+              </div>
+            </Link>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 cursor-pointer">
+              <Ticket className="h-5 w-5 text-orange-500" />
+              <span className="font-medium">Phone Pass</span>
+            </div>
+            <Link href="/history" onClick={() => setShowMenu(false)}>
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <History className="h-5 w-5 text-indigo-500" />
+                <span className="font-medium">History</span>
+              </div>
+            </Link>
+            <Link href="/admin/monthly-leave" onClick={() => setShowMenu(false)}>
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <ArrowRightCircle className="h-5 w-5 text-purple-600" />
+                <span className="font-medium">Monthly Leave</span>
+              </div>
+            </Link>
+            <Link href="/admin/users" onClick={() => setShowMenu(false)}>
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <Users className="h-5 w-5 text-red-500" />
+                <span className="font-medium">Users</span>
+              </div>
+            </Link>
+            <Link href="/admin/settings" onClick={() => setShowMenu(false)}>
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <Settings className="h-5 w-5 text-gray-600" />
+                <span className="font-medium">Settings</span>
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
 
       <main className="px-4 py-4 space-y-6">
 
