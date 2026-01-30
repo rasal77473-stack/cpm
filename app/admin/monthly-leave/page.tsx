@@ -436,30 +436,57 @@ export default function MonthlyLeavePage() {
                                 ) : leaves.length === 0 ? (
                                     <div className="text-center py-8 text-muted-foreground">No monthly leaves created yet</div>
                                 ) : (
-                                    <div className="space-y-3 max-h-64 overflow-y-auto">
-                                        {leaves.slice(0, 10).map((leave: any) => (
-                                            <div
-                                                key={leave.id}
-                                                className="p-3 rounded-lg border bg-muted/50 flex items-center justify-between"
-                                            >
-                                                <div>
-                                                    <p className="font-medium">
-                                                        {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {leave.startTime} - {leave.endTime} • Created by {leave.createdByName}
-                                                    </p>
+                                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                                        {leaves.slice(0, 20).map((leave: any) => {
+                                            const startDate = new Date(leave.startDate)
+                                            const endDate = new Date(leave.endDate)
+                                            const isActive = leave.status === "ACTIVE"
+
+                                            return (
+                                                <div
+                                                    key={leave.id}
+                                                    className="p-4 rounded-lg border bg-muted/50 hover:bg-muted/70 transition-colors"
+                                                >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="flex-1 space-y-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="font-semibold text-base">
+                                                                    {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
+                                                                </p>
+                                                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                                                    isActive
+                                                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                                                        : leave.status === "COMPLETED"
+                                                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                                            : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+                                                                    }`}>
+                                                                    {leave.status}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                <Clock className="w-3 h-3 inline mr-1" />
+                                                                {leave.startTime} - {leave.endTime}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Created by {leave.createdByName}
+                                                            </p>
+                                                        </div>
+                                                        {isActive && (
+                                                            <div className="flex gap-2 flex-shrink-0">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleDeleteLeave(leave.id)}
+                                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                >
+                                                                    Delete
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${leave.status === "ACTIVE"
-                                                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                                    : leave.status === "COMPLETED"
-                                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                                        : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
-                                                    }`}>
-                                                    {leave.status}
-                                                </span>
-                                            </div>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
                                 )}
                             </CardContent>

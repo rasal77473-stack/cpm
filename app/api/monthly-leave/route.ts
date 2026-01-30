@@ -85,3 +85,31 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+// DELETE - Delete a monthly leave by ID
+export async function DELETE(request: NextRequest) {
+    try {
+        const url = new URL(request.url);
+        const id = url.pathname.split("/").pop();
+        
+        if (!id || isNaN(parseInt(id))) {
+            return NextResponse.json({ error: "Invalid leave ID" }, { status: 400 });
+        }
+
+        const leaveId = parseInt(id);
+
+        // Delete exclusions first (foreign key constraint)
+        await db.delete(leaveExclusions).where(eq(leaveExclusions.leaveId, leaveId));
+
+        // Delete the monthly leave
+        const result = await db.delete(monthlyLeaves).where(eq(monthlyLeaves.id, leaveId));
+
+        return NextResponse.json({ success: true, message: "Monthly leave deleted successfully" });
+    } catch (error) {
+        console.error("DELETE /api/monthly-leave error:", error);
+        return NextResponse.json(
+            { error: "Failed to delete monthly leave" },
+            { status: 500 }
+        );
+    }
+}
