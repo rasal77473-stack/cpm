@@ -147,18 +147,22 @@ export default function MonthlyLeavePage() {
         setIsSubmitting(true)
 
         try {
+            const payload = {
+                startDate: startDateTime.toISOString(),
+                endDate: endDateTime.toISOString(),
+                startTime,
+                endTime,
+                createdBy: staffId,
+                createdByName: staffName,
+                excludedStudents: Array.from(excludedStudents),
+            }
+            
+            console.log("Sending monthly leave payload:", payload)
+            
             const response = await fetch("/api/monthly-leave", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    startDate: startDateTime.toISOString(),
-                    endDate: endDateTime.toISOString(),
-                    startTime,
-                    endTime,
-                    createdBy: staffId,
-                    createdByName: staffName,
-                    excludedStudents: Array.from(excludedStudents),
-                }),
+                body: JSON.stringify(payload),
             })
 
             if (!response.ok) {
