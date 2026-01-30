@@ -12,9 +12,7 @@ import {
   Ticket,
   History,
   ArrowRightCircle,
-  LogOut,
-  ChevronDown,
-  X
+  LogOut
 } from "lucide-react"
 
 export default function Dashboard() {
@@ -23,7 +21,6 @@ export default function Dashboard() {
   const [permissions, setPermissions] = useState<string[]>([])
   const [role, setRole] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -80,84 +77,13 @@ export default function Dashboard() {
 
         {/* Grid Menu */}
         <div className="space-y-4">
-          {/* Phone Pass Button with Dropdown Menu */}
-          <div className="relative">
-            <Button
-              onClick={() => setShowMenu(!showMenu)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 rounded-2xl flex items-center justify-between px-6 active:scale-95 transition-transform"
-            >
-              <div className="flex items-center gap-3">
-                <Ticket className="w-6 h-6" />
-                <span>Phone Pass</span>
-              </div>
-              <ChevronDown className={`w-5 h-5 transition-transform ${showMenu ? "rotate-180" : ""}`} />
+          {/* Phone Pass Button - Links to Menu Page */}
+          <Link href="/phone-pass-menu">
+            <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 rounded-2xl flex items-center justify-center px-6 active:scale-95 transition-transform gap-3">
+              <Ticket className="w-6 h-6" />
+              <span>Phone Pass</span>
             </Button>
-
-            {/* Dropdown Menu */}
-            {showMenu && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg z-10 overflow-hidden">
-                <div className="space-y-1 p-2">
-                  {/* Students */}
-                  {(role === "admin" || permissions.includes("manage_students") || permissions.length === 0) && (
-                    <Link href="/admin/manage-students" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                        <GraduationCap className="h-5 w-5 text-green-600" strokeWidth={1.5} />
-                        <span className="font-medium text-gray-900">Students</span>
-                      </div>
-                    </Link>
-                  )}
-
-                  {/* Phone Pass */}
-                  {(role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.includes("manage_phone_status") || permissions.length === 0) && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 cursor-pointer">
-                      <Ticket className="h-5 w-5 text-green-600" strokeWidth={1.5} />
-                      <span className="font-medium text-gray-900">Phone Pass</span>
-                    </div>
-                  )}
-
-                  {/* History */}
-                  {(role === "admin" || permissions.includes("view_phone_history")) && (
-                    <Link href="/history" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                        <History className="h-5 w-5 text-green-600" strokeWidth={1.5} />
-                        <span className="font-medium text-gray-900">History</span>
-                      </div>
-                    </Link>
-                  )}
-
-                  {/* Monthly Leave */}
-                  {(role === "admin" || permissions.includes("manage_monthly_leave")) && (
-                    <Link href="/admin/monthly-leave" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                        <ArrowRightCircle className="h-5 w-5 text-green-600" strokeWidth={1.5} />
-                        <span className="font-medium text-gray-900">Monthly Leave</span>
-                      </div>
-                    </Link>
-                  )}
-
-                  {/* Users */}
-                  {(role === "admin" || permissions.includes("manage_users")) && (
-                    <Link href="/admin/users" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                        <Users className="h-5 w-5 text-green-600" strokeWidth={1.5} />
-                        <span className="font-medium text-gray-900">Users</span>
-                      </div>
-                    </Link>
-                  )}
-
-                  {/* Settings */}
-                  {role === "admin" && (
-                    <Link href="/admin/settings" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                        <Settings className="h-5 w-5 text-gray-600" strokeWidth={1.5} />
-                        <span className="font-medium text-gray-900">Settings</span>
-                      </div>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          </Link>
         </div>
       </main>
     </div>
