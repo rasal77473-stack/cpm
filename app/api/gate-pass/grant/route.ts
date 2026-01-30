@@ -6,7 +6,7 @@ import { eq, and, inArray } from "drizzle-orm"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { studentId, mentorId, mentorName, purpose, staffId } = body
+    const { studentId, mentorId, mentorName, purpose, returnTime, submissionTime, staffId } = body
 
     // Validate required fields
     if (!studentId || mentorId === undefined || mentorId === null || !mentorName || !purpose) {
@@ -44,9 +44,17 @@ export async function POST(request: NextRequest) {
         mentorId: Number(mentorId),
         mentorName,
         purpose,
-        status: "ACTIVE", // Gate pass starts as ACTIVE (student can enter/exit)
+        issueTime: submissionTime ? new Date(submissionTime) : new Date(),
+        returnTime: returnTime ? new Date(returnTime) : null,
+        status: "ACTIVE", // Gate pass starts as ACTIVE
       })
       .returning()
+
+    // Update student's special_pass status
+    await db
+      .update(students)
+      .set({ special_pass: "YES" })
+      .where(eq(students.id, Number(studentId)))
 
     // Log the activity
     if (staffId) {
@@ -58,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: true, message: "Gate pass granted successfully", data: newGrant },
+      { success: true, message: "Gate pass granted successfully", id: newGrant.id, data: newGrant },
       { status: 201 }
     )
   } catch (error) {
@@ -69,3 +77,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

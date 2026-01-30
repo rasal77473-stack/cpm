@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { mutate } from "swr"
 
 export default function GrantGatePassPage() {
   const router = useRouter()
@@ -17,9 +18,14 @@ export default function GrantGatePassPage() {
   const [student, setStudent] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [purpose, setPurpose] = useState("")
   const [mentorName, setMentorName] = useState("")
   const [mentorId, setMentorId] = useState("")
+
+  const [formData, setFormData] = useState({
+    purpose: "",
+    returnDate: "",
+    returnTime: "",
+  })
 
   useEffect(() => {
     // Get mentor info from localStorage
@@ -62,8 +68,13 @@ export default function GrantGatePassPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!purpose.trim()) {
+    if (!formData.purpose.trim()) {
       toast.error("Please enter purpose/remarks")
+      return
+    }
+
+    if (!formData.returnDate || !formData.returnTime) {
+      toast.error("Please set return date and time")
       return
     }
 
@@ -74,6 +85,9 @@ export default function GrantGatePassPage() {
 
     setSubmitting(true)
 
+    // Create return time from date and time
+    const returnDateTime = new Date(`${formData.returnDate}T${formData.returnTime}`)
+
     try {
       const res = await fetch("/api/gate-pass/grant", {
         method: "POST",
@@ -82,7 +96,9 @@ export default function GrantGatePassPage() {
           studentId: parseInt(studentId as string),
           mentorId: parseInt(mentorId),
           mentorName: mentorName || "Staff",
-          purpose: purpose.trim(),
+          purpose: formData.purpose.trim(),
+          returnTime: returnDateTime.toISOString(),
+          submissionTime: new Date().toISOString(),
           staffId: mentorId,
         }),
       })
@@ -93,6 +109,9 @@ export default function GrantGatePassPage() {
         throw new Error(data.error || "Failed to grant pass")
       }
 
+      // Update SWR cache
+      await mutate("/api/special-pass/all")
+      
       toast.success("Gate pass granted successfully!")
       setTimeout(() => router.push("/gate-pass"), 500)
     } catch (error: any) {
@@ -131,32 +150,38 @@ export default function GrantGatePassPage() {
         <h1 className="text-lg font-bold">Grant Gate Pass</h1>
       </header>
 
-      <main className="p-4 space-y-4 max-w-2xl mx-auto">
-        {/* Student Card */}
+      <main className="p-4 space-y-6 max-w-2xl mx-auto">
+        {/* Student Details Card */}
         <Card className="border-green-200 bg-green-50">
           <CardContent className="pt-6">
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500 font-medium">Student Name</p>
-                <p className="font-bold text-lg text-gray-900">{student.name}</p>
+                <p className="text-xs text-gray-500 font-medium uppercase">Student Name</p>
+                <p className="font-bold text-gray-900">{student.name}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Admission Number</p>
-                  <p className="font-semibold text-gray-900">{student.admission_number}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Class</p>
-                  <p className="font-semibold text-gray-900">{student.class_name || "-"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Locker</p>
-                  <p className="font-semibold text-gray-900">{student.locker_number || "-"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Roll No</p>
-                  <p className="font-semibold text-gray-900">{student.roll_no || "-"}</p>
-                </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase">Admission No</p>
+                <p className="font-bold text-gray-900">{student.admission_number}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase">Locker</p>
+                <p className="font-bold text-gray-900">{student.locker_number || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase">Class</p>
+                <p className="font-bold text-gray-900">{student.class_name || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase">Roll No</p>
+                <p className="font-bold text-gray-900">{student.roll_no || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium uppercase">Mentor</p>
+                <p className="font-bold text-gray-900">{mentorName || "-"}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 font-medium uppercase">Issue Time</p>
+                <p className="font-bold text-gray-900">{new Date().toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -165,22 +190,48 @@ export default function GrantGatePassPage() {
         {/* Form */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Pass Details</CardTitle>
+            <CardTitle>Gate Pass Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Purpose / Remarks *</label>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Purpose */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Purpose / Remarks *</label>
                 <Textarea
-                  placeholder="Enter reason for gate pass (e.g., Sick, Early leave, Parent meeting, etc.)"
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  className="min-h-24 resize-none"
+                  placeholder="Reason for gate pass (e.g., Sick, Early leave, Parent meeting, etc.)"
+                  value={formData.purpose}
+                  onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
                   required
+                  className="min-h-20"
                 />
               </div>
 
-              <div className="pt-4 flex gap-2">
+              {/* Return Date */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Expected Return Date *</label>
+                <Input
+                  type="date"
+                  value={formData.returnDate}
+                  onChange={(e) => setFormData({ ...formData, returnDate: e.target.value })}
+                  required
+                  className="bg-white border-green-200"
+                />
+              </div>
+
+              {/* Return Time */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Expected Return Time *</label>
+                <Input
+                  type="time"
+                  value={formData.returnTime}
+                  onChange={(e) => setFormData({ ...formData, returnTime: e.target.value })}
+                  required
+                  className="bg-white border-green-200"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -191,8 +242,8 @@ export default function GrantGatePassPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  disabled={submitting || !purpose.trim()}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white h-11"
+                  disabled={submitting || !formData.purpose.trim() || !formData.returnDate || !formData.returnTime}
                 >
                   {submitting ? (
                     <>
@@ -200,7 +251,7 @@ export default function GrantGatePassPage() {
                       Granting...
                     </>
                   ) : (
-                    "Grant Pass"
+                    "Grant Gate Pass"
                   )}
                 </Button>
               </div>
