@@ -76,13 +76,13 @@ export default function Dashboard() {
         </div>
 
         {/* Grid Menu */}
-        <div className="space-y-4">
-          {/* Phone Pass Button - Links to Menu Page */}
-          <Link href="/phone-pass-menu">
-            <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 rounded-2xl flex items-center justify-center px-6 active:scale-95 transition-transform gap-3">
-              <Ticket className="w-6 h-6" />
-              <span>Phone Pass</span>
-            </Button>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {/* Phone Pass Button */}
+          <Link href="/phone-pass-menu" className="block">
+            <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-green-100 hover:border-green-300 h-full w-full">
+              <Ticket className="w-8 h-8 text-green-600" strokeWidth={1.5} />
+              <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Phone Pass</span>
+            </div>
           </Link>
         </div>
       </main>
