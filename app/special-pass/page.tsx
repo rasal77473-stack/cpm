@@ -318,12 +318,12 @@ function SpecialPassContent() {
         onClick={() => setActiveTab(param)}
         className={`rounded-xl p-3 min-w-[80px] flex flex-col items-start justify-center shadow-sm border cursor-pointer transition-all active:scale-95
           ${isActive
-            ? "bg-blue-600 border-blue-600"
-            : "bg-cyan-50 border-cyan-100 hover:border-blue-300"
+            ? "bg-green-600 border-green-600"
+            : "bg-green-50 border-green-100 hover:border-green-300"
           }`}
       >
-        <span className={`text-lg font-bold ${isActive ? "text-white" : "text-cyan-900"}`}>{count}</span>
-        <span className={`text-xs font-medium whitespace-nowrap ${isActive ? "text-blue-100" : "text-cyan-700/70"}`}>{label}</span>
+        <span className={`text-lg font-bold ${isActive ? "text-white" : "text-green-900"}`}>{count}</span>
+        <span className={`text-xs font-medium whitespace-nowrap ${isActive ? "text-green-100" : "text-green-700/70"}`}>{label}</span>
       </div>
     )
   }
@@ -417,7 +417,7 @@ function SpecialPassContent() {
         <div className="flex items-center gap-2">
           {canGrantPass && (
             <Button
-              className="bg-blue-500 hover:bg-blue-600 text-white gap-1 rounded-lg px-4"
+              className="bg-green-600 hover:bg-green-700 text-white gap-1 rounded-lg px-4"
               onClick={() => setShowStudentList(true)}
             >
               Add <Plus className="h-4 w-4" />
@@ -439,36 +439,36 @@ function SpecialPassContent() {
         <div className="sticky top-16 z-40 bg-background border-b">
           <div className="px-4 py-4 space-y-2">
             <Link href="/admin/manage-students" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                <GraduationCap className="h-5 w-5 text-blue-500" />
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                <GraduationCap className="h-5 w-5 text-green-600" />
                 <span className="font-medium">Students</span>
               </div>
             </Link>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 cursor-pointer">
-              <Ticket className="h-5 w-5 text-orange-500" />
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 cursor-pointer">
+              <Ticket className="h-5 w-5 text-green-600" />
               <span className="font-medium">Phone Pass</span>
             </div>
             <Link href="/history" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                <History className="h-5 w-5 text-indigo-500" />
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                <History className="h-5 w-5 text-green-600" />
                 <span className="font-medium">History</span>
               </div>
             </Link>
             <Link href="/admin/monthly-leave" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                <ArrowRightCircle className="h-5 w-5 text-purple-600" />
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                <ArrowRightCircle className="h-5 w-5 text-green-600" />
                 <span className="font-medium">Monthly Leave</span>
               </div>
             </Link>
             <Link href="/admin/users" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                <Users className="h-5 w-5 text-red-500" />
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                <Users className="h-5 w-5 text-green-600" />
                 <span className="font-medium">Users</span>
               </div>
             </Link>
             <Link href="/admin/settings" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                <Settings className="h-5 w-5 text-gray-600" />
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                <Settings className="h-5 w-5 text-green-600" />
                 <span className="font-medium">Settings</span>
               </div>
             </Link>
@@ -533,7 +533,7 @@ function SpecialPassContent() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="h-11 rounded-xl border-blue-400 text-blue-600 bg-white w-full"
+                    className="h-11 rounded-xl border-green-400 text-green-600 bg-white w-full"
                   />
                 </div>
               </div>
@@ -557,12 +557,12 @@ function SpecialPassContent() {
             const effectiveOut = !isCompleted && (isStudent ? isOut : (passStates[item.originalId] === "OUT" || isOut))
 
             return (
-              <div key={item.id} className="bg-blue-50/50 rounded-[20px] p-5 shadow-sm border border-blue-100">
+              <div key={item.id} className="bg-green-50/50 rounded-[20px] p-5 shadow-sm border border-green-100">
                 <div className="flex gap-4">
                   {/* Details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-bold text-[#0066cc] text-base truncate pr-2">{item.studentName}</h3>
+                      <h3 className="font-bold text-green-600 text-base truncate pr-2">{item.studentName}</h3>
                       {/* Status Badge */}
                       <Badge variant="outline" className={`
                         rounded-md px-2 py-0.5 text-xs font-normal bg-white
@@ -653,9 +653,9 @@ function SpecialPassContent() {
                               {effectiveOut ? "OUT" : "IN"}
                             </Badge>
 
-                            {/* Action Button - Yellow/Orange rounded toggle button */}
+                            {/* Action Button - Green rounded toggle button */}
                             <Button
-                              className="h-9 px-6 rounded-full text-xs font-semibold bg-yellow-400 hover:bg-yellow-500 text-gray-900 border-none transition-all"
+                              className="h-9 px-6 rounded-full text-xs font-semibold bg-green-500 hover:bg-green-600 text-white border-none transition-all"
                               onClick={() => effectiveOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
                               disabled={returningPassId === item.originalId}
                             >

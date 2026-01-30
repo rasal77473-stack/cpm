@@ -64,16 +64,16 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Main Content */}
       <main className="max-w-md mx-auto px-6 py-6 pb-20">
         {/* Welcome Section */}
         <div className="mb-8 mt-2 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Hello,</h1>
-            <p className="text-xl text-gray-400 font-medium">{staffName}</p>
+            <h1 className="text-3xl font-bold text-green-900">Hello,</h1>
+            <p className="text-xl text-green-600 font-medium">{staffName}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-400 hover:text-red-500">
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-green-600 hover:text-green-800">
             <LogOut className="w-6 h-6" />
           </Button>
         </div>
@@ -84,7 +84,7 @@ export default function Dashboard() {
           <div className="relative">
             <Button
               onClick={() => setShowMenu(!showMenu)}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-6 rounded-2xl flex items-center justify-between px-6 active:scale-95 transition-transform"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 rounded-2xl flex items-center justify-between px-6 active:scale-95 transition-transform"
             >
               <div className="flex items-center gap-3">
                 <Ticket className="w-6 h-6" />
@@ -100,8 +100,8 @@ export default function Dashboard() {
                   {/* Students */}
                   {(role === "admin" || permissions.includes("manage_students") || permissions.length === 0) && (
                     <Link href="/admin/manage-students" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors">
-                        <GraduationCap className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                        <GraduationCap className="h-5 w-5 text-green-600" strokeWidth={1.5} />
                         <span className="font-medium text-gray-900">Students</span>
                       </div>
                     </Link>
@@ -109,8 +109,8 @@ export default function Dashboard() {
 
                   {/* Phone Pass */}
                   {(role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.includes("manage_phone_status") || permissions.length === 0) && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 cursor-pointer">
-                      <Ticket className="h-5 w-5 text-orange-500" strokeWidth={1.5} />
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 cursor-pointer">
+                      <Ticket className="h-5 w-5 text-green-600" strokeWidth={1.5} />
                       <span className="font-medium text-gray-900">Phone Pass</span>
                     </div>
                   )}
@@ -118,8 +118,8 @@ export default function Dashboard() {
                   {/* History */}
                   {(role === "admin" || permissions.includes("view_phone_history")) && (
                     <Link href="/history" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 cursor-pointer transition-colors">
-                        <History className="h-5 w-5 text-indigo-500" strokeWidth={1.5} />
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                        <History className="h-5 w-5 text-green-600" strokeWidth={1.5} />
                         <span className="font-medium text-gray-900">History</span>
                       </div>
                     </Link>
@@ -128,8 +128,8 @@ export default function Dashboard() {
                   {/* Monthly Leave */}
                   {(role === "admin" || permissions.includes("manage_monthly_leave")) && (
                     <Link href="/admin/monthly-leave" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 cursor-pointer transition-colors">
-                        <ArrowRightCircle className="h-5 w-5 text-purple-600" strokeWidth={1.5} />
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                        <ArrowRightCircle className="h-5 w-5 text-green-600" strokeWidth={1.5} />
                         <span className="font-medium text-gray-900">Monthly Leave</span>
                       </div>
                     </Link>
@@ -138,8 +138,8 @@ export default function Dashboard() {
                   {/* Users */}
                   {(role === "admin" || permissions.includes("manage_users")) && (
                     <Link href="/admin/users" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 cursor-pointer transition-colors">
-                        <Users className="h-5 w-5 text-red-500" strokeWidth={1.5} />
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                        <Users className="h-5 w-5 text-green-600" strokeWidth={1.5} />
                         <span className="font-medium text-gray-900">Users</span>
                       </div>
                     </Link>
@@ -148,7 +148,7 @@ export default function Dashboard() {
                   {/* Settings */}
                   {role === "admin" && (
                     <Link href="/admin/settings" onClick={() => setShowMenu(false)}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
                         <Settings className="h-5 w-5 text-gray-600" strokeWidth={1.5} />
                         <span className="font-medium text-gray-900">Settings</span>
                       </div>
