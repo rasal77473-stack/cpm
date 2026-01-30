@@ -59,7 +59,7 @@ export default function GatePassMenu() {
       icon: DoorOpen,
       label: "Gate Pass",
       color: "text-green-600",
-      href: "/special-pass",
+      href: "/gate-pass",
       visible: role === "admin" || permissions.includes("issue_gate_pass") || permissions.length === 0,
     },
     {
