@@ -46,6 +46,7 @@ export default function MonthlyLeavePage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showConfirmDialog, setShowConfirmDialog] = useState(false)
     const [activeLeaveToGrant, setActiveLeaveToGrant] = useState<number | null>(null)
+    const [grantOption, setGrantOption] = useState<'now' | 'later'>('now')
 
     // Fetch students
     const { data: studentsData = [], isLoading: studentsLoading } = useSWR("/api/students", fetcher)
@@ -197,6 +198,14 @@ export default function MonthlyLeavePage() {
 
     // Grant passes for a leave
     const handleGrantPasses = async (leaveId: number) => {
+        if (grantOption === 'later') {
+            toast.success("Passes will be granted manually later")
+            setShowConfirmDialog(false)
+            setActiveLeaveToGrant(null)
+            setGrantOption('now')
+            return
+        }
+
         try {
             const response = await fetch(`/api/monthly-leave/${leaveId}/grant`, {
                 method: "POST",
@@ -220,6 +229,27 @@ export default function MonthlyLeavePage() {
         } finally {
             setShowConfirmDialog(false)
             setActiveLeaveToGrant(null)
+            setGrantOption('now')
+        }
+    }
+
+    // Delete monthly leave
+    const handleDeleteLeave = async (leaveId: number) => {
+        if (!confirm("Are you sure you want to delete this monthly leave?")) return
+
+        try {
+            const response = await fetch(`/api/monthly-leave/${leaveId}`, {
+                method: "DELETE",
+            })
+
+            if (!response.ok) {
+                throw new Error("Failed to delete leave")
+            }
+
+            toast.success("Monthly leave deleted successfully!")
+            mutate("/api/monthly-leave")
+        } catch (error) {
+            toast.error("Failed to delete monthly leave")
         }
     }
 
@@ -570,21 +600,49 @@ export default function MonthlyLeavePage() {
             <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Grant Special Passes Now?</AlertDialogTitle>
+                        <AlertDialogTitle>Grant Special Passes?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Monthly leave created successfully! Would you like to grant special passes to all eligible students now?
+                            Monthly leave created successfully! Would you like to grant special passes to all eligible students?
                             <br /><br />
-                            <strong>{eligibleCount} students</strong> will receive a special pass with reason "Monthly Leave".
+                            <strong>{eligibleCount} students</strong> will receive both phone and gate passes with reason "Monthly Leave".
                         </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="py-4 space-y-3">
+                        <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted"
+                            onClick={() => setGrantOption('now')}>
+                            <input 
+                                type="radio" 
+                                name="grant-option" 
+                                checked={grantOption === 'now'}
+                                onChange={() => setGrantOption('now')}
+                            />
+                            <div>
+                                <p className="font-medium">Grant Now</p>
+                                <p className="text-sm text-muted-foreground">Issue passes immediately</p>
+                            </div>
+                        </label>
+                        <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted"
+                            onClick={() => setGrantOption('later')}>
+                            <input 
+                                type="radio" 
+                                name="grant-option" 
+                                checked={grantOption === 'later'}
+                                onChange={() => setGrantOption('later')}
+                            />
+                            <div>
+                                <p className="font-medium">Grant Later</p>
+                                <p className="text-sm text-muted-foreground">Grant manually from the pass list</p>
+                            </div>
+                        </label>
+                    </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Grant Later</AlertDialogCancel>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => activeLeaveToGrant && handleGrantPasses(activeLeaveToGrant)}
                             className="bg-purple-600 hover:bg-purple-700"
                         >
                             <Gift className="w-4 h-4 mr-2" />
-                            Grant Passes Now
+                            {grantOption === 'now' ? 'Grant Now' : 'Confirm'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

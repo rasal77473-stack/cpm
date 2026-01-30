@@ -75,7 +75,8 @@ function SpecialPassContent() {
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 10000,
   })
-  const passes = Array.isArray(allPasses) ? allPasses : []
+  // Filter only phone passes (exclude gate passes)
+  const passes = Array.isArray(allPasses) ? allPasses.filter((p: any) => !p.purpose || !p.purpose.startsWith("GATE:")) : []
 
   // Fetch phone statuses
   const { data: phoneStatusData = [] } = useSWR("/api/phone-status", fetcher, {

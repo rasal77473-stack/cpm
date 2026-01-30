@@ -62,7 +62,8 @@ function GatePassContent() {
   const { data: allGatePasses = [], isLoading: gatePassesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 5000,
   })
-  const gatePasses = Array.isArray(allGatePasses) ? allGatePasses : []
+  // Filter only gate passes (exclude phone passes)
+  const gatePasses = Array.isArray(allGatePasses) ? allGatePasses.filter((p: any) => !p.purpose || !p.purpose.startsWith("PHONE:")) : []
 
   // Fetch phone/gate pass statuses (same tracking)
   const { data: gatePassStatusData = [] } = useSWR("/api/phone-status", fetcher, {
