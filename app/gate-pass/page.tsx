@@ -62,8 +62,12 @@ function GatePassContent() {
   const { data: allGatePasses = [], isLoading: gatePassesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 5000,
   })
-  // Filter only gate passes (exclude phone passes)
-  const gatePasses = Array.isArray(allGatePasses) ? allGatePasses.filter((p: any) => !p.purpose || !p.purpose.startsWith("PHONE:")) : []
+  // Filter ONLY gate passes - exclude phone passes
+  const gatePasses = Array.isArray(allGatePasses) ? allGatePasses.filter((p: any) => {
+    // Show if purpose starts with "GATE:" or doesn't have "PHONE:" prefix
+    if (!p.purpose) return true
+    return p.purpose.startsWith("GATE:") || !p.purpose.includes("PHONE:")
+  }) : []
 
   // Fetch phone/gate pass statuses (same tracking)
   const { data: gatePassStatusData = [] } = useSWR("/api/phone-status", fetcher, {
