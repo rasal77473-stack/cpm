@@ -70,16 +70,33 @@ export async function POST(
         const returnTime = new Date(endDate);
         returnTime.setHours(endHour, endMin, 0, 0);
 
-        // Create special pass grants for all eligible students
-        const passRecords = eligibleStudents.map((student) => ({
-            studentId: student.id,
-            mentorId: mentorId || leave.createdBy,
-            mentorName: mentorName || leave.createdByName,
-            purpose: `Monthly Leave (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`,
-            issueTime,
-            returnTime,
-            status: "ACTIVE",
-        }));
+        // Create special pass grants for all eligible students (both phone and gate)
+        const passRecords: any[] = [];
+        const leaveReason = `Monthly Leave (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`;
+
+        eligibleStudents.forEach((student) => {
+            // Phone pass
+            passRecords.push({
+                studentId: student.id,
+                mentorId: mentorId || leave.createdBy,
+                mentorName: mentorName || leave.createdByName,
+                purpose: `PHONE: ${leaveReason}`,
+                issueTime,
+                returnTime,
+                status: "ACTIVE",
+            });
+
+            // Gate pass
+            passRecords.push({
+                studentId: student.id,
+                mentorId: mentorId || leave.createdBy,
+                mentorName: mentorName || leave.createdByName,
+                purpose: `GATE: ${leaveReason}`,
+                issueTime,
+                returnTime,
+                status: "ACTIVE",
+            });
+        });
 
         await db.insert(specialPassGrants).values(passRecords);
 
@@ -91,8 +108,8 @@ export async function POST(
 
         return NextResponse.json({
             success: true,
-            message: `Granted ${eligibleStudents.length} special passes`,
-            granted: eligibleStudents.length,
+            message: `Granted ${eligibleStudents.length * 2} passes (phone + gate) to ${eligibleStudents.length} students`,
+            granted: eligibleStudents.length * 2,
         });
     } catch (error) {
         console.error("POST /api/monthly-leave/[id]/grant error:", error);
