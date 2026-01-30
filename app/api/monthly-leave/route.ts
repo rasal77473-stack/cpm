@@ -28,7 +28,15 @@ export async function POST(request: NextRequest) {
         const { startDate, endDate, startTime, endTime, createdBy, createdByName, excludedStudents } = body;
 
         if (!startDate || !endDate || !startTime || !endTime || !createdBy || !createdByName) {
-            console.error("Missing required fields:", { startDate, endDate, startTime, endTime, createdBy, createdByName });
+            console.error("Missing required fields:", { 
+                startDate: !!startDate, 
+                endDate: !!endDate, 
+                startTime: !!startTime, 
+                endTime: !!endTime, 
+                createdBy: !!createdBy, 
+                createdByName: !!createdByName,
+                receivedBody: body
+            });
             return NextResponse.json(
                 { error: "Missing required fields" },
                 { status: 400 }

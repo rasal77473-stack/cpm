@@ -122,6 +122,12 @@ export default function MonthlyLeavePage() {
             return
         }
 
+        if (!staffId || !staffName) {
+            toast.error("Admin info not loaded. Please refresh the page and login again.")
+            console.error("Missing admin info:", { staffId, staffName })
+            return
+        }
+
         // Convert date strings to ISO datetime strings with time component
         const startDateTime = new Date(`${startDate}T${startTime}:00`)
         const endDateTime = new Date(`${endDate}T${endTime}:00`)
@@ -355,7 +361,7 @@ export default function MonthlyLeavePage() {
                                 {/* Submit Button */}
                                 <Button
                                     onClick={handleSubmit}
-                                    disabled={isSubmitting || !startDate || !endDate}
+                                    disabled={isSubmitting || !startDate || !endDate || !staffId || !staffName}
                                     className="w-full bg-purple-600 hover:bg-purple-700 text-white h-12 text-lg"
                                 >
                                     {isSubmitting ? (
