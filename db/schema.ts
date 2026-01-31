@@ -68,7 +68,8 @@ export const monthlyLeaves = pgTable("monthly_leaves", {
   reason: text("reason").default("Monthly Leave"),
   createdBy: integer("created_by").notNull(),
   createdByName: text("created_by_name").notNull(),
-  status: text("status").default("ACTIVE"), // ACTIVE, COMPLETED, CANCELLED
+  status: text("status").default("PENDING"), // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  passesIssued: text("passes_issued").default("NO"), // YES, NO - whether passes have been created
   createdAt: timestamp("created_at").defaultNow(),
 });
 
