@@ -16,12 +16,12 @@ export function startMonthlyLeaveScheduler() {
   // Run immediately on start
   triggerAutoActivation()
 
-  // Then run every 60 seconds
+  // Then run every 10 seconds for faster status updates
   intervalId = setInterval(() => {
     triggerAutoActivation()
-  }, 60000) // 60 seconds
+  }, 10000) // 10 seconds
 
-  console.log("✅ Monthly leave scheduler started (checks every 60 seconds)")
+  console.log("✅ Monthly leave scheduler started (checks every 10 seconds)")
 }
 
 export function stopMonthlyLeaveScheduler() {
