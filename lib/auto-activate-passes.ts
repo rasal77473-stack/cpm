@@ -15,7 +15,7 @@ export async function autoActivateMonthlyLeavePasses() {
     const now = new Date()
     console.log(`\n🔄 Auto-Activate Monthly Leave Passes - ${now.toISOString()}`)
     
-    // Find all leaves that should be IN_PROGRESS
+    // Find all leaves that should be IN_PROGRESS (PENDING leaves where start time has arrived)
     const activatingLeaves = await db
       .select()
       .from(monthlyLeaves)
@@ -30,34 +30,46 @@ export async function autoActivateMonthlyLeavePasses() {
 
     // Activate PENDING passes for these leaves
     for (const leave of activatingLeaves) {
-      const passesAffected = await db
+      console.log(`\n⏱️  Processing leave ${leave.id}: ${leave.startDate} to ${leave.endDate}`)
+      
+      // Get the corresponding PENDING passes (created by this monthly leave)
+      const pendingPasses = await db
         .select()
         .from(specialPassGrants)
         .where(
           and(
             eq(specialPassGrants.status, "PENDING"),
-            gte(specialPassGrants.returnTime, now) // Return time hasn't passed yet
+            gte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() - 60000)), // Within 1 min of leave start
+            lte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() + 60000))
           )
         )
 
-      console.log(`✨ Activating ${passesAffected.length} PENDING passes for leave ${leave.id}`)
+      console.log(`✨ Found ${pendingPasses.length} PENDING passes to activate for leave ${leave.id}`)
 
-      // Update passes to ACTIVE
-      await db
-        .update(specialPassGrants)
-        .set({ status: "ACTIVE" })
-        .where(eq(specialPassGrants.status, "PENDING"))
+      if (pendingPasses.length > 0) {
+        // Update passes to ACTIVE
+        await db
+          .update(specialPassGrants)
+          .set({ status: "ACTIVE" })
+          .where(
+            and(
+              eq(specialPassGrants.status, "PENDING"),
+              gte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() - 60000)),
+              lte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() + 60000))
+            )
+          )
 
-      // Update leave status to IN_PROGRESS
-      await db
-        .update(monthlyLeaves)
-        .set({ status: "IN_PROGRESS" })
-        .where(eq(monthlyLeaves.id, leave.id))
+        // Update leave status to IN_PROGRESS
+        await db
+          .update(monthlyLeaves)
+          .set({ status: "IN_PROGRESS" })
+          .where(eq(monthlyLeaves.id, leave.id))
 
-      console.log(`✅ Leave ${leave.id} activated - passes are now ACTIVE`)
+        console.log(`✅ Leave ${leave.id} activated - ${pendingPasses.length} passes are now ACTIVE`)
+      }
     }
 
-    // Find all leaves that should be COMPLETED
+    // Find all leaves that should be COMPLETED (IN_PROGRESS leaves where end time has passed)
     const completingLeaves = await db
       .select()
       .from(monthlyLeaves)
@@ -68,30 +80,47 @@ export async function autoActivateMonthlyLeavePasses() {
         )
       )
 
-    console.log(`📅 Found ${completingLeaves.length} leaves to complete`)
+    console.log(`\n📅 Found ${completingLeaves.length} leaves to complete`)
 
     // Complete passes for these leaves
     for (const leave of completingLeaves) {
-      const passesAffected = await db
+      console.log(`\n⏱️  Completing leave ${leave.id}`)
+      
+      // Get the corresponding ACTIVE passes for this leave
+      const activePasses = await db
         .select()
         .from(specialPassGrants)
-        .where(eq(specialPassGrants.status, "ACTIVE"))
+        .where(
+          and(
+            eq(specialPassGrants.status, "ACTIVE"),
+            gte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() - 60000)),
+            lte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() + 60000))
+          )
+        )
 
-      console.log(`✨ Completing ${passesAffected.length} ACTIVE passes for leave ${leave.id}`)
+      console.log(`✨ Found ${activePasses.length} ACTIVE passes to complete for leave ${leave.id}`)
 
-      // Update passes to COMPLETED
-      await db
-        .update(specialPassGrants)
-        .set({ status: "COMPLETED" })
-        .where(eq(specialPassGrants.status, "ACTIVE"))
+      if (activePasses.length > 0) {
+        // Update passes to COMPLETED
+        await db
+          .update(specialPassGrants)
+          .set({ status: "COMPLETED" })
+          .where(
+            and(
+              eq(specialPassGrants.status, "ACTIVE"),
+              gte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() - 60000)),
+              lte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() + 60000))
+            )
+          )
 
-      // Update leave status to COMPLETED
-      await db
-        .update(monthlyLeaves)
-        .set({ status: "COMPLETED" })
-        .where(eq(monthlyLeaves.id, leave.id))
+        // Update leave status to COMPLETED
+        await db
+          .update(monthlyLeaves)
+          .set({ status: "COMPLETED" })
+          .where(eq(monthlyLeaves.id, leave.id))
 
-      console.log(`✅ Leave ${leave.id} completed`)
+        console.log(`✅ Leave ${leave.id} completed - ${activePasses.length} passes are now COMPLETED`)
+      }
     }
 
     console.log("✅ Auto-activation check complete\n")
