@@ -16,10 +16,20 @@ const PERMISSIONS = [
   { id: "view_only", label: "View Only" },
   { id: "in_out_control", label: "In/Out Control" },
   { id: "manage_students", label: "Manage Students" },
+  
+  // Phone Pass Permissions
   { id: "issue_phone_pass", label: "Issue Phone Pass" },
   { id: "access_phone_pass", label: "Phone Pass Page Access" },
   { id: "view_phone_logs", label: "View Phone Logs" },
   { id: "manage_phone_status", label: "Manage Phone Status Lists" },
+  
+  // Gate Pass Permissions
+  { id: "issue_gate_pass", label: "Issue Gate Pass" },
+  { id: "access_gate_pass", label: "Gate Pass Page Access" },
+  { id: "view_gate_logs", label: "View Gate Logs" },
+  { id: "manage_gate_status", label: "Manage Gate Status Lists" },
+  
+  // Admin Permissions
   { id: "manage_users", label: "User Management" },
   { id: "manage_monthly_leave", label: "Manage Monthly Leave" },
 ];
@@ -28,10 +38,20 @@ const PERMISSION_LABELS: Record<string, string> = {
   view_only: "View Only",
   in_out_control: "In/Out Control",
   manage_students: "Manage Students",
+  
+  // Phone Pass
   issue_phone_pass: "Issue Phone Pass",
   access_phone_pass: "Phone Pass Page Access",
   view_phone_logs: "View Phone Logs",
   manage_phone_status: "Manage Phone Status Lists",
+  
+  // Gate Pass
+  issue_gate_pass: "Issue Gate Pass",
+  access_gate_pass: "Gate Pass Page Access",
+  view_gate_logs: "View Gate Logs",
+  manage_gate_status: "Manage Gate Status Lists",
+  
+  // Admin
   manage_users: "User Management",
   manage_monthly_leave: "Manage Monthly Leave",
   manage_special_pass: "Manage Special Pass",

@@ -50,6 +50,8 @@ function GatePassContent() {
   const [returningGatePassId, setReturningGatePassId] = useState<number | null>(null)
 
   const [canGrantPass, setCanGrantPass] = useState(false)
+  const [canViewLogs, setCanViewLogs] = useState(false)
+  const [canManageStatus, setCanManageStatus] = useState(false)
 
   // Fetch students
   const { data: studentsData = [], isLoading: studentLoading } = useSWR("/api/students", fetcher, {
@@ -173,6 +175,8 @@ function GatePassContent() {
     }
 
     setCanGrantPass(role === "admin" || perms.includes("issue_gate_pass"))
+    setCanViewLogs(role === "admin" || perms.includes("view_gate_logs") || perms.includes("issue_gate_pass") || perms.includes("access_gate_pass"))
+    setCanManageStatus(role === "admin" || perms.includes("manage_gate_status") || perms.includes("issue_gate_pass"))
   }, [router])
 
   const handleSubmitOut = async (gatePassId: number) => {

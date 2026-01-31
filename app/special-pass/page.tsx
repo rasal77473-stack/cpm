@@ -59,6 +59,7 @@ function SpecialPassContent() {
   // Permissions
   const [canGrantPass, setCanGrantPass] = useState(false)
   const [canViewLogs, setCanViewLogs] = useState(false)
+  const [canManageStatus, setCanManageStatus] = useState(false)
 
   // --------------------------------------------------------------------------
   // Data Fetching
@@ -233,6 +234,7 @@ function SpecialPassContent() {
 
     setCanGrantPass(role === "admin" || perms.includes("issue_phone_pass"))
     setCanViewLogs(role === "admin" || perms.includes("view_phone_logs") || perms.includes("issue_phone_pass") || perms.includes("access_phone_pass"))
+    setCanManageStatus(role === "admin" || perms.includes("manage_phone_status") || perms.includes("issue_phone_pass"))
   }, [router])
 
   // --------------------------------------------------------------------------
