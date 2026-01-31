@@ -25,7 +25,11 @@ export async function autoActivateMonthlyLeavePasses() {
     
     // Check which ones should activate
     const activatingLeaves = allPendingLeaves.filter((leave) => {
+      // Parse the leave start date and time
       const leaveStart = new Date(leave.startDate)
+      const [startHour, startMin] = leave.startTime.split(":").map(Number)
+      leaveStart.setHours(startHour, startMin, 0, 0)
+      
       const shouldActivate = leaveStart <= now
       console.log(`   Leave ${leave.id}: startDate=${leaveStart.toISOString()}, now=${now.toISOString()}, shouldActivate=${shouldActivate}`)
       return shouldActivate
@@ -127,7 +131,11 @@ export async function autoActivateMonthlyLeavePasses() {
 
     // Check which ones should complete
     const completingLeaves = allInProgressLeaves.filter((leave) => {
+      // Parse the leave end date and time
       const leaveEnd = new Date(leave.endDate)
+      const [endHour, endMin] = leave.endTime.split(":").map(Number)
+      leaveEnd.setHours(endHour, endMin, 0, 0)
+      
       const shouldComplete = leaveEnd <= now
       console.log(`   Leave ${leave.id}: endDate=${leaveEnd.toISOString()}, now=${now.toISOString()}, shouldComplete=${shouldComplete}`)
       return shouldComplete
