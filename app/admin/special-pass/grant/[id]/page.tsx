@@ -86,31 +86,39 @@ export default function GrantSpecialPassPage() {
 
     setSubmitting(true)
 
+    const payload = {
+      studentId: parseInt(studentId as string),
+      mentorId: parseInt(mentorId),
+      mentorName: mentorName || "Staff",
+      purpose: purpose.trim(),
+      staffId: mentorId,
+      expectedReturnDate: expectedReturnDate,
+      expectedReturnTime: expectedReturnTime,
+    }
+
+    console.log("📤 Sending Phone Pass Request:", payload)
+
     try {
       const res = await fetch("/api/special-pass/grant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId: parseInt(studentId as string),
-          mentorId: parseInt(mentorId),
-          mentorName: mentorName || "Staff",
-          purpose: purpose.trim(),
-          staffId: mentorId,
-          expectedReturnDate: expectedReturnDate,
-          expectedReturnTime: expectedReturnTime,
-        }),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
+
+      console.log("📥 Response Status:", res.status)
+      console.log("📥 Response Data:", data)
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to grant pass")
       }
 
       toast.success("Special pass granted successfully!")
+      console.log("✅ Phone pass created successfully")
       setTimeout(() => router.push("/special-pass"), 500)
     } catch (error: any) {
-      console.error("Error granting pass:", error)
+      console.error("❌ Error granting pass:", error)
       toast.error(error.message || "Failed to grant special pass")
       setSubmitting(false)
     }
