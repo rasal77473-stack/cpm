@@ -111,7 +111,9 @@ export default function GrantSpecialPassPage() {
       console.log("📥 Response Data:", data)
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to grant pass")
+        const errorMsg = data.details || data.error || "Failed to grant pass"
+        console.error("❌ API Error Details:", errorMsg)
+        throw new Error(errorMsg)
       }
 
       toast.success("Special pass granted successfully!")
@@ -119,7 +121,8 @@ export default function GrantSpecialPassPage() {
       setTimeout(() => router.push("/special-pass"), 500)
     } catch (error: any) {
       console.error("❌ Error granting pass:", error)
-      toast.error(error.message || "Failed to grant special pass")
+      const errorMessage = error?.message || "Failed to grant special pass"
+      toast.error(errorMessage)
       setSubmitting(false)
     }
   }

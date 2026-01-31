@@ -113,7 +113,9 @@ export default function GrantGatePassPage() {
       console.log("📥 Response Data:", data)
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to grant pass")
+        const errorMsg = data.details || data.error || "Failed to grant pass"
+        console.error("❌ API Error Details:", errorMsg)
+        throw new Error(errorMsg)
       }
 
       // Update SWR cache
@@ -124,7 +126,8 @@ export default function GrantGatePassPage() {
       setTimeout(() => router.push("/gate-pass"), 500)
     } catch (error: any) {
       console.error("❌ Error granting pass:", error)
-      toast.error(error.message || "Failed to grant gate pass")
+      const errorMessage = error?.message || "Failed to grant gate pass"
+      toast.error(errorMessage)
       setSubmitting(false)
     }
   }
