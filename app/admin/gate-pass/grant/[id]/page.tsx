@@ -88,22 +88,29 @@ export default function GrantGatePassPage() {
     // Create return time from date and time
     const returnDateTime = new Date(`${formData.returnDate}T${formData.returnTime}`)
 
+    const payload = {
+      studentId: parseInt(studentId as string),
+      mentorId: parseInt(mentorId),
+      mentorName: mentorName || "Staff",
+      purpose: formData.purpose.trim(),
+      returnTime: returnDateTime.toISOString(),
+      submissionTime: new Date().toISOString(),
+      staffId: mentorId,
+    }
+
+    console.log("📤 Sending Gate Pass Request:", payload)
+
     try {
       const res = await fetch("/api/gate-pass/grant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId: parseInt(studentId as string),
-          mentorId: parseInt(mentorId),
-          mentorName: mentorName || "Staff",
-          purpose: formData.purpose.trim(),
-          returnTime: returnDateTime.toISOString(),
-          submissionTime: new Date().toISOString(),
-          staffId: mentorId,
-        }),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
+
+      console.log("📥 Response Status:", res.status)
+      console.log("📥 Response Data:", data)
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to grant pass")
@@ -113,9 +120,10 @@ export default function GrantGatePassPage() {
       await mutate("/api/special-pass/all")
       
       toast.success("Gate pass granted successfully!")
+      console.log("✅ Gate pass created successfully")
       setTimeout(() => router.push("/gate-pass"), 500)
     } catch (error: any) {
-      console.error("Error granting pass:", error)
+      console.error("❌ Error granting pass:", error)
       toast.error(error.message || "Failed to grant gate pass")
       setSubmitting(false)
     }

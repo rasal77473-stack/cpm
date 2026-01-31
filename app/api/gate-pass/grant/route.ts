@@ -30,11 +30,14 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (existingPass.length > 0) {
+      console.log("Student already has active pass:", existingPass[0])
       return NextResponse.json(
         { error: "Student already has an active gate pass" },
         { status: 400 }
       )
     }
+
+    console.log("Creating gate pass for student:", studentId, "Purpose:", purpose)
 
     // Create new gate pass grant (using specialPassGrants table)
     const [newGrant] = await db
@@ -49,6 +52,8 @@ export async function POST(request: NextRequest) {
         status: "ACTIVE", // Gate pass starts as ACTIVE
       })
       .returning()
+
+    console.log("Gate pass created successfully:", newGrant)
 
     // Update student's special_pass status
     await db
@@ -72,7 +77,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("POST /api/gate-pass/grant error:", error)
     return NextResponse.json(
-      { error: "Failed to grant gate pass" },
+      { error: "Failed to grant gate pass", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }
