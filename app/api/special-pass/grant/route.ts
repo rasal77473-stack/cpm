@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         studentId: Number(studentId),
         mentorId: Number(mentorId),
         mentorName,
-        purpose,
+        purpose: `PHONE: ${purpose}`,
         returnTime: returnTime ? new Date(returnTime) : null,
         submissionTime: submissionTime ? new Date(submissionTime) : new Date(),
         expectedReturnDate: expectedReturnDate || null,

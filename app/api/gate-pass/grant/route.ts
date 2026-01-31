@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         studentId: Number(studentId),
         mentorId: Number(mentorId),
         mentorName,
-        purpose,
+        purpose: `GATE: ${purpose}`,
         issueTime: submissionTime ? new Date(submissionTime) : new Date(),
         returnTime: returnTime ? new Date(returnTime) : null,
         status: "ACTIVE", // Gate pass starts as ACTIVE
