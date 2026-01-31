@@ -34,10 +34,9 @@ export function stopMonthlyLeaveScheduler() {
 
 async function triggerAutoActivation() {
   try {
-    // Construct the full URL for the API endpoint
-    const protocol = process.env.NODE_ENV === "development" ? "http" : "https"
-    const host = process.env.VERCEL_URL || "localhost:3000"
-    const url = `${protocol}://${host}/api/monthly-leave/auto-activate`
+    // For client-side, use relative URL
+    const url = `/api/monthly-leave/auto-activate`
+    console.log(`🔄 [${new Date().toLocaleTimeString()}] Triggering auto-activation...`)
 
     const response = await fetch(url, {
       method: "POST",
@@ -46,11 +45,18 @@ async function triggerAutoActivation() {
       },
     })
 
+    console.log(`✅ Auto-activation API response status: ${response.status}`)
+
     if (!response.ok) {
+      const text = await response.text()
       console.warn(
-        `⚠️  Monthly leave auto-activation returned status ${response.status}`
+        `⚠️  Monthly leave auto-activation returned status ${response.status}: ${text.substring(0, 100)}`
       )
+      return
     }
+
+    const data = await response.json()
+    console.log(`✅ Auto-activation result:`, data.message)
   } catch (error) {
     console.error(
       "❌ Failed to trigger monthly leave auto-activation:",
