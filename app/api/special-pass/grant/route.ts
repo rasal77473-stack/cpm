@@ -81,9 +81,19 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error("❌ POST /api/special-pass/grant error:", error)
+    console.error("❌ POST /api/special-pass/grant CAUGHT ERROR:")
+    console.error("Error Type:", error instanceof Error ? error.constructor.name : typeof error)
+    console.error("Error Message:", error instanceof Error ? error.message : String(error))
+    console.error("Error Stack:", error instanceof Error ? error.stack : "N/A")
+    console.error("Full Error Object:", error)
+    
+    const errorDetails = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { error: "Failed to grant special pass", details: error instanceof Error ? error.message : String(error) },
+      { 
+        error: "Failed to grant special pass",
+        details: errorDetails,
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     )
   }

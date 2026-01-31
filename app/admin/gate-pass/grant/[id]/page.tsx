@@ -107,14 +107,23 @@ export default function GrantGatePassPage() {
         body: JSON.stringify(payload),
       })
 
-      const data = await res.json()
-
       console.log("📥 Response Status:", res.status)
+      console.log("📥 Response Headers:", res.headers)
+
+      let data: any
+      try {
+        data = await res.json()
+      } catch (e) {
+        console.error("❌ Failed to parse response JSON:", e)
+        data = { error: "Invalid response from server" }
+      }
+
       console.log("📥 Response Data:", data)
 
       if (!res.ok) {
-        const errorMsg = data.details || data.error || "Failed to grant pass"
+        const errorMsg = data?.details || data?.error || `Server error: ${res.status}`
         console.error("❌ API Error Details:", errorMsg)
+        console.error("❌ Full Response:", data)
         throw new Error(errorMsg)
       }
 
@@ -125,8 +134,10 @@ export default function GrantGatePassPage() {
       console.log("✅ Gate pass created successfully")
       setTimeout(() => router.push("/gate-pass"), 500)
     } catch (error: any) {
-      console.error("❌ Error granting pass:", error)
+      console.error("❌ Catch Block Error:", error)
+      console.error("❌ Error Stack:", error?.stack)
       const errorMessage = error?.message || "Failed to grant gate pass"
+      console.error("❌ Final Error Message:", errorMessage)
       toast.error(errorMessage)
       setSubmitting(false)
     }
