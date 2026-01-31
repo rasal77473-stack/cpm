@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if student already has an active pass
+    // Check if student already has an active PHONE pass (not gate pass)
     const existingPass = await db
       .select()
       .from(specialPassGrants)
@@ -31,10 +31,13 @@ export async function POST(request: NextRequest) {
       )
       .limit(1)
 
-    if (existingPass.length > 0) {
-      console.log("⚠️  Student already has active pass:", existingPass[0])
+    // Filter to only check for PHONE passes, not GATE passes
+    const existingPhonePass = existingPass.filter((p: any) => p.purpose?.startsWith("PHONE:"))
+
+    if (existingPhonePass.length > 0) {
+      console.log("⚠️  Student already has active phone pass:", existingPhonePass[0])
       return NextResponse.json(
-        { error: "Student already has an active special pass" },
+        { error: "Student already has an active phone pass" },
         { status: 400 }
       )
     }
