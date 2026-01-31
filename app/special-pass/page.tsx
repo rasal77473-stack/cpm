@@ -556,6 +556,7 @@ function SpecialPassContent() {
             const isOut = currentStatus === "OUT" // Valid for both pass object and student object (if status mapped)
             const isActive = currentStatus === "ACTIVE"
             const isCompleted = currentStatus === "COMPLETED" // Only COMPLETED status means completed, not IN
+            const isNotIssued = isStudent && !item.issueTime // Student with no pass issued
 
             // For Pass objects, we might check passStates for local optimistic updates
             // effectiveOut checks: local passStates first, then the actual status
@@ -571,11 +572,14 @@ function SpecialPassContent() {
                       {/* Status Badge */}
                       <Badge variant="outline" className={`
                         rounded-md px-2 py-0.5 text-xs font-normal bg-white
-                        ${!isCompleted && effectiveOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300")}
+                        ${isNotIssued ? "text-orange-600 border-orange-400" : (!isCompleted && effectiveOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300"))}
                       `}>
-                        {isStudent
-                          ? (effectiveOut ? "out" : "in")
-                          : (isCompleted ? "returned" : (effectiveOut ? "out" : isActive ? "active" : "gate pass"))
+                        {isNotIssued
+                          ? "not issued"
+                          : (isStudent
+                            ? (effectiveOut ? "out" : "in")
+                            : (isCompleted ? "returned" : (effectiveOut ? "out" : isActive ? "active" : "gate pass"))
+                          )
                         }
                       </Badge>
                     </div>
@@ -629,6 +633,15 @@ function SpecialPassContent() {
                           <p className="font-medium text-gray-900">
                             {new Date(item.returnTime).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} •
                             {new Date(item.returnTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </p>
+                        </div>
+                      )}
+
+                      {!isStudent && item.expectedReturnDate && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-gray-400">Expected Return</p>
+                          <p className="font-medium text-gray-900">
+                            {item.expectedReturnDate} • {item.expectedReturnTime || "TBD"}
                           </p>
                         </div>
                       )}

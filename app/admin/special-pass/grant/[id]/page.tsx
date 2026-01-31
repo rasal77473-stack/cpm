@@ -20,6 +20,8 @@ export default function GrantSpecialPassPage() {
   const [purpose, setPurpose] = useState("")
   const [mentorName, setMentorName] = useState("")
   const [mentorId, setMentorId] = useState("")
+  const [expectedReturnDate, setExpectedReturnDate] = useState("")
+  const [expectedReturnTime, setExpectedReturnTime] = useState("")
 
   useEffect(() => {
     // Get mentor info from localStorage
@@ -72,6 +74,16 @@ export default function GrantSpecialPassPage() {
       return
     }
 
+    if (!expectedReturnDate) {
+      toast.error("Please enter expected return date")
+      return
+    }
+
+    if (!expectedReturnTime) {
+      toast.error("Please enter expected return time")
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -84,6 +96,8 @@ export default function GrantSpecialPassPage() {
           mentorName: mentorName || "Staff",
           purpose: purpose.trim(),
           staffId: mentorId,
+          expectedReturnDate: expectedReturnDate,
+          expectedReturnTime: expectedReturnTime,
         }),
       })
 
@@ -180,6 +194,29 @@ export default function GrantSpecialPassPage() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Expected Return Date *</label>
+                  <Input
+                    type="date"
+                    value={expectedReturnDate}
+                    onChange={(e) => setExpectedReturnDate(e.target.value)}
+                    required
+                    className="bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Expected Return Time *</label>
+                  <Input
+                    type="time"
+                    value={expectedReturnTime}
+                    onChange={(e) => setExpectedReturnTime(e.target.value)}
+                    required
+                    className="bg-white"
+                  />
+                </div>
+              </div>
+
               <div className="pt-4 flex gap-2">
                 <Button
                   type="button"
@@ -192,7 +229,7 @@ export default function GrantSpecialPassPage() {
                 <Button
                   type="submit"
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  disabled={submitting || !purpose.trim()}
+                  disabled={submitting || !purpose.trim() || !expectedReturnDate || !expectedReturnTime}
                 >
                   {submitting ? (
                     <>

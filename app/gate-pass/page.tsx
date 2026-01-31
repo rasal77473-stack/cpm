@@ -442,6 +442,7 @@ function GatePassContent() {
             const currentStatus = item.status || "IN"
             const isOut = currentStatus === "OUT"
             const isCompleted = currentStatus === "COMPLETED"
+            const isNotIssued = isStudent && !item.issueTime // Student with no gate pass issued
             const effectiveOut = !isCompleted && (isStudent ? isOut : (gatePassStates[item.originalId] === "OUT" || isOut))
 
             return (
@@ -452,11 +453,14 @@ function GatePassContent() {
                       <h3 className="font-bold text-green-600 text-base truncate pr-2">{item.studentName}</h3>
                       <Badge variant="outline" className={`
                         rounded-md px-2 py-0.5 text-xs font-normal bg-white
-                        ${!isCompleted && effectiveOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300")}
+                        ${isNotIssued ? "text-orange-600 border-orange-400" : (!isCompleted && effectiveOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300"))}
                       `}>
-                        {isStudent
-                          ? (effectiveOut ? "out" : "in")
-                          : (isCompleted ? "returned" : (effectiveOut ? "out" : "active"))
+                        {isNotIssued
+                          ? "not issued"
+                          : (isStudent
+                            ? (effectiveOut ? "out" : "in")
+                            : (isCompleted ? "returned" : (effectiveOut ? "out" : "active"))
+                          )
                         }
                       </Badge>
                     </div>
