@@ -76,11 +76,10 @@ function SpecialPassContent() {
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 10000,
   })
-  // Filter ONLY phone passes - strictly exclude all gate passes AND completed passes
+  // Filter ONLY phone passes - strictly exclude all gate passes
   const passes = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
-    // Show ONLY phone passes (those that start with "PHONE:") that are NOT completed
+    // Show ONLY phone passes (those that start with "PHONE:")
     if (!p.purpose) return false
-    if (p.status === "COMPLETED") return false
     return p.purpose.startsWith("PHONE:")
   }) : []
 

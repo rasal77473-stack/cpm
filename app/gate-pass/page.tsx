@@ -64,11 +64,10 @@ function GatePassContent() {
   const { data: allGatePasses = [], isLoading: gatePassesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 5000,
   })
-  // Filter ONLY gate passes - strictly exclude all phone passes AND completed passes
+  // Filter ONLY gate passes - strictly exclude all phone passes
   const gatePasses = Array.isArray(allGatePasses) ? allGatePasses.filter((p: any) => {
-    // Show ONLY gate passes (those that start with "GATE:") that are NOT completed
+    // Show ONLY gate passes (those that start with "GATE:")
     if (!p.purpose) return false
-    if (p.status === "COMPLETED") return false
     return p.purpose.startsWith("GATE:")
   }) : []
 
