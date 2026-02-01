@@ -11,7 +11,34 @@ export async function GET() {
             .from(monthlyLeaves)
             .orderBy(desc(monthlyLeaves.createdAt));
 
-        return NextResponse.json(leaves);
+        // Calculate status for each leave based on current time
+        const now = new Date();
+        const enrichedLeaves = leaves.map((leave) => {
+            const [startHour, startMin] = leave.startTime.split(":").map(Number);
+            const [endHour, endMin] = leave.endTime.split(":").map(Number);
+            
+            const leaveStartTime = new Date(leave.startDate);
+            leaveStartTime.setHours(startHour, startMin, 0, 0);
+            
+            const leaveEndTime = new Date(leave.endDate);
+            leaveEndTime.setHours(endHour, endMin, 0, 0);
+            
+            let calculatedStatus = "PENDING";
+            if (now >= leaveEndTime) {
+                calculatedStatus = "COMPLETED";
+            } else if (now >= leaveStartTime) {
+                calculatedStatus = "ACTIVE";
+            }
+            
+            return {
+                ...leave,
+                calculatedStatus,
+                passIssuedTime: leaveStartTime.toISOString(),
+                passCompletionTime: leaveEndTime.toISOString(),
+            };
+        });
+
+        return NextResponse.json(enrichedLeaves);
     } catch (error) {
         console.error("GET /api/monthly-leave error:", error);
         return NextResponse.json(

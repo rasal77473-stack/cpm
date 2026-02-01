@@ -444,50 +444,68 @@ export default function MonthlyLeavePage() {
                                         {leaves.slice(0, 20).map((leave: any) => {
                                             const startDate = new Date(leave.startDate)
                                             const endDate = new Date(leave.endDate)
-                                            const isActive = leave.status === "ACTIVE"
+                                            const passIssuedTime = leave.passIssuedTime ? new Date(leave.passIssuedTime) : new Date(leave.startDate)
+                                            const passCompletionTime = leave.passCompletionTime ? new Date(leave.passCompletionTime) : new Date(leave.endDate)
+                                            
+                                            const displayStatus = leave.calculatedStatus || leave.status || "PENDING"
+                                            
+                                            let statusColor = "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+                                            let statusIcon = "⏳"
+                                            
+                                            if (displayStatus === "COMPLETED") {
+                                                statusColor = "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                statusIcon = "✓"
+                                            } else if (displayStatus === "ACTIVE") {
+                                                statusColor = "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                                statusIcon = "▶"
+                                            }
+                                            
+                                            const isActive = displayStatus === "ACTIVE"
 
                                             return (
                                                 <div
                                                     key={leave.id}
-                                                    className="p-4 rounded-lg border bg-muted/50 hover:bg-muted/70 transition-colors"
+                                                    className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors space-y-2"
                                                 >
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <div className="flex-1 space-y-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <p className="font-semibold text-base">
-                                                                    {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
-                                                                </p>
-                                                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                                                    isActive
-                                                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                                                        : leave.status === "COMPLETED"
-                                                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                                                            : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
-                                                                    }`}>
-                                                                    {leave.status}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                <Clock className="w-3 h-3 inline mr-1" />
-                                                                {leave.startTime} - {leave.endTime}
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <p className="font-semibold text-base">
+                                                            {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
+                                                        </p>
+                                                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${statusColor}`}>
+                                                            {statusIcon} {displayStatus}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="text-sm space-y-1">
+                                                        <p className="text-muted-foreground">
+                                                            <Clock className="w-3 h-3 inline mr-1" />
+                                                            {leave.startTime} - {leave.endTime}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Created by {leave.createdByName}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            ✓ Pass issued: {passIssuedTime.toLocaleString()}
+                                                        </p>
+                                                        {displayStatus === "COMPLETED" && (
+                                                            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                                                ✓ Completed: {passCompletionTime.toLocaleString()}
                                                             </p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Created by {leave.createdByName}
-                                                            </p>
-                                                        </div>
-                                                        {isActive && (
-                                                            <div className="flex gap-2 flex-shrink-0">
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    onClick={() => handleDeleteLeave(leave.id)}
-                                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                                >
-                                                                    Delete
-                                                                </Button>
-                                                            </div>
                                                         )}
                                                     </div>
+                                                    
+                                                    {isActive && (
+                                                        <div className="flex gap-2 pt-2">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleDeleteLeave(leave.id)}
+                                                                className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                            >
+                                                                Delete
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )
                                         })}

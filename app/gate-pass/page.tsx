@@ -64,10 +64,11 @@ function GatePassContent() {
   const { data: allGatePasses = [], isLoading: gatePassesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 5000,
   })
-  // Filter ONLY gate passes - strictly exclude all phone passes
+  // Filter ONLY gate passes - strictly exclude all phone passes AND completed passes
   const gatePasses = Array.isArray(allGatePasses) ? allGatePasses.filter((p: any) => {
-    // Show ONLY gate passes (those that start with "GATE:")
+    // Show ONLY gate passes (those that start with "GATE:") that are NOT completed
     if (!p.purpose) return false
+    if (p.status === "COMPLETED") return false
     return p.purpose.startsWith("GATE:")
   }) : []
 
@@ -113,7 +114,13 @@ function GatePassContent() {
         )
       }
 
-      return list.sort((a, b) => new Date(b.issueTime || 0).getTime() - new Date(a.issueTime || 0).getTime())
+      return list.sort((a, b) => {
+        // First: sort by completion status (active passes first)
+        if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1
+        if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1
+        // Then: sort by recency (most recent first)
+        return new Date(b.issueTime || 0).getTime() - new Date(a.issueTime || 0).getTime()
+      })
     } else {
       let studentList = students.map((s: any) => {
         const currentStatus = gatePassStatusMap.get(s.id) || "IN"

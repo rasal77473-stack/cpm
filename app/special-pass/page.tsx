@@ -76,10 +76,11 @@ function SpecialPassContent() {
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 10000,
   })
-  // Filter ONLY phone passes - strictly exclude all gate passes
+  // Filter ONLY phone passes - strictly exclude all gate passes AND completed passes
   const passes = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
-    // Show ONLY phone passes (those that start with "PHONE:")
+    // Show ONLY phone passes (those that start with "PHONE:") that are NOT completed
     if (!p.purpose) return false
+    if (p.status === "COMPLETED") return false
     return p.purpose.startsWith("PHONE:")
   }) : []
 
@@ -153,8 +154,14 @@ function SpecialPassContent() {
         )
       }
 
-      // Sort Passes (Recent first)
-      return list.sort((a, b) => new Date(b.issueTime || 0).getTime() - new Date(a.issueTime || 0).getTime())
+      // Sort Passes (Active first, then completed; recent first within each group)
+      return list.sort((a, b) => {
+        // First: sort by completion status (active passes first)
+        if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1
+        if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1
+        // Then: sort by recency (most recent first)
+        return new Date(b.issueTime || 0).getTime() - new Date(a.issueTime || 0).getTime()
+      })
 
     } else {
       // SOURCE: Students (for All Students, Phone Out, Phone In)
