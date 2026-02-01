@@ -4,6 +4,8 @@
  */
 
 let intervalId: NodeJS.Timeout | null = null
+let failureCount = 0
+const MAX_FAILURES = 3
 
 export function startMonthlyLeaveScheduler() {
   if (intervalId) {
@@ -43,7 +45,10 @@ async function triggerAutoActivation() {
       headers: {
         "Content-Type": "application/json",
       },
+      signal: AbortSignal.timeout(10000), // 10 second timeout
     })
+
+    failureCount = 0 // Reset on success
 
     console.log(`✅ Auto-activation API response status: ${response.status}`)
 
@@ -58,9 +63,20 @@ async function triggerAutoActivation() {
     const data = await response.json()
     console.log(`✅ Auto-activation result:`, data.message)
   } catch (error) {
-    console.error(
-      "❌ Failed to trigger monthly leave auto-activation:",
-      error instanceof Error ? error.message : String(error)
-    )
+    failureCount++
+    
+    // Only log after multiple failures to reduce console spam
+    if (failureCount <= 1 || failureCount % 10 === 0) {
+      console.warn(
+        `⚠️  Monthly leave auto-activation failed (attempt ${failureCount}):`,
+        error instanceof Error ? error.message : String(error)
+      )
+    }
+    
+    // Stop if too many consecutive failures
+    if (failureCount > MAX_FAILURES * 2) {
+      console.error("❌ Monthly leave scheduler stopped due to repeated failures")
+      stopMonthlyLeaveScheduler()
+    }
   }
 }
