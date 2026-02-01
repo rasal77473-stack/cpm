@@ -43,6 +43,9 @@ export async function POST(request: NextRequest) {
     console.log("Creating gate pass for student:", studentId, "Purpose:", purpose)
 
     // Create new gate pass grant (using specialPassGrants table)
+    const issueTime = submissionTime ? new Date(submissionTime) : new Date()
+    console.log("⏰ Issue time received from client:", issueTime.toISOString())
+    
     const [newGrant] = await db
       .insert(specialPassGrants)
       .values({
@@ -50,13 +53,13 @@ export async function POST(request: NextRequest) {
         mentorId: Number(mentorId),
         mentorName,
         purpose: `GATE: ${purpose}`,
-        issueTime: submissionTime ? new Date(submissionTime) : new Date(),
+        issueTime,
         returnTime: returnTime ? new Date(returnTime) : null,
         status: "ACTIVE", // Gate pass starts as ACTIVE
       })
       .returning()
 
-    console.log("Gate pass created successfully:", newGrant)
+    console.log("✅ Gate pass created with issueTime:", newGrant.issueTime)
 
     // Update student's special_pass status
     await db

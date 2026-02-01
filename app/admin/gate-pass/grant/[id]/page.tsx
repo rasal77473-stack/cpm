@@ -88,13 +88,21 @@ export default function GrantGatePassPage() {
     // Create return time from date and time
     const returnDateTime = new Date(`${formData.returnDate}T${formData.returnTime}`)
 
+    // Subtract 5 hours and 30 minutes from start time to fix timezone difference
+    const submissionTime = new Date()
+    console.log("⏰ Original submission time:", submissionTime.toISOString())
+    
+    submissionTime.setHours(submissionTime.getHours() - 5)
+    submissionTime.setMinutes(submissionTime.getMinutes() - 30)
+    console.log("⏰ Adjusted submission time (-5:30):", submissionTime.toISOString())
+
     const payload = {
       studentId: parseInt(studentId as string),
       mentorId: parseInt(mentorId),
       mentorName: mentorName || "Staff",
       purpose: formData.purpose.trim(),
       returnTime: returnDateTime.toISOString(),
-      submissionTime: new Date().toISOString(),
+      submissionTime: submissionTime.toISOString(),
       staffId: mentorId,
     }
 
