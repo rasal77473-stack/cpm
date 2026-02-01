@@ -36,9 +36,14 @@ export function stopMonthlyLeaveScheduler() {
 
 async function triggerAutoActivation() {
   try {
+    // Check if online before attempting fetch
+    if (!navigator.onLine) {
+      console.warn("⚠️  Cannot trigger auto-activation: offline")
+      return
+    }
+
     // For client-side, use relative URL
     const url = `/api/monthly-leave/auto-activate`
-    console.log(`🔄 [${new Date().toLocaleTimeString()}] Triggering auto-activation...`)
 
     const response = await fetch(url, {
       method: "POST",
@@ -50,32 +55,29 @@ async function triggerAutoActivation() {
 
     failureCount = 0 // Reset on success
 
-    console.log(`✅ Auto-activation API response status: ${response.status}`)
-
     if (!response.ok) {
       const text = await response.text()
       console.warn(
-        `⚠️  Monthly leave auto-activation returned status ${response.status}: ${text.substring(0, 100)}`
+        `⚠️  Monthly leave auto-activation returned status ${response.status}`
       )
       return
     }
 
     const data = await response.json()
-    console.log(`✅ Auto-activation result:`, data.message)
   } catch (error) {
     failureCount++
     
     // Only log after multiple failures to reduce console spam
-    if (failureCount <= 1 || failureCount % 10 === 0) {
-      console.warn(
-        `⚠️  Monthly leave auto-activation failed (attempt ${failureCount}):`,
-        error instanceof Error ? error.message : String(error)
-      )
+    if (failureCount === 1) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(`⚠️  Monthly leave auto-activation unavailable: ${message}`)
+    } else if (failureCount % 20 === 0) {
+      console.warn(`⚠️  Monthly leave auto-activation still unavailable (${failureCount} attempts)`)
     }
     
     // Stop if too many consecutive failures
-    if (failureCount > MAX_FAILURES * 2) {
-      console.error("❌ Monthly leave scheduler stopped due to repeated failures")
+    if (failureCount > MAX_FAILURES * 5) {
+      console.warn("⚠️  Monthly leave scheduler stopped due to persistent connection issues")
       stopMonthlyLeaveScheduler()
     }
   }
