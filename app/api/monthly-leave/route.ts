@@ -17,11 +17,17 @@ export async function GET() {
             const [startHour, startMin] = leave.startTime.split(":").map(Number);
             const [endHour, endMin] = leave.endTime.split(":").map(Number);
             
-            const leaveStartTime = new Date(leave.startDate);
-            leaveStartTime.setHours(startHour, startMin, 0, 0);
+            // Parse the start date from the database (treating as UTC)
+            const startDateObj = new Date(leave.startDate);
+            const startDateStr = startDateObj.toISOString().split('T')[0]; // Get YYYY-MM-DD
             
-            const leaveEndTime = new Date(leave.endDate);
-            leaveEndTime.setHours(endHour, endMin, 0, 0);
+            // Create new date using the date string and configure time properly
+            const leaveStartTime = new Date(`${startDateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00Z`);
+            
+            // Same for end date
+            const endDateObj = new Date(leave.endDate);
+            const endDateStr = endDateObj.toISOString().split('T')[0]; // Get YYYY-MM-DD
+            const leaveEndTime = new Date(`${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00Z`);
             
             let calculatedStatus = "PENDING";
             if (now >= leaveEndTime) {

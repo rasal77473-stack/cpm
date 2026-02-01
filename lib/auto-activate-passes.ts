@@ -62,23 +62,22 @@ export async function autoActivateMonthlyLeavePasses() {
 
       console.log(`✨ Creating passes for ${eligibleStudents.length} students`)
 
-      // Calculate return times based on leave dates
-      const startDate = new Date(leave.startDate)
-      const endDate = new Date(leave.endDate)
-
       // Parse start and end times
       const [startHour, startMin] = leave.startTime.split(":").map(Number)
       const [endHour, endMin] = leave.endTime.split(":").map(Number)
 
-      // Set issue time to start date + start time
-      const issueTime = new Date(startDate)
-      issueTime.setHours(startHour, startMin, 0, 0)
+      // Get date strings from database dates (treating as UTC)
+      const startDateObj = new Date(leave.startDate)
+      const startDateStr = startDateObj.toISOString().split('T')[0]
+      
+      const endDateObj = new Date(leave.endDate)
+      const endDateStr = endDateObj.toISOString().split('T')[0]
 
-      // Set return time to end date + end time
-      const returnTime = new Date(endDate)
-      returnTime.setHours(endHour, endMin, 0, 0)
+      // Create proper UTC times
+      const issueTime = new Date(`${startDateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00Z`)
+      const returnTime = new Date(`${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00Z`)
 
-      const leaveReason = `Monthly Leave (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`
+      const leaveReason = `Monthly Leave (${startDateStr} - ${endDateStr})`
 
       // Create passes for all eligible students (both phone and gate)
       const passRecords: any[] = []
