@@ -31,11 +31,8 @@ export async function POST(request: NextRequest) {
       )
       .limit(1)
 
-    // Determine pass type from purpose
-    const passType = purpose?.startsWith("PHONE") ? "PHONE" : "GATE"
-
     if (existingPass.length > 0) {
-      const existingPassType = existingPass[0].purpose?.startsWith("PHONE") ? "PHONE" : "GATE"
+      const existingPassType = existingPass[0].purpose?.startsWith("PHONE:") ? "PHONE" : "GATE"
       console.log(`⚠️  Student already has active ${existingPassType} pass:`, existingPass[0])
       return NextResponse.json(
         { error: `Student already has an active ${existingPassType} pass (Status: ${existingPass[0].status}). Only 1 pass allowed per student.` },
