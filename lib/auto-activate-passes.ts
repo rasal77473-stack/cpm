@@ -8,7 +8,7 @@
 
 import { db } from "@/db"
 import { monthlyLeaves, specialPassGrants, leaveExclusions, students } from "@/db/schema"
-import { eq, lte, gte, and, notInArray } from "drizzle-orm"
+import { eq, lte, gte, and, notInArray, inArray } from "drizzle-orm"
 
 export async function autoActivateMonthlyLeavePasses() {
   try {
@@ -25,10 +25,10 @@ export async function autoActivateMonthlyLeavePasses() {
     
     // Check which ones should activate
     const activatingLeaves = allPendingLeaves.filter((leave) => {
-      // Parse the leave start date and time
+      // Parse the leave start date and time - use UTC to match database
       const leaveStart = new Date(leave.startDate)
       const [startHour, startMin] = leave.startTime.split(":").map(Number)
-      leaveStart.setHours(startHour, startMin, 0, 0)
+      leaveStart.setUTCHours(startHour, startMin, 0, 0)
       
       const shouldActivate = leaveStart <= now
       console.log(`   Leave ${leave.id}: startDate=${leaveStart.toISOString()}, now=${now.toISOString()}, shouldActivate=${shouldActivate}`)
@@ -74,14 +74,35 @@ export async function autoActivateMonthlyLeavePasses() {
       const endDateStr = endDateObj.toISOString().split('T')[0]
 
       // Create proper UTC times
+      // Issue pass 5 hours 30 minutes before start time
       const issueTime = new Date(`${startDateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00Z`)
+      issueTime.setHours(issueTime.getHours() - 5)
+      issueTime.setMinutes(issueTime.getMinutes() - 30)
       const returnTime = new Date(`${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00Z`)
 
       const leaveReason = `Monthly Leave (${startDateStr} - ${endDateStr})`
 
-      // Create passes for all eligible students (both phone and gate)
+      // Get all students with active passes to skip them
+      const studentsWithActivePasses = await db
+        .select({ studentId: specialPassGrants.studentId })
+        .from(specialPassGrants)
+        .where(inArray(specialPassGrants.status, ["ACTIVE", "OUT", "PENDING"]))
+      
+      const activePassStudentIds = new Set(studentsWithActivePasses.map((p) => p.studentId))
+      
+      // Filter students who don't already have active passes
+      const studentsToGrantPasses = eligibleStudents.filter(
+        (student) => !activePassStudentIds.has(student.id)
+      )
+
+      const skippedCount = eligibleStudents.length - studentsToGrantPasses.length
+      if (skippedCount > 0) {
+        console.log(`⏭️  Skipped ${skippedCount} students who already have active passes`)
+      }
+
+      // Create passes for eligible students (both phone and gate)
       const passRecords: any[] = []
-      eligibleStudents.forEach((student) => {
+      studentsToGrantPasses.forEach((student) => {
         // Phone pass - set to ACTIVE
         passRecords.push({
           studentId: student.id,
@@ -130,10 +151,10 @@ export async function autoActivateMonthlyLeavePasses() {
 
     // Check which ones should complete
     const completingLeaves = allInProgressLeaves.filter((leave) => {
-      // Parse the leave end date and time
+      // Parse the leave end date and time - use UTC to match database
       const leaveEnd = new Date(leave.endDate)
       const [endHour, endMin] = leave.endTime.split(":").map(Number)
-      leaveEnd.setHours(endHour, endMin, 0, 0)
+      leaveEnd.setUTCHours(endHour, endMin, 0, 0)
       
       const shouldComplete = leaveEnd <= now
       console.log(`   Leave ${leave.id}: endDate=${leaveEnd.toISOString()}, now=${now.toISOString()}, shouldComplete=${shouldComplete}`)

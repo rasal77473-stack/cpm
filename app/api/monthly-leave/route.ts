@@ -17,17 +17,24 @@ export async function GET() {
             const [startHour, startMin] = leave.startTime.split(":").map(Number);
             const [endHour, endMin] = leave.endTime.split(":").map(Number);
             
-            // Parse the start date from the database (treating as UTC)
+            // Get local timezone offset in minutes
+            const tzOffset = new Date().getTimezoneOffset(); // Returns minutes offset from UTC
+            
+            // Parse the start date from the database
             const startDateObj = new Date(leave.startDate);
             const startDateStr = startDateObj.toISOString().split('T')[0]; // Get YYYY-MM-DD
             
-            // Create new date using the date string and configure time properly
-            const leaveStartTime = new Date(`${startDateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00Z`);
+            // Create date in local timezone (not UTC)
+            // The time input is in local timezone, so we need to create a date that represents that local time
+            const leaveStartTime = new Date(`${startDateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00`);
+            // Adjust for timezone offset to get correct UTC time
+            leaveStartTime.setMinutes(leaveStartTime.getMinutes() - tzOffset);
             
             // Same for end date
             const endDateObj = new Date(leave.endDate);
             const endDateStr = endDateObj.toISOString().split('T')[0]; // Get YYYY-MM-DD
-            const leaveEndTime = new Date(`${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00Z`);
+            const leaveEndTime = new Date(`${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00`);
+            leaveEndTime.setMinutes(leaveEndTime.getMinutes() - tzOffset);
             
             let calculatedStatus = "PENDING";
             if (now >= leaveEndTime) {

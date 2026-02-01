@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if student already has an active or pending PHONE pass (not gate pass)
+    // Check if student already has an active pass (PHONE or GATE - universal rule)
     const existingPass = await db
       .select()
       .from(specialPassGrants)
@@ -31,13 +31,14 @@ export async function POST(request: NextRequest) {
       )
       .limit(1)
 
-    // Filter to only check for PHONE passes, not GATE passes
-    const existingPhonePass = existingPass.filter((p: any) => p.purpose?.startsWith("PHONE:"))
+    // Determine pass type from purpose
+    const passType = purpose?.startsWith("PHONE") ? "PHONE" : "GATE"
 
-    if (existingPhonePass.length > 0) {
-      console.log("⚠️  Student already has active/pending phone pass:", existingPhonePass[0])
+    if (existingPass.length > 0) {
+      const existingPassType = existingPass[0].purpose?.startsWith("PHONE") ? "PHONE" : "GATE"
+      console.log(`⚠️  Student already has active ${existingPassType} pass:`, existingPass[0])
       return NextResponse.json(
-        { error: `Student already has an active phone pass (Status: ${existingPhonePass[0].status})` },
+        { error: `Student already has an active ${existingPassType} pass (Status: ${existingPass[0].status}). Only 1 pass allowed per student.` },
         { status: 400 }
       )
     }
@@ -45,6 +46,10 @@ export async function POST(request: NextRequest) {
     console.log("✨ Creating phone pass for student:", studentId)
 
     // Create new special pass grant
+    // Subtract 5:30 hours (330 minutes) from issueTime for IST to UTC conversion
+    const issueTime = new Date();
+    issueTime.setMinutes(issueTime.getMinutes() - 330); // 330 minutes = 5 hours 30 minutes
+
     const [newGrant] = await db
       .insert(specialPassGrants)
       .values({
@@ -52,6 +57,7 @@ export async function POST(request: NextRequest) {
         mentorId: Number(mentorId),
         mentorName,
         purpose: `PHONE: ${purpose}`,
+        issueTime,
         returnTime: returnTime ? new Date(returnTime) : null,
         submissionTime: submissionTime ? new Date(submissionTime) : new Date(),
         expectedReturnDate: expectedReturnDate || null,
