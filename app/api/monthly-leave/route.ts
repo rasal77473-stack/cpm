@@ -38,7 +38,13 @@ export async function GET() {
             };
         });
 
-        return NextResponse.json(enrichedLeaves);
+        // Return with no-cache headers to ensure fresh data
+        return NextResponse.json(enrichedLeaves, {
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma': 'no-cache',
+            }
+        });
     } catch (error) {
         console.error("GET /api/monthly-leave error:", error);
         return NextResponse.json(

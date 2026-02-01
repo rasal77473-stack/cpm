@@ -52,7 +52,12 @@ export default function MonthlyLeavePage() {
     const students = Array.isArray(studentsData) ? studentsData : []
 
     // Fetch existing monthly leaves
-    const { data: leavesData = [], isLoading: leavesLoading } = useSWR("/api/monthly-leave", fetcher)
+    const { data: leavesData = [], isLoading: leavesLoading } = useSWR("/api/monthly-leave", fetcher, {
+        revalidateOnFocus: true,
+        revalidateOnReconnect: true,
+        refreshInterval: 5000, // Refresh every 5 seconds for real-time status
+        dedupingInterval: 1000, // Wait 1 second before making duplicate requests
+    })
     const leaves = Array.isArray(leavesData) ? leavesData : []
 
     useEffect(() => {
@@ -82,6 +87,13 @@ export default function MonthlyLeavePage() {
             // If no valid staffId, try to get from a default or set to 0
             setStaffId(0)
         }
+
+        // Force refresh monthly leaves every 5 seconds for real-time status
+        const interval = setInterval(() => {
+            mutate("/api/monthly-leave")
+        }, 5000)
+
+        return () => clearInterval(interval)
     }, [router])
 
     // Get unique classes for filtering

@@ -1,6 +1,6 @@
 /**
  * Monthly Leave Auto-Activation Scheduler
- * Runs the auto-activation check every minute
+ * Runs the auto-activation check every 5 seconds for real-time response
  */
 
 let intervalId: NodeJS.Timeout | null = null
@@ -16,12 +16,12 @@ export function startMonthlyLeaveScheduler() {
   // Run immediately on start
   triggerAutoActivation()
 
-  // Then run every 10 seconds for faster status updates
+  // Then run every 5 seconds for real-time status updates
   intervalId = setInterval(() => {
     triggerAutoActivation()
-  }, 10000) // 10 seconds
+  }, 5000) // 5 seconds
 
-  console.log("✅ Monthly leave scheduler started (checks every 10 seconds)")
+  console.log("✅ Monthly leave scheduler started (checks every 5 seconds)")
 }
 
 export function stopMonthlyLeaveScheduler() {
