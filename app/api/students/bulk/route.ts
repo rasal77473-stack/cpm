@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       const batch = studentsToInsert.slice(i, i + BATCH_SIZE);
       
       try {
-        const result = await db.insert(students).values(batch).returning()
+        const result = await db.insert(students).values(batch).onConflictDoNothing().returning()
         totalInserted += result.length;
         console.log(`✓ Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}: ${result.length} students`)
       } catch (batchError) {
