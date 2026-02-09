@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { LogOut, ChevronLeft, Plus, Upload, X, Trash2, Edit2 } from "lucide-react"
 import * as XLSX from "xlsx"
+import { handleLogout } from "@/lib/auth-utils"
 
 interface Student {
   id: number
@@ -420,14 +421,6 @@ export default function ManageStudents() {
         alert(errorMessage)
       }
     }
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("staffId")
-    localStorage.removeItem("staffName")
-    localStorage.removeItem("role")
-    router.push("/login")
   }
 
   return (

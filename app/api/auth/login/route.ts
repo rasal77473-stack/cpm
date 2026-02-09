@@ -14,14 +14,26 @@ export async function POST(request: NextRequest) {
     // Default hardcoded admin for bootstrap
     if (username === "admin" && password === "caliph786786") {
       const token = Buffer.from(`admin:${Date.now()}`).toString("base64")
-      return NextResponse.json({
+      
+      const response = NextResponse.json({
         token,
         staffId: 0,
         staffName: "Super Admin",
         role: "admin",
+        special_pass: "YES",
         permissions: ["manage_students", "manage_special_pass", "manage_users", "in_out_control", "ban_unban"],
         message: "Login successful",
       })
+      
+      // Set token as HTTP-only cookie for middleware protection
+      response.cookies.set("auth_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      })
+      
+      return response
     }
 
     const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1)
@@ -31,15 +43,34 @@ export async function POST(request: NextRequest) {
     }
 
     const token = Buffer.from(`${user.id}:${Date.now()}`).toString("base64")
+    
+    // Parse permissions JSON string to array
+    let userPermissions: string[] = ["view_only"];
+    try {
+      userPermissions = JSON.parse(user.permissions);
+    } catch {
+      userPermissions = ["view_only"];
+    }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       token,
       staffId: user.id,
       staffName: user.name,
       role: user.role,
-      permissions: user.permissions,
+      special_pass: user.special_pass || "NO",
+      permissions: userPermissions,
       message: "Login successful",
     })
+    
+    // Set token as HTTP-only cookie for middleware protection
+    response.cookies.set("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    })
+    
+    return response
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "An error occurred during login"
     console.error("POST /api/auth/login error:", errorMessage, error)

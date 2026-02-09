@@ -9,6 +9,7 @@ import { ChevronLeft, Search, Star, LogOut, CheckCircle, XCircle, Clock, History
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { handleLogout } from "@/lib/auth-utils"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -105,13 +106,7 @@ export default function AdminSpecialPassPage() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("staffId")
-    localStorage.removeItem("staffName")
-    localStorage.removeItem("role")
-    router.push("/login")
-  }
+
 
   return (
     <div className="min-h-screen bg-background">

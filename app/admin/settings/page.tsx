@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { LogOut, ChevronLeft, Lock, Bell, Database, Eye } from "lucide-react"
+import { handleLogout } from "@/lib/auth-utils"
 import { Switch } from "@/components/ui/switch"
 
 export default function SystemSettings() {
@@ -46,14 +47,6 @@ export default function SystemSettings() {
         </div>
       </div>
     )
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("staffId")
-    localStorage.removeItem("staffName")
-    localStorage.removeItem("role")
-    router.push("/login")
   }
 
   const handleSettingChange = (key: string, value: any) => {

@@ -6,7 +6,12 @@ import { eq } from "drizzle-orm";
 export async function GET() {
   try {
     const allUsers = await db.select().from(users);
-    return NextResponse.json(allUsers);
+    // Parse permissions JSON for each user
+    const parsedUsers = allUsers.map(user => ({
+      ...user,
+      permissions: typeof user.permissions === 'string' ? JSON.parse(user.permissions) : user.permissions
+    }));
+    return NextResponse.json(parsedUsers);
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
   }
@@ -29,7 +34,8 @@ export async function POST(req: Request) {
       password,
       name,
       role: role || "mentor",
-      permissions: permissions || ["view_only"],
+      // Convert permissions array to JSON string for storage
+      permissions: JSON.stringify(permissions || ["view_only"]),
       special_pass: special_pass || "NO",
     };
 
@@ -39,7 +45,11 @@ export async function POST(req: Request) {
 
     console.log("POST /api/users - User created:", newUser);
 
-    return NextResponse.json(newUser[0], { status: 201 });
+    // Parse permissions back to array for response
+    return NextResponse.json({
+      ...newUser[0],
+      permissions: JSON.parse(newUser[0].permissions)
+    }, { status: 201 });
   } catch (error) {
     console.error("POST /api/users - Create user error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -62,7 +72,8 @@ export async function PUT(req: Request) {
         password,
         name,
         role,
-        permissions,
+        // Convert permissions array to JSON string for storage
+        permissions: JSON.stringify(permissions),
         special_pass
       })
       .where(eq(users.id, id))
@@ -72,7 +83,11 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(updatedUser[0]);
+    // Parse permissions back to array for response
+    return NextResponse.json({
+      ...updatedUser[0],
+      permissions: JSON.parse(updatedUser[0].permissions)
+    });
   } catch (error) {
     console.error("PUT /api/users - Update error:", error);
     return NextResponse.json({ error: "Failed to update user" }, { status: 500 });

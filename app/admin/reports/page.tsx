@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogOut, ChevronLeft, BarChart3, Download, TrendingUp } from "lucide-react"
+import { handleLogout } from "@/lib/auth-utils"
 
 interface ReportData {
   totalStudents: number
@@ -69,14 +70,6 @@ export default function ReportsPage() {
       console.error("Failed to fetch report data:", error)
       setLoading(false)
     }
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("staffId")
-    localStorage.removeItem("staffName")
-    localStorage.removeItem("role")
-    router.push("/login")
   }
 
   const handleDownloadReport = () => {

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ChevronLeft, Search, Calendar, LogOut, Users, Check, X, Loader2, Clock, CalendarDays, Gift } from "lucide-react"
 import useSWR, { mutate } from "swr"
+import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
 import {
     Select,
@@ -267,15 +268,6 @@ export default function MonthlyLeavePage() {
         } catch (error) {
             toast.error("Failed to delete monthly leave")
         }
-    }
-
-    const handleLogout = () => {
-        localStorage.removeItem("token")
-        localStorage.removeItem("staffId")
-        localStorage.removeItem("staffName")
-        localStorage.removeItem("role")
-        localStorage.removeItem("permissions")
-        router.push("/login")
     }
 
     if (!isAuthorized) {

@@ -40,6 +40,7 @@ export default function LoginPage() {
       localStorage.setItem("staffName", data.staffName)
       localStorage.setItem("role", data.role)
       localStorage.setItem("permissions", JSON.stringify(data.permissions))
+      localStorage.setItem("special_pass", data.special_pass || "NO")
 
       // Set Persistent Cookie for Middleware (Expires in 365 days - effectively forever until logout)
       const expires = new Date();

@@ -177,13 +177,23 @@ export default function UserManagement() {
   };
 
   const handleEdit = (user: any) => {
+    // Parse permissions if it's a string, otherwise use as array
+    let permissions = user.permissions;
+    if (typeof permissions === "string") {
+      try {
+        permissions = JSON.parse(permissions);
+      } catch {
+        permissions = ["view_only"];
+      }
+    }
+    
     setFormData({
       username: user.username,
       password: user.password,
       name: user.name,
       role: user.role,
       special_pass: user.special_pass || "NO",
-      permissions: user.permissions || ["view_only"],
+      permissions: Array.isArray(permissions) ? permissions : ["view_only"],
     });
     setIsEditing(true);
     setEditingId(user.id);

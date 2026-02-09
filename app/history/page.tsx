@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { LogOut, Search, Calendar } from "lucide-react"
+import { handleLogout } from "@/lib/auth-utils"
 
 interface HistoryEntry {
   id: number
@@ -94,13 +95,6 @@ export default function HistoryPage() {
   const handleActionFilter = (action: string | null) => {
     setFilterAction(action)
     applyFilters(searchQuery, action)
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("staffId")
-    localStorage.removeItem("staffName")
-    router.push("/login")
   }
 
   return (

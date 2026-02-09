@@ -15,6 +15,7 @@ import {
   LogOut,
   DoorOpen
 } from "lucide-react"
+import { handleLogout } from "@/lib/auth-utils"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -49,16 +50,6 @@ export default function Dashboard() {
         </div>
       </div>
     )
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("staffId")
-    localStorage.removeItem("staffName")
-    localStorage.removeItem("role")
-    localStorage.removeItem("permissions")
-    document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-    router.push("/login")
   }
 
   return (
