@@ -2,37 +2,58 @@ import * as schema from "./schema";
 
 let db: any = null;
 
-// Only initialize on server-side at runtime
-if (typeof window === "undefined" && process.env.NODE_ENV !== "production") {
+// Try to initialize database based on environment
+async function initializeDatabase() {
   try {
-    const Database = require("better-sqlite3");
-    const { drizzle } = require("drizzle-orm/better-sqlite3");
-    const path = require("path");
+    // Check if we have a DATABASE_URL (for Turso/production)
+    if (process.env.DATABASE_URL) {
+      try {
+        const { drizzle } = require("drizzle-orm/libsql");
+        const { createClient } = require("@libsql/client");
 
-    const dbPath = path.resolve(process.cwd(), "cpm.db");
-    const sqlite = new Database(dbPath);
+        const client = createClient({
+          url: process.env.DATABASE_URL,
+          authToken: process.env.DATABASE_AUTH_TOKEN,
+        });
 
-    sqlite.pragma("journal_mode = WAL");
-    sqlite.pragma("foreign_keys = ON");
+        db = drizzle(client, { schema });
+        console.log("✓ Initialized with Turso/libsql");
+        return db;
+      } catch (libsqlError) {
+        console.warn("libsql not available, trying better-sqlite3...");
+      }
+    }
 
-    db = drizzle(sqlite, { schema });
+    // Fall back to better-sqlite3 for local development
+    if (typeof window === "undefined") {
+      const Database = require("better-sqlite3");
+      const { drizzle } = require("drizzle-orm/better-sqlite3");
+      const path = require("path");
+
+      const dbPath = path.resolve(process.cwd(), "cpm.db");
+      const sqlite = new Database(dbPath);
+
+      sqlite.pragma("journal_mode = WAL");
+      sqlite.pragma("foreign_keys = ON");
+
+      db = drizzle(sqlite, { schema });
+      console.log("✓ Initialized with better-sqlite3");
+      return db;
+    }
   } catch (error) {
-    // Fail silently in production (will use different DB)
-    console.warn("SQLite not available (expected in production)");
+    console.error(
+      "Database initialization failed:",
+      error instanceof Error ? error.message : String(error)
+    );
   }
+
+  return null;
 }
 
-// For production (Render), provide a no-op database handler
-if (!db) {
-  db = new Proxy(
-    {},
-    {
-      get: () => {
-        throw new Error("Database not initialized. Configure a production database connection.");
-      },
-    }
-  );
+// Initialize on module load (for server-side)
+if (typeof window === "undefined") {
+  initializeDatabase();
 }
 
 export { db };
-export default db;
+export default db || {};
