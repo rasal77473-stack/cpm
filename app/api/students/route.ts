@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { students, phoneStatus, userActivityLogs } from "@/db/schema"
 import { eq } from "drizzle-orm"
+import { getCached, setCache, invalidateCache, STUDENTS_CACHE_KEY } from "@/lib/student-cache"
 
 async function logActivity(userId: number, action: string, details: string) {
   try {
@@ -30,7 +31,20 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Check in-memory cache first for instant response
+    const cached = getCached<any[]>(STUDENTS_CACHE_KEY)
+    if (cached) {
+      console.log("⚡ Serving students from cache (instant)")
+      return NextResponse.json(cached, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+        }
+      })
+    }
+
     const allStudents = await db.select().from(students)
+    setCache(STUDENTS_CACHE_KEY, allStudents)
+    console.log("📥 Fetched students from DB and cached")
     return NextResponse.json(allStudents, {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
@@ -58,7 +72,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    
+
     // Validate required fields
     if (!data.admission_number || !data.name || !data.locker_number) {
       return NextResponse.json(
@@ -79,6 +93,8 @@ export async function POST(request: NextRequest) {
       roll_no: data.roll_no ? String(data.roll_no).trim() : null,
       special_pass: data.special_pass ? String(data.special_pass).trim() : "NO",
     }).returning()
+
+    invalidateCache(STUDENTS_CACHE_KEY)
 
     if (data.staffId) {
       await logActivity(Number(data.staffId), "ADD_STUDENT", `Added student: ${data.name} (${data.admission_number})`)
@@ -121,6 +137,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 })
     }
 
+    invalidateCache(STUDENTS_CACHE_KEY)
     return NextResponse.json(updated[0])
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to update student"
@@ -150,6 +167,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 })
     }
 
+    invalidateCache(STUDENTS_CACHE_KEY)
     return NextResponse.json({ success: true, message: "Student deleted successfully" })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to delete student"
@@ -168,6 +186,7 @@ export async function PATCH(request: NextRequest) {
       await db.delete(phoneStatus)
       // Then delete all students
       await db.delete(students)
+      invalidateCache(STUDENTS_CACHE_KEY)
       return NextResponse.json({ success: true, message: "All students deleted successfully" })
     }
 

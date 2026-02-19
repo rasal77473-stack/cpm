@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { students } from "@/db/schema"
+import { invalidateCache, STUDENTS_CACHE_KEY } from "@/lib/student-cache"
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,10 +23,10 @@ export async function POST(request: NextRequest) {
     // Insert in batches of 25 to be extra safe with parameter limits
     const BATCH_SIZE = 25;
     let totalInserted = 0;
-    
+
     for (let i = 0; i < studentsToInsert.length; i += BATCH_SIZE) {
       const batch = studentsToInsert.slice(i, i + BATCH_SIZE);
-      
+
       try {
         const result = await db.insert(students).values(batch).onConflictDoNothing().returning()
         totalInserted += result.length;
@@ -35,11 +36,13 @@ export async function POST(request: NextRequest) {
         throw new Error(`Failed to insert batch at position ${i}: ${batchError instanceof Error ? batchError.message : String(batchError)}`)
       }
     }
-    
-    return NextResponse.json({ 
+
+    invalidateCache(STUDENTS_CACHE_KEY)
+
+    return NextResponse.json({
       success: true,
-      message: "Bulk import successful", 
-      count: totalInserted 
+      message: "Bulk import successful",
+      count: totalInserted
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to perform bulk import"

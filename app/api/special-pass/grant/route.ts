@@ -19,8 +19,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if student already has an active pass (PHONE or GATE - universal rule)
-    const existingPass = await db
+    // Check if student already has an active PHONE pass (not GATE)
+    // PHONE and GATE passes are separate systems and can coexist
+    const existingPhonePass = await db
       .select()
       .from(specialPassGrants)
       .where(
@@ -31,13 +32,19 @@ export async function POST(request: NextRequest) {
       )
       .limit(1)
 
-    if (existingPass.length > 0) {
-      const existingPassType = existingPass[0].purpose?.startsWith("PHONE:") ? "PHONE" : "GATE"
-      console.log(`⚠️  Student already has active ${existingPassType} pass:`, existingPass[0])
-      return NextResponse.json(
-        { error: `Student already has an active ${existingPassType} pass (Status: ${existingPass[0].status}). Only 1 pass allowed per student.` },
-        { status: 400 }
-      )
+    if (existingPhonePass.length > 0) {
+      const existingPassType = existingPhonePass[0].purpose?.startsWith("PHONE:") ? "PHONE" : "GATE"
+      
+      // Only block if there's an existing PHONE pass
+      if (existingPassType === "PHONE") {
+        console.log(`⚠️  Student already has active PHONE pass:`, existingPhonePass[0])
+        return NextResponse.json(
+          { error: `Student already has an active PHONE pass (Status: ${existingPhonePass[0].status}). Only 1 phone pass allowed per student at a time.` },
+          { status: 400 }
+        )
+      }
+      // If it's a GATE pass, allow the PHONE pass to be created (separate systems)
+      console.log(`ℹ️  Student has existing GATE pass but allowing PHONE pass creation (separate systems)`)
     }
 
     console.log("✨ Creating phone pass for student:", studentId)
