@@ -10,14 +10,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid data format" }, { status: 400 })
     }
 
-    // Prepare students for insert - omit id and special_pass handling
+    // Prepare students for insert - map snake_case to camelCase and handle special_pass
     const studentsToInsert = data.map((s: any) => {
-      const { id, special_pass, ...rest } = s;
+      // Map snake_case from Excel to camelCase for Drizzle
       return {
-        ...rest,
-        special_pass: special_pass || "NO"
+        admissionNumber: s.admission_number || s.admissionNumber || "",
+        name: s.name || "",
+        lockerNumber: s.locker_number || s.lockerNumber || "-",
+        phoneNumber: s.phone_number || s.phoneNumber,
+        class: s.class,
+        rollNumber: s.roll_number || s.rollNumber,
+        phoneName: s.phone_name || s.phoneName,
+        className: s.class_name || s.className,
+        rollNo: s.roll_no || s.rollNo,
+        specialPass: s.special_pass || "NO",
       };
-    });
+    }).filter(s => s.admissionNumber && s.name); // Filter out invalid records
+
+    if (studentsToInsert.length === 0) {
+      return NextResponse.json({ 
+        error: "No valid students found. Each student must have admission_number and name." 
+      }, { status: 400 })
+    }
 
     // Batch insert to avoid exceeding parameter limits
     // Insert in batches of 25 to be extra safe with parameter limits
