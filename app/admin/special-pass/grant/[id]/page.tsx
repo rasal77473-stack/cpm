@@ -27,21 +27,30 @@ export default function GrantSpecialPassPage() {
   // Ensure we only access localStorage on client side
   useEffect(() => {
     setIsClient(true)
-    
+
     // Get mentor info from localStorage
     const name = localStorage.getItem("staffName")
     const id = localStorage.getItem("staffId")
-    
+
     console.log("📋 Retrieved from localStorage - staffId:", id, "staffName:", name)
-    
-    if (name) setMentorName(name)
-    if (id) {
-      setMentorId(id)
-    } else {
-      console.error("❌ staffId not found in localStorage!")
-      toast.error("Session expired. Please login again.")
-      setTimeout(() => router.push("/login"), 1500)
+
+    // Explicitly check for "0" or invalid ID
+    if (!id || id === "0" || id === "undefined" || id === "null") {
+      console.error("❌ Invalid or missing staffId in localStorage:", id)
+      toast.error("Invalid session detected. Please login again.")
+      localStorage.removeItem("staffId")
+      localStorage.removeItem("staffName")
+      localStorage.removeItem("token")
+      localStorage.removeItem("role")
+      localStorage.removeItem("permissions")
+
+      setTimeout(() => router.push("/login"), 1000)
+      return
     }
+
+    if (name) setMentorName(name)
+    setMentorId(id)
+
   }, [router])
 
   // Fetch student details when studentId changes
@@ -57,7 +66,7 @@ export default function GrantSpecialPassPage() {
         if (!res.ok) throw new Error("Failed to fetch students")
         const students = await res.json()
         const found = students.find((s: any) => s.id === parseInt(studentId as string))
-        
+
         if (!found) {
           toast.error("Student not found")
           setTimeout(() => router.back(), 1000)
@@ -78,7 +87,7 @@ export default function GrantSpecialPassPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!purpose.trim()) {
       toast.error("Please enter purpose/remarks")
       return

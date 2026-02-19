@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     // Default hardcoded admin for bootstrap
     if (username === "admin" && password === "caliph786786") {
       const token = Buffer.from(`admin:${Date.now()}`).toString("base64")
-      
+
       const response = NextResponse.json({
         token,
         staffId: 1, // Use ID 1 (assumes user with ID 1 exists or is "Super Admin")
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         permissions: ["manage_students", "manage_special_pass", "manage_users", "in_out_control", "ban_unban"],
         message: "Login successful",
       })
-      
+
       // Set token as HTTP-only cookie for middleware protection
       response.cookies.set("auth_token", token, {
         httpOnly: true,
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60, // 7 days
       })
-      
+
       return response
     }
 
@@ -43,13 +43,19 @@ export async function POST(request: NextRequest) {
     }
 
     const token = Buffer.from(`${user.id}:${Date.now()}`).toString("base64")
-    
+
     // Parse permissions JSON string to array
     let userPermissions: string[] = ["view_only"];
     try {
       userPermissions = JSON.parse(user.permissions);
     } catch {
       userPermissions = ["view_only"];
+    }
+
+    // Safety check for ID 0
+    if (!user.id || user.id <= 0) {
+      console.error("❌ Login blocked: User has invalid ID 0", user)
+      return NextResponse.json({ error: "System Error: Invalid User ID. Contact Support." }, { status: 500 })
     }
 
     const response = NextResponse.json({
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
       permissions: userPermissions,
       message: "Login successful",
     })
-    
+
     // Set token as HTTP-only cookie for middleware protection
     response.cookies.set("auth_token", token, {
       httpOnly: true,
@@ -69,7 +75,7 @@ export async function POST(request: NextRequest) {
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60, // 7 days
     })
-    
+
     return response
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "An error occurred during login"

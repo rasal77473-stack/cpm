@@ -21,6 +21,14 @@ export default function LoginPage() {
     setError("")
     setLoading(true)
 
+    // Clear any existing session data before attempting login
+    localStorage.removeItem("token")
+    localStorage.removeItem("staffId")
+    localStorage.removeItem("staffName")
+    localStorage.removeItem("role")
+    localStorage.removeItem("permissions")
+    localStorage.removeItem("special_pass")
+
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",

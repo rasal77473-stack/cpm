@@ -1,68 +1,28 @@
-// Load environment variables from .env.local
+// Load environment variables from .env.local (optional now as we hardcode)
 if (typeof window === "undefined") {
   require("dotenv").config({ path: ".env.local" });
 }
 
 import * as schema from "./schema";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 
 let db: any = null;
+
+// HARDCODED SUPABASE CONNECTION STRING
+const SUPABASE_URL = "postgresql://postgres.gnnfaijjvqikohblyjlz:rasal786%40%40%40@aws-1-eu-central-2.pooler.supabase.com:6543/postgres";
 
 // Try to initialize database based on environment
 async function initializeDatabase() {
   try {
-    console.log("Initializing database...");
-    console.log("DATABASE_URL:", process.env.DATABASE_URL?.substring(0, 50) + "...");
+    console.log("Initializing database with HARDCODED Supabase URL...");
 
-    // Check if we have a DATABASE_URL (for Supabase/PostgreSQL)
-    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("postgresql")) {
-      try {
-        const { drizzle } = require("drizzle-orm/postgres-js");
-        const postgres = require("postgres");
+    // Always use the hardcoded URL
+    const client = postgres(SUPABASE_URL);
+    db = drizzle(client, { schema });
+    console.log("✓ Initialized with Supabase/PostgreSQL (Hardcoded)");
+    return db;
 
-        const client = postgres(process.env.DATABASE_URL);
-        db = drizzle(client, { schema });
-        console.log("✓ Initialized with Supabase/PostgreSQL");
-        return db;
-      } catch (pgError) {
-        console.warn("PostgreSQL not available, trying Turso...", pgError);
-      }
-    }
-
-    // Try Turso if available
-    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("turso")) {
-      try {
-        const { drizzle } = require("drizzle-orm/libsql");
-        const { createClient } = require("@libsql/client");
-
-        const client = createClient({
-          url: process.env.DATABASE_URL,
-          authToken: process.env.DATABASE_AUTH_TOKEN,
-        });
-
-        db = drizzle(client, { schema });
-        console.log("✓ Initialized with Turso/libsql");
-        return db;
-      } catch (libsqlError) {
-        console.warn("libsql not available, trying better-sqlite3...");
-      }
-    }
-
-    // Fall back to better-sqlite3 for local development
-    if (typeof window === "undefined") {
-      const Database = require("better-sqlite3");
-      const { drizzle } = require("drizzle-orm/better-sqlite3");
-      const path = require("path");
-
-      const dbPath = path.resolve(process.cwd(), "cpm.db");
-      const sqlite = new Database(dbPath);
-
-      sqlite.pragma("journal_mode = WAL");
-      sqlite.pragma("foreign_keys = ON");
-
-      db = drizzle(sqlite, { schema });
-      console.log("✓ Initialized with better-sqlite3");
-      return db;
-    }
   } catch (error) {
     console.error(
       "Database initialization failed:",
