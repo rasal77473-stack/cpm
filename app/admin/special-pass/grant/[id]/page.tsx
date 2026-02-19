@@ -22,16 +22,31 @@ export default function GrantSpecialPassPage() {
   const [mentorId, setMentorId] = useState("")
   const [expectedReturnDate, setExpectedReturnDate] = useState("")
   const [expectedReturnTime, setExpectedReturnTime] = useState("")
+  const [isClient, setIsClient] = useState(false)
 
+  // Ensure we only access localStorage on client side
   useEffect(() => {
+    setIsClient(true)
+    
     // Get mentor info from localStorage
     const name = localStorage.getItem("staffName")
     const id = localStorage.getItem("staffId")
+    
+    console.log("📋 Retrieved from localStorage - staffId:", id, "staffName:", name)
+    
     if (name) setMentorName(name)
-    if (id) setMentorId(id)
+    if (id) {
+      setMentorId(id)
+    } else {
+      console.error("❌ staffId not found in localStorage!")
+      toast.error("Session expired. Please login again.")
+      setTimeout(() => router.push("/login"), 1500)
+    }
+  }, [router])
 
-    // Fetch student details
-    if (!studentId) {
+  // Fetch student details when studentId changes
+  useEffect(() => {
+    if (!studentId || !isClient) {
       setLoading(false)
       return
     }
@@ -59,7 +74,7 @@ export default function GrantSpecialPassPage() {
     }
 
     fetchStudent()
-  }, [studentId, router])
+  }, [studentId, isClient, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,8 +84,9 @@ export default function GrantSpecialPassPage() {
       return
     }
 
-    if (!mentorId) {
-      toast.error("Mentor info not found. Please login again.")
+    if (!mentorId || !isClient) {
+      toast.error("Session expired. Please login again.")
+      router.push("/login")
       return
     }
 
@@ -86,12 +102,22 @@ export default function GrantSpecialPassPage() {
 
     setSubmitting(true)
 
+    // Validate mentorId is a valid positive number
+    const parsedMentorId = parseInt(mentorId)
+    if (isNaN(parsedMentorId) || parsedMentorId <= 0) {
+      console.error("❌ Invalid mentorId:", mentorId, "parsed:", parsedMentorId)
+      toast.error("Invalid staff ID. Please login again.")
+      setSubmitting(false)
+      router.push("/login")
+      return
+    }
+
     const payload = {
       studentId: parseInt(studentId as string),
-      mentorId: parseInt(mentorId),
+      mentorId: parsedMentorId,
       mentorName: mentorName || "Staff",
       purpose: purpose.trim(),
-      staffId: mentorId,
+      staffId: parsedMentorId,
       expectedReturnDate: expectedReturnDate,
       expectedReturnTime: expectedReturnTime,
     }
@@ -199,11 +225,15 @@ export default function GrantSpecialPassPage() {
         </Card>
 
         {/* Issued By Card */}
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className={`border-blue-200 ${!mentorName ? "bg-red-50 border-red-200" : "bg-blue-50"}`}>
           <CardContent className="pt-6">
             <div>
               <p className="text-xs text-gray-500 font-medium">Issued By</p>
-              <p className="font-semibold text-gray-900">{mentorName || "Loading..."}</p>
+              {mentorName ? (
+                <p className="font-semibold text-gray-900">{mentorName}</p>
+              ) : (
+                <p className="font-semibold text-red-600">⚠️ Not logged in</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -261,7 +291,7 @@ export default function GrantSpecialPassPage() {
                 <Button
                   type="submit"
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  disabled={submitting || !purpose.trim() || !expectedReturnDate || !expectedReturnTime}
+                  disabled={submitting || !purpose.trim() || !expectedReturnDate || !expectedReturnTime || !mentorId}
                 >
                   {submitting ? (
                     <>
