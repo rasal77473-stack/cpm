@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
       console.log("⚡ Serving students from cache (instant)")
       return NextResponse.json(cached, {
         headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+          'Cache-Control': 'no-store, max-age=0, must-revalidate',
+          'Pragma': 'no-cache'
         }
       })
     }
@@ -47,7 +48,8 @@ export async function GET(request: NextRequest) {
     console.log("📥 Fetched students from DB and cached")
     return NextResponse.json(allStudents, {
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+        'Cache-Control': 'no-store, max-age=0, must-revalidate',
+        'Pragma': 'no-cache'
       }
     })
   } catch (error: any) {
@@ -160,16 +162,16 @@ export async function DELETE(request: NextRequest) {
     // Delete in order of foreign key dependencies
     // 1. Delete leave exclusions
     await db.delete(leaveExclusions).where(eq(leaveExclusions.studentId, studentId))
-    
+
     // 2. Delete student fines
     await db.delete(studentFines).where(eq(studentFines.studentId, studentId))
-    
+
     // 3. Delete phone history
     await db.delete(phoneHistory).where(eq(phoneHistory.studentId, studentId))
-    
+
     // 4. Delete phone status
     await db.delete(phoneStatus).where(eq(phoneStatus.studentId, studentId))
-    
+
     // 5. Delete special pass grants
     await db.delete(specialPassGrants).where(eq(specialPassGrants.studentId, studentId))
 
@@ -198,22 +200,22 @@ export async function PATCH(request: NextRequest) {
       // Delete in order of foreign key dependencies
       // 1. Delete leave exclusions (depends on students)
       await db.delete(leaveExclusions)
-      
+
       // 2. Delete student fines (depends on students)
       await db.delete(studentFines)
-      
+
       // 3. Delete phone history (depends on students)
       await db.delete(phoneHistory)
-      
+
       // 4. Delete phone status (depends on students)
       await db.delete(phoneStatus)
-      
+
       // 5. Delete special pass grants (depends on students)
       await db.delete(specialPassGrants)
-      
+
       // 6. Finally delete all students
       await db.delete(students)
-      
+
       invalidateCache(STUDENTS_CACHE_KEY)
       return NextResponse.json({ success: true, message: "All students and related records deleted successfully" })
     }
