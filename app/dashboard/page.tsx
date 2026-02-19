@@ -14,7 +14,8 @@ import {
   ArrowRightCircle,
   LogOut,
   DoorOpen,
-  Banknote
+  Banknote,
+  UserCheck
 } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 
@@ -75,6 +76,14 @@ export default function Dashboard() {
             <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-green-100 hover:border-green-300 h-full w-full">
               <Ticket className="w-8 h-8 text-green-600" strokeWidth={1.5} />
               <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Phone Pass</span>
+            </div>
+          </Link>
+
+          {/* Student Button */}
+          <Link href="/student-lookup" className="block">
+            <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-green-100 hover:border-green-300 h-full w-full">
+              <UserCheck className="w-8 h-8 text-green-600" strokeWidth={1.5} />
+              <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Student</span>
             </div>
           </Link>
 
