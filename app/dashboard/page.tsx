@@ -13,7 +13,8 @@ import {
   History,
   ArrowRightCircle,
   LogOut,
-  DoorOpen
+  DoorOpen,
+  Banknote
 } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 
@@ -77,11 +78,11 @@ export default function Dashboard() {
             </div>
           </Link>
 
-          {/* Gate Pass Button */}
-          <Link href="/gate-pass-menu" className="block">
+          {/* Fine Management Button */}
+          <Link href="/admin/fine" className="block">
             <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-green-100 hover:border-green-300 h-full w-full">
-              <DoorOpen className="w-8 h-8 text-green-600" strokeWidth={1.5} />
-              <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Gate Pass</span>
+              <Banknote className="w-8 h-8 text-green-600" strokeWidth={1.5} />
+              <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Fines</span>
             </div>
           </Link>
         </div>

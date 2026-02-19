@@ -1,3 +1,8 @@
+// Load environment variables from .env.local
+if (typeof window === "undefined") {
+  require("dotenv").config({ path: ".env.local" });
+}
+
 import * as schema from "./schema";
 
 let db: any = null;
@@ -5,6 +10,9 @@ let db: any = null;
 // Try to initialize database based on environment
 async function initializeDatabase() {
   try {
+    console.log("Initializing database...");
+    console.log("DATABASE_URL:", process.env.DATABASE_URL?.substring(0, 50) + "...");
+
     // Check if we have a DATABASE_URL (for Supabase/PostgreSQL)
     if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("postgresql")) {
       try {
