@@ -56,6 +56,7 @@ export default function AddFinePage() {
     setStaffName(name || "Staff")
     setStaffId(id || "")
     fetchFines()
+    fetchStudents(1) // Load students on initial page load
   }, [router])
 
   const fetchFines = async () => {
