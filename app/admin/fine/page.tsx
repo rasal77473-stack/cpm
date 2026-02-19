@@ -141,7 +141,7 @@ export default function FineManagementPage() {
                   Manage Fines
                 </Button>
               </Link>
-              <Link href="/student-lookup?mode=fine">
+              <Link href="/admin/fine/add">
                 <Button className="gap-2 bg-green-600 hover:bg-green-700">
                   <Plus className="w-4 h-4" />
                   Add Fine
