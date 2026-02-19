@@ -46,49 +46,61 @@ export async function POST(
     if (grant) {
       const studentId = grant.studentId
 
-      // Sync main phone status to IN (synchronous)
-      const [existingStatus] = await db
-        .select()
-        .from(phoneStatus)
-        .where(eq(phoneStatus.studentId, studentId))
-        .limit(1)
+      try {
+        // Update student's special_pass status to "NO"
+        await db
+          .update(students)
+          .set({ specialPass: "NO" })
+          .where(eq(students.id, studentId))
+        console.log(`📝 Updated student ${studentId} status to specialPass: NO`)
 
-      if (existingStatus) {
-        await db.update(phoneStatus)
-          .set({
-            status: "IN",
-            lastUpdated: new Date(),
-            updatedBy: grant.mentorName,
-            notes: grant.purpose
-          })
+        // Sync main phone status to IN (synchronous)
+        const [existingStatus] = await db
+          .select()
+          .from(phoneStatus)
           .where(eq(phoneStatus.studentId, studentId))
-      } else {
-        await db.insert(phoneStatus)
-          .values({
-            studentId,
-            status: "IN",
-            updatedBy: grant.mentorName,
-            notes: grant.purpose,
-            lastUpdated: new Date()
+          .limit(1)
+
+        if (existingStatus) {
+          await db.update(phoneStatus)
+            .set({
+              status: "IN",
+              lastUpdated: new Date().toISOString(), // Use format compatible with schema
+              updatedBy: grant.mentorName,
+              notes: grant.purpose
+            })
+            .where(eq(phoneStatus.studentId, studentId))
+        } else {
+          await db.insert(phoneStatus)
+            .values({
+              studentId,
+              status: "IN",
+              updatedBy: grant.mentorName,
+              notes: grant.purpose,
+              lastUpdated: new Date().toISOString()
+            })
+        }
+
+        // Record to phone history - mark as IN (phone returned)
+        await db.insert(phoneHistory).values({
+          studentId,
+          status: "IN",
+          updatedBy: grant.mentorName,
+          notes: `PHONE PASS RETURNED: ${grant.purpose}`,
+        })
+        console.log(`📜 Phone history recorded: student ${studentId} marked as IN (pass returned)`)
+
+        // Log the action in background
+        if (grant.mentorId) {
+          await db.insert(userActivityLogs).values({
+            userId: grant.mentorId,
+            action: "RETURN_SPECIAL_PASS",
+            details: `Special pass returned for student ${grant.studentId}. Pass ID: ${grantId}`,
           })
-      }
-
-      // Record to phone history - mark as IN (phone returned)
-      await db.insert(phoneHistory).values({
-        studentId,
-        status: "IN",
-        updatedBy: grant.mentorName,
-        notes: `PHONE PASS RETURNED: ${grant.purpose}`,
-      })
-      console.log(`📜 Phone history recorded: student ${studentId} marked as IN (pass returned)`)
-
-      // Log the action in background
-      if (grant.mentorId) {
-        db.insert(userActivityLogs).values({
-          userId: grant.mentorId,
-          action: "RETURN_SPECIAL_PASS",
-          details: `Special pass returned for student ${grant.studentId}. Pass ID: ${grantId}`,
-        }).catch(err => console.error("Logging failed:", err))
+        }
+      } catch (innerError) {
+        console.error("❌ Error in background sync during pass return:", innerError)
+        // Don't throw here to ensure the response is still returned as success if the main pass status was updated
       }
     }
 
