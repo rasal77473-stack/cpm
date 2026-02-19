@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     if (existingPhonePass.length > 0) {
       const existingPassType = existingPhonePass[0].purpose?.startsWith("PHONE:") ? "PHONE" : "GATE"
-      
+
       // Only block if there's an existing PHONE pass
       if (existingPassType === "PHONE") {
         console.log(`⚠️  Student already has active PHONE pass:`, existingPhonePass[0])
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     // Update student's special_pass status to "YES"
     await db
       .update(students)
-      .set({ special_pass: "YES" })
+      .set({ specialPass: "YES" })
       .where(eq(students.id, Number(studentId)))
 
     console.log("📝 Updated student status to special_pass: YES")
@@ -121,10 +121,10 @@ export async function POST(request: NextRequest) {
     console.error("Error Message:", error instanceof Error ? error.message : String(error))
     console.error("Error Stack:", error instanceof Error ? error.stack : "N/A")
     console.error("Full Error Object:", error)
-    
+
     const errorDetails = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { 
+      {
         error: "Failed to grant special pass",
         details: errorDetails,
         timestamp: new Date().toISOString()
