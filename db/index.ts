@@ -5,8 +5,23 @@ let db: any = null;
 // Try to initialize database based on environment
 async function initializeDatabase() {
   try {
-    // Check if we have a DATABASE_URL (for Turso/production)
-    if (process.env.DATABASE_URL) {
+    // Check if we have a DATABASE_URL (for Supabase/PostgreSQL)
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("postgresql")) {
+      try {
+        const { drizzle } = require("drizzle-orm/postgres-js");
+        const postgres = require("postgres");
+
+        const client = postgres(process.env.DATABASE_URL);
+        db = drizzle(client, { schema });
+        console.log("✓ Initialized with Supabase/PostgreSQL");
+        return db;
+      } catch (pgError) {
+        console.warn("PostgreSQL not available, trying Turso...", pgError);
+      }
+    }
+
+    // Try Turso if available
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("turso")) {
       try {
         const { drizzle } = require("drizzle-orm/libsql");
         const { createClient } = require("@libsql/client");

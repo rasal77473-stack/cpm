@@ -1,86 +1,158 @@
-import { sqliteTable, integer, text, real, blob } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+import { pgTable, foreignKey, serial, integer, text, timestamp, unique, real } from "drizzle-orm/pg-core"
+import { sql } from "drizzle-orm"
 
+// Students
+export const students = pgTable("students", {
+	id: serial().primaryKey().notNull(),
+	admissionNumber: text("admission_number").notNull(),
+	name: text().notNull(),
+	lockerNumber: text("locker_number").default('-').notNull(),
+	phoneNumber: text("phone_number"),
+	class: text(),
+	rollNumber: text("roll_number"),
+	phoneName: text("phone_name"),
+	className: text("class_name"),
+	rollNo: text("roll_no"),
+	specialPass: text("special_pass").default('NO'),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	unique("students_admission_number_unique").on(table.admissionNumber),
+]);
 
-export const students = sqliteTable("students", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  admission_number: text("admission_number").notNull().unique(),
-  name: text("name").notNull(),
-  locker_number: text("locker_number").notNull().default("-"),
-  phone_number: text("phone_number"),
-  class: text("class"),
-  roll_number: text("roll_number"),
-  phone_name: text("phone_name"),
-  class_name: text("class_name"),
-  roll_no: text("roll_no"),
-  special_pass: text("special_pass").default("NO"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).default(sql`(strftime('%s', 'now') * 1000)`),
+// Users/Staff
+export const users = pgTable("users", {
+	id: serial().primaryKey().notNull(),
+	username: text().notNull(),
+	password: text().notNull(),
+	name: text().notNull(),
+	role: text().default('mentor').notNull(),
+	permissions: text().array().default(["view_only"]).notNull(),
+	specialPass: text("special_pass").default('NO'),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	unique("users_username_unique").on(table.username),
+]);
+
+// User Activity Logs
+export const userActivityLogs = pgTable("user_activity_logs", {
+	id: serial().primaryKey().notNull(),
+	userId: integer("user_id").notNull(),
+	action: text().notNull(),
+	details: text(),
+	timestamp: timestamp({ mode: 'string' }).defaultNow(),
 });
 
-export const users = sqliteTable("users", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  name: text("name").notNull(),
-  role: text("role").notNull().default("mentor"), // admin, mentor
-  permissions: text("permissions").notNull().default('["view_only"]'), // JSON array as text
-  special_pass: text("special_pass").default("NO"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).default(sql`(strftime('%s', 'now') * 1000)`),
-});
+// Special Pass Grants
+export const specialPassGrants = pgTable("special_pass_grants", {
+	id: serial().primaryKey().notNull(),
+	studentId: integer("student_id").notNull(),
+	mentorId: integer("mentor_id").notNull(),
+	mentorName: text("mentor_name").notNull(),
+	purpose: text().notNull(),
+	issueTime: timestamp("issue_time", { mode: 'string' }).defaultNow(),
+	returnTime: timestamp("return_time", { mode: 'string' }),
+	submissionTime: timestamp("submission_time", { mode: 'string' }),
+	status: text().default('ACTIVE'),
+	expectedReturnDate: text("expected_return_date"),
+	expectedReturnTime: text("expected_return_time"),
+}, (table) => [
+	foreignKey({
+			columns: [table.studentId],
+			foreignColumns: [students.id],
+			name: "special_pass_grants_student_id_students_id_fk"
+		}),
+]);
 
-export const userActivityLogs = sqliteTable("user_activity_logs", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  userId: integer("user_id", { mode: "number" }).notNull(),
-  action: text("action").notNull(),
-  details: text("details"),
-  timestamp: integer("timestamp", { mode: "timestamp_ms" }).default(sql`(strftime('%s', 'now') * 1000)`),
-});
+// Phone Status - Current status only
+export const phoneStatus = pgTable("phone_status", {
+	id: serial().primaryKey().notNull(),
+	studentId: integer("student_id").notNull(),
+	status: text().notNull(), // IN, OUT
+	lastUpdated: timestamp("last_updated", { mode: 'string' }).defaultNow(),
+	updatedBy: text("updated_by"),
+	notes: text(),
+}, (table) => [
+	foreignKey({
+			columns: [table.studentId],
+			foreignColumns: [students.id],
+			name: "phone_status_student_id_students_id_fk"
+		}),
+]);
 
-export const specialPassGrants = sqliteTable("special_pass_grants", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  studentId: integer("student_id", { mode: "number" }).notNull(),
-  mentorId: integer("mentor_id", { mode: "number" }).notNull(),
-  mentorName: text("mentor_name").notNull(),
-  purpose: text("purpose").notNull(),
-  issueTime: integer("issue_time", { mode: "timestamp_ms" }).default(sql`(strftime('%s', 'now') * 1000)`),
-  returnTime: integer("return_time", { mode: "timestamp_ms" }),
-  submissionTime: integer("submission_time", { mode: "timestamp_ms" }),
-  expectedReturnDate: text("expected_return_date"), // Format: YYYY-MM-DD
-  expectedReturnTime: text("expected_return_time"), // Format: HH:MM
-  status: text("status").default("ACTIVE"), // ACTIVE, COMPLETED, EXPIRED
-});
-
-export const phoneStatus = sqliteTable("phone_status", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  studentId: integer("student_id", { mode: "number" }).notNull(),
-  status: text("status").notNull(), // IN, OUT
-  lastUpdated: integer("last_updated", { mode: "timestamp_ms" }).default(sql`(strftime('%s', 'now') * 1000)`),
-  updatedBy: text("updated_by"),
-  notes: text("notes"),
-});
+// Phone History - Track all phone in/out events
+export const phoneHistory = pgTable("phone_history", {
+	id: serial().primaryKey().notNull(),
+	studentId: integer("student_id").notNull(),
+	status: text().notNull(), // IN, OUT
+	timestamp: timestamp({ mode: 'string' }).defaultNow(),
+	updatedBy: text("updated_by"),
+	notes: text(),
+}, (table) => [
+	foreignKey({
+			columns: [table.studentId],
+			foreignColumns: [students.id],
+			name: "phone_history_student_id_students_id_fk"
+		}),
+]);
 
 // Monthly Leave Schedule
-export const monthlyLeaves = sqliteTable("monthly_leaves", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  startDate: integer("start_date", { mode: "timestamp_ms" }).notNull(),
-  endDate: integer("end_date", { mode: "timestamp_ms" }).notNull(),
-  startTime: text("start_time").notNull(), // HH:MM format
-  endTime: text("end_time").notNull(), // HH:MM format
-  reason: text("reason").default("Monthly Leave"),
-  createdBy: integer("created_by", { mode: "number" }).notNull(),
-  createdByName: text("created_by_name").notNull(),
-  status: text("status").default("PENDING"), // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
-  passesIssued: text("passes_issued").default("NO"), // YES, NO - whether passes have been created
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).default(sql`(strftime('%s', 'now') * 1000)`),
+export const monthlyLeaves = pgTable("monthly_leaves", {
+	id: serial().primaryKey().notNull(),
+	startDate: timestamp("start_date", { mode: 'string' }).notNull(),
+	endDate: timestamp("end_date", { mode: 'string' }).notNull(),
+	startTime: text("start_time").notNull(),
+	endTime: text("end_time").notNull(),
+	reason: text().default('Monthly Leave'),
+	createdBy: integer("created_by").notNull(),
+	createdByName: text("created_by_name").notNull(),
+	status: text().default('PENDING'),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	passesIssued: text("passes_issued").default('NO'),
 });
 
-// Students excluded from monthly leave (ineligible)
-export const leaveExclusions = sqliteTable("leave_exclusions", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  leaveId: integer("leave_id", { mode: "number" }).notNull(),
-  studentId: integer("student_id", { mode: "number" }).notNull(),
-  excludedBy: integer("excluded_by", { mode: "number" }).notNull(),
-  excludedByName: text("excluded_by_name").notNull(),
-  reason: text("reason"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).default(sql`(strftime('%s', 'now') * 1000)`),
+// Students excluded from monthly leave
+export const leaveExclusions = pgTable("leave_exclusions", {
+	id: serial().primaryKey().notNull(),
+	leaveId: integer("leave_id").notNull(),
+	studentId: integer("student_id").notNull(),
+	excludedBy: integer("excluded_by").notNull(),
+	excludedByName: text("excluded_by_name").notNull(),
+	reason: text(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	foreignKey({
+			columns: [table.leaveId],
+			foreignColumns: [monthlyLeaves.id],
+			name: "leave_exclusions_leave_id_monthly_leaves_id_fk"
+		}),
+	foreignKey({
+			columns: [table.studentId],
+			foreignColumns: [students.id],
+			name: "leave_exclusions_student_id_students_id_fk"
+		}),
+]);
+
+// Fines - Types of fines
+export const fines = pgTable("fines", {
+	id: serial().primaryKey().notNull(),
+	name: text().notNull(),
+	amount: real().notNull(),
+	description: text(),
+	isActive: text("is_active").default('YES'),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+});
+
+// Student Fines - Link students to fines
+export const studentFines = pgTable("student_fines", {
+	id: serial().primaryKey().notNull(),
+	studentId: integer("student_id").notNull(),
+	fineId: integer("fine_id").notNull(),
+	amount: real().notNull(),
+	reason: text(),
+	isPaid: text("is_paid").default('NO'),
+	issuedBy: integer("issued_by").notNull(),
+	issuedByName: text("issued_by_name").notNull(),
+	paidDate: timestamp("paid_date", { mode: 'string' }),
+	issuedAt: timestamp("issued_at", { mode: 'string' }).defaultNow(),
 });
