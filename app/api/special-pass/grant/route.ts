@@ -19,6 +19,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate mentorId is a positive number
+    const validMentorId = parseInt(mentorId)
+    if (isNaN(validMentorId) || validMentorId <= 0) {
+      console.log("❌ Invalid mentorId:", mentorId)
+      return NextResponse.json(
+        { error: "Invalid mentor ID. Please log in again." },
+        { status: 400 }
+      )
+    }
+
     // Check if student already has an active PHONE pass (not GATE)
     // PHONE and GATE passes are separate systems and can coexist
     const existingPhonePass = await db
@@ -58,12 +68,12 @@ export async function POST(request: NextRequest) {
       .insert(specialPassGrants)
       .values({
         studentId: Number(studentId),
-        mentorId: Number(mentorId),
+        mentorId: validMentorId, // Use validated mentorId
         mentorName,
         purpose: `PHONE: ${purpose}`,
-        issueTime,
-        returnTime: returnTime ? new Date(returnTime) : null,
-        submissionTime: submissionTime ? new Date(submissionTime) : new Date(),
+        issueTime: issueTime.toISOString(),
+        returnTime: returnTime ? new Date(returnTime).toISOString() : null,
+        submissionTime: submissionTime ? new Date(submissionTime).toISOString() : new Date().toISOString(),
         expectedReturnDate: expectedReturnDate || null,
         expectedReturnTime: expectedReturnTime || null,
       })
@@ -90,12 +100,15 @@ export async function POST(request: NextRequest) {
 
     // Log the activity
     if (staffId) {
-      await db.insert(userActivityLogs).values({
-        userId: Number(staffId),
-        action: "GRANT_SPECIAL_PASS",
-        details: `Granted special pass to student ${studentId}. Purpose: ${purpose}`,
-      })
-      console.log("📋 Activity logged for staff:", staffId)
+      const validStaffId = parseInt(staffId)
+      if (!isNaN(validStaffId) && validStaffId > 0) {
+        await db.insert(userActivityLogs).values({
+          userId: validStaffId,
+          action: "GRANT_SPECIAL_PASS",
+          details: `Granted special pass to student ${studentId}. Purpose: ${purpose}`,
+        })
+        console.log("📋 Activity logged for staff:", staffId)
+      }
     }
 
     return NextResponse.json(

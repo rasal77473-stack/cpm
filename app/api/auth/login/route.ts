@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       
       const response = NextResponse.json({
         token,
-        staffId: 0,
+        staffId: 1, // Use ID 1 (assumes user with ID 1 exists or is "Super Admin")
         staffName: "Super Admin",
         role: "admin",
         special_pass: "YES",
