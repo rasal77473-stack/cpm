@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { specialPassGrants, userActivityLogs, students, phoneStatus } from "@/db/schema"
+import { specialPassGrants, userActivityLogs, students, phoneStatus, phoneHistory } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 export async function POST(
@@ -72,6 +72,15 @@ export async function POST(
             lastUpdated: new Date()
           })
       }
+
+      // Record to phone history - mark as IN (phone returned)
+      await db.insert(phoneHistory).values({
+        studentId,
+        status: "IN",
+        updatedBy: grant.mentorName,
+        notes: `PHONE PASS RETURNED: ${grant.purpose}`,
+      })
+      console.log(`📜 Phone history recorded: student ${studentId} marked as IN (pass returned)`)
 
       // Log the action in background
       if (grant.mentorId) {

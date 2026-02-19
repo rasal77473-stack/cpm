@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { phoneStatus } from "@/db/schema";
+import { phoneStatus, phoneHistory } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 
@@ -54,6 +54,14 @@ export async function POST(req: Request) {
         updatedBy: updatedBy || "system",
       })
       .returning();
+
+    // Also record to phone history for audit trail
+    await db.insert(phoneHistory).values({
+      studentId,
+      status,
+      updatedBy: updatedBy || "system",
+      notes: notes || null,
+    });
 
     return NextResponse.json(newRecord[0], { status: 201 });
   } catch (error) {

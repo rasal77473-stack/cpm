@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { phoneStatus, userActivityLogs, students, specialPassGrants } from "@/db/schema"
+import { phoneStatus, userActivityLogs, students, specialPassGrants, phoneHistory } from "@/db/schema"
 import { eq, desc, and } from "drizzle-orm"
 
 // GET - Retrieve latest phone status for a student
@@ -117,6 +117,14 @@ export async function PUT(
 
       result = created
     }
+
+    // Record to phone history for audit trail
+    await db.insert(phoneHistory).values({
+      studentId,
+      status,
+      updatedBy: updatedBy || "system",
+      notes: notes || null,
+    });
 
     // Log activity and sync special pass in background (fire and forget)
     if (updatedBy && updatedBy !== "system" && !isNaN(parseInt(updatedBy))) {
