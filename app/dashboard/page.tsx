@@ -33,7 +33,11 @@ export default function Dashboard() {
     const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
-      router.push("/login")
+      // If we have no local token but are on this protected page, 
+      // it means we have a server cookie but lost client state.
+      // We must logout to clear the cookie and break the redirect loop.
+      console.log("⚠️ No local token found, forcing logout to clear invalid session state")
+      handleLogout()
       return
     }
 
