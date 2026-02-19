@@ -282,7 +282,7 @@ export default function ManageStudents() {
             phone_name: findValue(["phonename", "phonenumber", "handset", "model", "phone", "phonemodel", "handsetname", "phone_name"]),
             class_name: findValue(["classname", "class", "grade", "class_name"]),
             roll_no: findValue(["rollno", "rollnumber", "roll", "roll_no"]),
-            special_pass: findValue(["specialpass", "special_pass", "special"]) || "NO",
+            special_pass: "NO",
           };
         }).filter(s => s.admission_number && s.name && s.locker_number)
 
