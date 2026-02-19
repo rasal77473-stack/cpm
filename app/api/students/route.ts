@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { students, phoneStatus, userActivityLogs } from "@/db/schema"
+import { students, phoneStatus, userActivityLogs, phoneHistory, specialPassGrants, studentFines, leaveExclusions } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { getCached, setCache, invalidateCache, STUDENTS_CACHE_KEY } from "@/lib/student-cache"
 
@@ -157,10 +157,23 @@ export async function DELETE(request: NextRequest) {
 
     const studentId = Number.parseInt(id)
 
-    // Delete related phone status records first
+    // Delete in order of foreign key dependencies
+    // 1. Delete leave exclusions
+    await db.delete(leaveExclusions).where(eq(leaveExclusions.studentId, studentId))
+    
+    // 2. Delete student fines
+    await db.delete(studentFines).where(eq(studentFines.studentId, studentId))
+    
+    // 3. Delete phone history
+    await db.delete(phoneHistory).where(eq(phoneHistory.studentId, studentId))
+    
+    // 4. Delete phone status
     await db.delete(phoneStatus).where(eq(phoneStatus.studentId, studentId))
+    
+    // 5. Delete special pass grants
+    await db.delete(specialPassGrants).where(eq(specialPassGrants.studentId, studentId))
 
-    // Then delete the student
+    // 6. Finally delete the student
     const deleted = await db.delete(students).where(eq(students.id, studentId)).returning()
 
     if (deleted.length === 0) {
@@ -182,12 +195,27 @@ export async function PATCH(request: NextRequest) {
     const action = searchParams.get("action")
 
     if (action === "deleteAll") {
-      // Delete all phone status records first (foreign key constraint)
+      // Delete in order of foreign key dependencies
+      // 1. Delete leave exclusions (depends on students)
+      await db.delete(leaveExclusions)
+      
+      // 2. Delete student fines (depends on students)
+      await db.delete(studentFines)
+      
+      // 3. Delete phone history (depends on students)
+      await db.delete(phoneHistory)
+      
+      // 4. Delete phone status (depends on students)
       await db.delete(phoneStatus)
-      // Then delete all students
+      
+      // 5. Delete special pass grants (depends on students)
+      await db.delete(specialPassGrants)
+      
+      // 6. Finally delete all students
       await db.delete(students)
+      
       invalidateCache(STUDENTS_CACHE_KEY)
-      return NextResponse.json({ success: true, message: "All students deleted successfully" })
+      return NextResponse.json({ success: true, message: "All students and related records deleted successfully" })
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 })
