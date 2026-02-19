@@ -319,18 +319,3 @@ export default function FineManagementPage() {
     </div>
   )
 }
-                                    <CardTitle className="text-lg">Issue Fine</CardTitle>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <CardDescription>
-                                    Search for a student and issue a fine directly to their record.
-                                </CardDescription>
-                            </CardContent>
-                        </Card>
-                    </Link>
-                </div>
-            </main>
-        </div>
-    )
-}
