@@ -70,6 +70,14 @@ export async function GET() {
 // POST - Create a new monthly leave
 export async function POST(request: NextRequest) {
     try {
+        if (!db) {
+            console.error("Database connection is null!");
+            return NextResponse.json(
+                { error: "Database connection failed" },
+                { status: 500 }
+            );
+        }
+
         const body = await request.json();
         const { startDate, endDate, startTime, endTime, createdBy, createdByName, excludedStudents } = body;
 
@@ -119,9 +127,16 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(newLeave, { status: 201 });
     } catch (error) {
-        console.error("POST /api/monthly-leave error:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : "";
+        console.error("POST /api/monthly-leave error:", errorMessage);
+        console.error("Stack:", errorStack);
         return NextResponse.json(
-            { error: "Failed to create monthly leave", details: String(error) },
+            { 
+                error: "Failed to create monthly leave", 
+                details: errorMessage,
+                message: "Check server logs for details"
+            },
             { status: 500 }
         );
     }
