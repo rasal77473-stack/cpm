@@ -41,7 +41,6 @@ function SpecialPassContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [startDate, setStartDate] = useState<string>("")
   const [endDate, setEndDate] = useState<string>("")
-  const [filterClass, setFilterClass] = useState<string>("all") // Filter for pass display
 
   // App States
   const [returningPassId, setReturningPassId] = useState<number | null>(null)
@@ -160,11 +159,6 @@ function SpecialPassContent() {
         )
       }
 
-      // Filter by Class
-      if (filterClass !== "all") {
-        list = list.filter((item: any) => item.className === filterClass)
-      }
-
       // Sort Passes (Active first, then completed; recent first within each group)
       return list.sort((a, b) => {
         // First: sort by completion status (active passes first)
@@ -213,15 +207,10 @@ function SpecialPassContent() {
         )
       }
 
-      // Filter by Class
-      if (filterClass !== "all") {
-        studentList = studentList.filter((item: any) => item.className === filterClass)
-      }
-
       // Sort Students (Alphabetical)
       return studentList.sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
     }
-  }, [passes, students, activeTab, searchQuery, startDate, endDate, phoneStatusMap, filterClass])
+  }, [passes, students, activeTab, searchQuery, startDate, endDate, phoneStatusMap])
 
   // Unique Classes/Lockers for Grant Pass View
   const classes = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.class_name).filter(Boolean))).sort()], [students])
@@ -535,15 +524,15 @@ function SpecialPassContent() {
           </div>
         </div>
 
-        {/* List Header & Filter Controls */}
+        {/* List Header & Date Filters */}
         <div className="space-y-3">
           <h2 className="text-sm font-medium text-muted-foreground">
             Listed {filteredList.length}
             {activeTab === "phone-pass" ? " Passes" : " Students"}
           </h2>
 
-          {/* Date filters for History (Phone Pass) AND Class Filter for all tabs */}
-          {activeTab === "phone-pass" ? (
+          {/* Only show Date filters for History (Phone Pass) */}
+          {activeTab === "phone-pass" && (
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 space-y-1">
                 <label className="text-xs text-muted-foreground pl-1">Start Date</label>
@@ -566,31 +555,6 @@ function SpecialPassContent() {
                     className="h-11 rounded-xl border-green-400 text-green-600 bg-white w-full"
                   />
                 </div>
-              </div>
-              <div className="flex-1 space-y-1">
-                <label className="text-xs text-muted-foreground pl-1">Filter by Class</label>
-                <Select value={filterClass} onValueChange={setFilterClass}>
-                  <SelectTrigger className="h-11 rounded-xl bg-white border-purple-400">
-                    <SelectValue placeholder="All Classes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map(c => <SelectItem key={c} value={c}>{c === "all" ? "All Classes" : c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 space-y-1">
-                <label className="text-xs text-muted-foreground pl-1">Filter by Class</label>
-                <Select value={filterClass} onValueChange={setFilterClass}>
-                  <SelectTrigger className="h-11 rounded-xl bg-white border-purple-400">
-                    <SelectValue placeholder="All Classes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map(c => <SelectItem key={c} value={c}>{c === "all" ? "All Classes" : c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           )}
