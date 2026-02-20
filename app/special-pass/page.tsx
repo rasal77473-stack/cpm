@@ -42,6 +42,7 @@ function SpecialPassContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [startDate, setStartDate] = useState<string>("")
   const [endDate, setEndDate] = useState<string>("")
+  const [passFilterClass, setPassFilterClass] = useState<string>("all")
 
   // App States
   const [returningPassId, setReturningPassId] = useState<number | null>(null)
@@ -155,6 +156,11 @@ function SpecialPassContent() {
         })
       }
 
+      // Apply Class Filter (Only for Passes)
+      if (passFilterClass !== "all") {
+        list = list.filter((p: any) => p.className === passFilterClass)
+      }
+
       // Search for Passes
       if (debouncedSearchQuery.trim()) {
         const q = debouncedSearchQuery.toLowerCase()
@@ -216,11 +222,14 @@ function SpecialPassContent() {
       // Sort Students (Alphabetical)
       return studentList.sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
     }
-  }, [passes, students, activeTab, debouncedSearchQuery, startDate, endDate, phoneStatusMap])
+  }, [passes, students, activeTab, debouncedSearchQuery, startDate, endDate, passFilterClass, phoneStatusMap])
 
   // Unique Classes/Lockers for Grant Pass View
   const classes = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.class_name).filter(Boolean))).sort()], [students])
   const lockers = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.locker_number).filter(Boolean))).sort((a: any, b: any) => Number(a) - Number(b))], [students])
+
+  // Unique Classes for Pass Filtering
+  const passClasses = useMemo(() => ["all", ...Array.from(new Set(passes.map((p: any) => p.className).filter(Boolean))).sort()], [passes])
 
   // Filtered Students for GRANT PASS view
   const filteredStudents = useMemo(() => {
@@ -277,6 +286,10 @@ function SpecialPassContent() {
       if (!res.ok) throw new Error("Failed")
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
+      // Clear the optimistic state after successful API response
+      setPassStates(prev => {
+        const n = { ...prev }; delete n[passId]; return n
+      })
     } catch (e) {
       setPassStates(prev => {
         const n = { ...prev }; delete n[passId]; return n
@@ -310,6 +323,11 @@ function SpecialPassContent() {
       setReturningPassId(passId)
       const res = await fetch(`/api/special-pass/return/${passId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
+
+      // Clear the optimistic state after successful API response
+      setPassStates(prev => {
+        const n = { ...prev }; delete n[passId]; return n
+      })
 
       // Revalidate to ensure server consistency
       mutate("/api/special-pass/all")
@@ -575,6 +593,19 @@ function SpecialPassContent() {
                   />
                 </div>
               </div>
+              <div className="flex-1 space-y-1">
+                <label className="text-xs text-muted-foreground pl-1">Class</label>
+                <select
+                  value={passFilterClass}
+                  onChange={(e) => setPassFilterClass(e.target.value)}
+                  className="h-11 w-full px-3 py-2 rounded-xl border border-purple-400 bg-white text-purple-600 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="all">All Classes</option>
+                  {passClasses.filter((c: string) => c !== "all").map((c: string) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
         </div>
@@ -626,7 +657,7 @@ function SpecialPassContent() {
 
                       <div>
                         <p className="text-xs text-gray-400">Phone</p>
-                        <p className="text-gray-700 truncate">{item.phoneNumber || "-"}</p>
+                        <p className="text-gray-700 truncate">{item.phoneName || item.phoneNumber || "-"}</p>
                       </div>
 
                       {/* Student Fields */}

@@ -199,6 +199,10 @@ export default function GrantGatePassPage() {
                 <p className="font-bold text-gray-900">{student.roll_no || "-"}</p>
               </div>
               <div>
+                <p className="text-xs text-gray-500 font-medium uppercase">Phone</p>
+                <p className="font-bold text-gray-900">{student.phone_number || "-"}</p>
+              </div>
+              <div>
                 <p className="text-xs text-gray-500 font-medium uppercase">Mentor</p>
                 <p className="font-bold text-gray-900">{mentorName || "-"}</p>
               </div>

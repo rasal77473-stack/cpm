@@ -42,6 +42,7 @@ function GatePassContent() {
   const [showStudentList, setShowStudentList] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [activeTab, setActiveTab] = useState<"gate-pass" | "student-in" | "student-out" | "all-students">("gate-pass")
+  const [gatePassFilterClass, setGatePassFilterClass] = useState<string>("all")
 
   const [studentSearchQuery, setStudentSearchQuery] = useState("")
   const [selectedClass, setSelectedClass] = useState("all")
@@ -124,6 +125,10 @@ function GatePassContent() {
         )
       }
 
+      if (gatePassFilterClass !== "all") {
+        list = list.filter((item: any) => item.className === gatePassFilterClass)
+      }
+
       return list.sort((a, b) => {
         // First: sort by completion status (active passes first)
         if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1
@@ -142,6 +147,7 @@ function GatePassContent() {
           admissionNumber: s.admission_number,
           className: s.class_name,
           lockerNumber: s.locker_number,
+          phoneNumber: s.phone_number,
           status: currentStatus,
           issueTime: null,
         }
@@ -163,10 +169,11 @@ function GatePassContent() {
 
       return studentList.sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
     }
-  }, [gatePasses, students, activeTab, debouncedSearchQuery, gatePassStatusMap])
+  }, [gatePasses, students, activeTab, debouncedSearchQuery, gatePassFilterClass, gatePassStatusMap])
 
   const classes = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.class_name).filter(Boolean))).sort()], [students])
   const lockers = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.locker_number).filter(Boolean))).sort((a: any, b: any) => Number(a) - Number(b))], [students])
+  const gatePassClasses = useMemo(() => ["all", ...Array.from(new Set(gatePasses.map((p: any) => p.className).filter(Boolean))).sort()], [gatePasses])
 
   const filteredStudents = useMemo(() => {
     return students
@@ -214,6 +221,10 @@ function GatePassContent() {
       if (!res.ok) throw new Error("Failed")
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
+      // Clear the optimistic state after successful API response
+      setGatePassStates(prev => {
+        const n = { ...prev }; delete n[gatePassId]; return n
+      })
     } catch (e) {
       setGatePassStates(prev => {
         const n = { ...prev }; delete n[gatePassId]; return n
@@ -244,6 +255,11 @@ function GatePassContent() {
       setReturningGatePassId(gatePassId)
       const res = await fetch(`/api/special-pass/return/${gatePassId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
+
+      // Clear the optimistic state after successful API response
+      setGatePassStates(prev => {
+        const n = { ...prev }; delete n[gatePassId]; return n
+      })
 
       mutate("/api/special-pass/all")
       mutate("/api/phone-status")
@@ -436,14 +452,30 @@ function GatePassContent() {
       )}
 
       <main className="px-4 py-4 space-y-6">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-            placeholder="Search"
-            className="pl-11 h-12 rounded-xl bg-white border-gray-200 shadow-sm text-base"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Search"
+              className="pl-11 h-12 rounded-xl bg-white border-gray-200 shadow-sm text-base"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Gate Pass Filter */}
+          {activeTab === "gate-pass" && (
+            <select
+              value={gatePassFilterClass}
+              onChange={(e) => setGatePassFilterClass(e.target.value)}
+              className="w-full h-12 px-3 py-2 rounded-xl border border-purple-400 bg-white text-purple-600 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">All Classes</option>
+              {gatePassClasses.filter((c: string) => c !== "all").map((c: string) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x">
@@ -514,6 +546,10 @@ function GatePassContent() {
                           <div>
                             <p className="text-xs text-gray-400">Locker</p>
                             <p className="font-medium text-gray-900">{item.lockerNumber || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">Phone</p>
+                            <p className="font-medium text-gray-900">{item.phoneNumber || "-"}</p>
                           </div>
                         </>
                       )}

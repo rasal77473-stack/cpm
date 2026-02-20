@@ -12,9 +12,9 @@ import { handleLogout } from "@/lib/auth-utils"
 interface Student {
   id: number
   name: string
-  admissionNumber: string
-  class: string | null
-  phoneNumber: string | null
+  admission_number: string
+  class_name?: string | null
+  phone_number?: string | null
 }
 
 export default function StudentLookupPage() {
@@ -58,7 +58,7 @@ export default function StudentLookupPage() {
     } else {
       const filtered = students.filter((student) =>
         student.name.toLowerCase().includes(query.toLowerCase()) ||
-        student.admissionNumber.toLowerCase().includes(query.toLowerCase())
+        student.admission_number.toLowerCase().includes(query.toLowerCase())
       )
       setFilteredStudents(filtered)
     }
@@ -133,8 +133,8 @@ export default function StudentLookupPage() {
                       {student.name}
                     </h3>
                     <div className="flex gap-4 mt-1 text-sm text-gray-600">
-                      <span>Admission: {student.admissionNumber}</span>
-                      {student.class && <span>Class: {student.class}</span>}
+                      <span>Admission: {student.admission_number}</span>
+                      {student.class_name && <span>Class: {student.class_name}</span>}
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-green-600 transition-colors" />
