@@ -3,21 +3,21 @@ import { db } from "@/db"
 import { students } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
-// Transform camelCase Drizzle object to snake_case API response
+// Transform student data to match frontend expectations (camelCase)
 function transformStudent(student: any) {
   return {
     id: student.id,
-    admission_number: student.admissionNumber,
     name: student.name,
-    locker_number: student.lockerNumber,
-    phone_number: student.phoneNumber,
+    admissionNumber: student.admissionNumber,
+    lockerNumber: student.lockerNumber,
+    phoneNumber: student.phoneNumber,
     class: student.class,
-    roll_number: student.rollNumber,
-    phone_name: student.phoneName,
-    class_name: student.className,
-    roll_no: student.rollNo,
-    special_pass: student.specialPass,
-    created_at: student.createdAt,
+    rollNumber: student.rollNumber,
+    phoneName: student.phoneName,
+    className: student.className,
+    rollNo: student.rollNo,
+    specialPass: student.specialPass,
+    createdAt: student.createdAt,
   }
 }
 
