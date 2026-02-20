@@ -361,11 +361,16 @@ function SpecialPassContent() {
   if (showStudentList) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b px-4 py-4 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setShowStudentList(false)} className="-ml-2">
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
-          <h1 className="text-xl font-bold">Select Student</h1>
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b px-4 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setShowStudentList(false)} className="-ml-2">
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            <h1 className="text-xl font-bold">Select Student</h1>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {filteredStudents.length} / {students.length} total
+          </div>
         </header>
 
         <main className="p-4 space-y-4">
@@ -402,25 +407,33 @@ function SpecialPassContent() {
 
           {/* List */}
           <div className="grid grid-cols-1 gap-2">
-            {filteredStudents.map((s: any) => (
-              <div
-                key={s.id}
-                onClick={() => router.push(`/admin/special-pass/grant/${s.id}`)}
-                className="flex items-center gap-3 p-3 rounded-xl bg-card border hover:border-primary/50 cursor-pointer transition-all active:scale-[0.98]"
-              >
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                    {s.name?.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold">{s.name}</p>
-                  <p className="text-xs text-muted-foreground">{s.admission_number} • {s.class_name}</p>
-                </div>
+            {studentLoading ? (
+              <div className="text-center py-12 flex flex-col items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <p>Loading students...</p>
               </div>
-            ))}
-            {filteredStudents.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">No students found</div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                {students.length === 0 ? "No students available" : "No students found matching filters"}
+              </div>
+            ) : (
+              filteredStudents.map((s: any) => (
+                <div
+                  key={s.id}
+                  onClick={() => router.push(`/admin/special-pass/grant/${s.id}`)}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-card border hover:border-primary/50 cursor-pointer transition-all active:scale-[0.98]"
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                      {s.name?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">{s.admission_number} • {s.class_name}</p>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </main>
