@@ -61,7 +61,6 @@ export async function POST(
           notes: grant.purpose,
           lastUpdated: new Date().toISOString()
         })
-        })
     }
 
     // Log the action in background (fire and forget)
