@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, ChevronLeft, Phone, Banknote } from "lucide-react"
+import { LogOut, ChevronLeft, Phone, Banknote, AlertCircle } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 
 interface StudentData {
@@ -35,6 +35,18 @@ interface FineEntry {
   reason: string | null
 }
 
+interface TallyEntry {
+  id: number
+  studentId: number
+  tallyTypeId: number
+  tallyTypeName: string
+  tallyType: string // 'NORMAL' or 'FIXED'
+  reason: string | null
+  issuedBy: number
+  issuedByName: string
+  issuedAt: string
+}
+
 export default function StudentDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -43,8 +55,9 @@ export default function StudentDetailPage() {
   const [student, setStudent] = useState<StudentData | null>(null)
   const [phoneHistory, setPhoneHistory] = useState<PhoneHistoryEntry[]>([])
   const [fines, setFines] = useState<FineEntry[]>([])
+  const [tallies, setTallies] = useState<TallyEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<"phone" | "fines">("phone")
+  const [activeTab, setActiveTab] = useState<"phone" | "fines" | "tallies">("phone")
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -58,10 +71,11 @@ export default function StudentDetailPage() {
 
   const fetchStudentData = async () => {
     try {
-      const [studentRes, phoneRes, finesRes] = await Promise.all([
+      const [studentRes, phoneRes, finesRes, talliesRes] = await Promise.all([
         fetch(`/api/students/${studentId}`),
         fetch(`/api/students/${studentId}/phone-history`),
         fetch(`/api/students/${studentId}/fines`),
+        fetch(`/api/students/${studentId}/tallies`),
       ])
 
       if (studentRes.ok) {
@@ -77,6 +91,11 @@ export default function StudentDetailPage() {
       if (finesRes.ok) {
         const data = await finesRes.json()
         setFines(data)
+      }
+
+      if (talliesRes.ok) {
+        const data = await talliesRes.json()
+        setTallies(data)
       }
 
       setLoading(false)
@@ -190,6 +209,17 @@ export default function StudentDetailPage() {
             <Banknote className="w-4 h-4 inline mr-2" />
             Fines
           </button>
+          <button
+            onClick={() => setActiveTab("tallies")}
+            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${
+              activeTab === "tallies"
+                ? "border-green-600 text-green-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <AlertCircle className="w-4 h-4 inline mr-2" />
+            Tallies ({tallies.length})
+          </button>
         </div>
 
         {/* Phone History Tab */}
@@ -261,6 +291,65 @@ export default function StudentDetailPage() {
                   </CardContent>
                 </Card>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Tallies Tab */}
+        {activeTab === "tallies" && (
+          <div className="space-y-4">
+            {tallies.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-gray-500">
+                  No tallies issued
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <Card className="bg-blue-50">
+                    <CardContent className="py-4">
+                      <p className="text-sm text-gray-600">Normal Tallies</p>
+                      <p className="font-bold text-2xl text-blue-600">
+                        {tallies.filter(t => t.tallyType === 'NORMAL').length}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">Can be reduced by stars</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-red-50">
+                    <CardContent className="py-4">
+                      <p className="text-sm text-gray-600">Fixed Tallies</p>
+                      <p className="font-bold text-2xl text-red-600">
+                        {tallies.filter(t => t.tallyType === 'FIXED').length}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">Cannot be reduced</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                {tallies.map((tally) => (
+                  <Card key={tally.id} className="bg-white">
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-semibold text-gray-900">{tally.tallyTypeName}</p>
+                          <p className="text-sm text-gray-600">Issued by: {tally.issuedByName}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          tally.tallyType === 'NORMAL'
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-red-100 text-red-800"
+                        }`}>
+                          {tally.tallyType}
+                        </span>
+                      </div>
+                      {tally.reason && (
+                        <p className="text-sm text-gray-700 mt-2">Reason: {tally.reason}</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-2">{formatDate(tally.issuedAt)}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
             )}
           </div>
         )}
