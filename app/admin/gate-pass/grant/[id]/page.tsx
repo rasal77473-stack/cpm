@@ -184,23 +184,23 @@ export default function GrantGatePassPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase">Admission No</p>
-                <p className="font-bold text-gray-900">{student.admission_number || "-"}</p>
+                <p className="font-bold text-gray-900">{student.admissionNumber || "-"}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase">Locker</p>
-                <p className="font-bold text-gray-900">{student.locker_number || "-"}</p>
+                <p className="font-bold text-gray-900">{student.lockerNumber || "-"}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase">Class</p>
-                <p className="font-bold text-gray-900">{student.class_name || "-"}</p>
+                <p className="font-bold text-gray-900">{student.className || "-"}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase">Roll No</p>
-                <p className="font-bold text-gray-900">{student.roll_no || "-"}</p>
+                <p className="font-bold text-gray-900">{student.rollNo || "-"}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase">Phone</p>
-                <p className="font-bold text-gray-900">{student.phone_number || "-"}</p>
+                <p className="font-bold text-gray-900">{student.phoneNumber || "-"}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase">Mentor</p>
