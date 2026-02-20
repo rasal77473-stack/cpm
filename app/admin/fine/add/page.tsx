@@ -56,7 +56,7 @@ export default function AddFinePage() {
     setStaffName(name || "Staff")
     setStaffId(id || "")
     fetchFines()
-    fetchStudents(1) // Load students on initial page load
+    fetchStudents(1, "") // Load students on initial page load
   }, [router])
 
   const fetchFines = async () => {
@@ -71,19 +71,22 @@ export default function AddFinePage() {
     }
   }
 
-  const fetchStudents = async (page: number = 1) => {
+  const fetchStudents = async (page: number = 1, search: string = "") => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
       params.append("page", String(page))
-      if (studentSearch) params.append("search", studentSearch)
+      if (search) params.append("search", search)
 
       const res = await fetch(`/api/students/paginated?${params.toString()}`)
-      if (!res.ok) throw new Error("Failed to fetch students")
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to fetch students")
+      }
 
       const data = await res.json()
-      setStudents(data.data)
-      setStudentPagination(data.pagination)
+      setStudents(data.data || [])
+      setStudentPagination(data.pagination || { total: 0, totalPages: 0, hasMore: false })
       setStudentPage(page)
     } catch (error) {
       console.error("Failed to fetch students:", error)
@@ -95,7 +98,7 @@ export default function AddFinePage() {
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchStudents(1)
+      fetchStudents(1, studentSearch)
     }, 300) // Debounce search
     return () => clearTimeout(timeoutId)
   }, [studentSearch])
@@ -145,14 +148,14 @@ export default function AddFinePage() {
 
       const data = await res.json()
       toast.success(data.message)
-      
+
       // Reset form
       setSelectedFine(null)
       setFineReason("")
       setSelectedStudents(new Set())
       setStudentSearch("")
       setStudentPage(1)
-      
+
       // Redirect after 1 second
       setTimeout(() => router.push("/admin/fine"), 1000)
     } catch (error) {
@@ -219,11 +222,10 @@ export default function AddFinePage() {
                     <button
                       key={fine.id}
                       onClick={() => setSelectedFine(fine)}
-                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                        selectedFine?.id === fine.id
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
+                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${selectedFine?.id === fine.id
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-200 hover:border-gray-300"
+                        }`}
                     >
                       <p className="font-semibold text-gray-900">{fine.name}</p>
                       <p className="text-sm text-gray-600">₹{fine.amount.toFixed(2)}</p>
@@ -305,7 +307,7 @@ export default function AddFinePage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => fetchStudents(studentPage - 1)}
+                          onClick={() => fetchStudents(studentPage - 1, studentSearch)}
                           disabled={studentPage === 1 || loading}
                         >
                           Previous
@@ -316,7 +318,7 @@ export default function AddFinePage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => fetchStudents(studentPage + 1)}
+                          onClick={() => fetchStudents(studentPage + 1, studentSearch)}
                           disabled={!studentPagination.hasMore || loading}
                         >
                           Next

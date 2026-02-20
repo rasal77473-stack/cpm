@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { students } from "@/db/schema"
-import { ilike, desc } from "drizzle-orm"
+import { ilike, desc, sql } from "drizzle-orm"
 
 // Transform camelCase Drizzle object to snake_case API response
 function transformStudent(student: any) {
@@ -30,13 +30,13 @@ export async function GET(request: NextRequest) {
 
     // Build the where condition
     const whereCondition = search
-      ? (search.includes("+") 
-          ? ilike(students.admissionNumber, `%${search}%`)
-          : ilike(students.name, `%${search}%`))
+      ? (search.includes("+")
+        ? ilike(students.admissionNumber, `%${search}%`)
+        : ilike(students.name, `%${search}%`))
       : undefined
 
     // Count FILTERED total
-    let countQuery = db.select({ count: db.sql<number>`count(*)::integer` }).from(students)
+    let countQuery = db.select({ count: sql<number>`count(*)::integer` }).from(students)
     if (whereCondition) {
       countQuery = countQuery.where(whereCondition)
     }
