@@ -75,14 +75,6 @@ export default function PunishmentsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 text-sm">
-                  Manage student fines. View, add, and track monetary penalties.
-                </p>
-                <div className="mt-4 space-y-2 text-sm text-gray-500">
-                  <p>• View all student fines</p>
-                  <p>• Add fines to students</p>
-                  <p>• Track payment status</p>
-                </div>
               </CardContent>
             </Card>
           </Link>
@@ -97,14 +89,6 @@ export default function PunishmentsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 text-sm">
-                  Track rule violations with tallies. Normal tallies can be reduced by stars, fixed tallies cannot.
-                </p>
-                <div className="mt-4 space-y-2 text-sm text-gray-500">
-                  <p>• View all student tallies</p>
-                  <p>• Add rule violation tallies</p>
-                  <p>• Normal & Fixed tallies</p>
-                </div>
               </CardContent>
             </Card>
           </Link>
