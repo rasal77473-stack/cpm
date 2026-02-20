@@ -14,7 +14,7 @@ import {
   ArrowRightCircle,
   LogOut,
   DoorOpen,
-  Banknote,
+  AlertCircle,
   UserCheck
 } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
@@ -91,11 +91,11 @@ export default function Dashboard() {
             </div>
           </Link>
 
-          {/* Fine Management Button */}
+          {/* Punishments Button */}
           <Link href="/admin/fine" className="block">
-            <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-green-100 hover:border-green-300 h-full w-full">
-              <Banknote className="w-8 h-8 text-green-600" strokeWidth={1.5} />
-              <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Fines</span>
+            <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-red-100 hover:border-red-300 h-full w-full">
+              <AlertCircle className="w-8 h-8 text-red-600" strokeWidth={1.5} />
+              <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Punishments</span>
             </div>
           </Link>
         </div>
