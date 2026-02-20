@@ -14,7 +14,11 @@ export async function POST(
         const body = await request.json();
         const { mentorId, mentorName } = body;
 
+        console.log(`\n🚀 POST /api/monthly-leave/${leaveId}/grant - Request received`);
+        console.log("Body:", { mentorId, mentorName });
+
         if (isNaN(leaveId)) {
+            console.error("❌ Invalid leave ID");
             return NextResponse.json({ error: "Invalid leave ID" }, { status: 400 });
         }
 
@@ -25,8 +29,16 @@ export async function POST(
             .where(eq(monthlyLeaves.id, leaveId));
 
         if (!leave) {
+            console.error(`❌ Leave ${leaveId} not found`);
             return NextResponse.json({ error: "Leave not found" }, { status: 404 });
         }
+
+        console.log(`✓ Leave ${leaveId} found:`, {
+            status: leave.status,
+            passesIssued: leave.passesIssued,
+            startDate: leave.startDate,
+            endDate: leave.endDate,
+        });
 
         console.log("📅 Monthly Leave Ready for Grant:", { leaveId, status: leave.status });
 
@@ -46,6 +58,7 @@ export async function POST(
             .where(eq(leaveExclusions.leaveId, leaveId));
 
         const excludedIds = exclusions.map((e) => e.studentId);
+        console.log(`✓ Found ${exclusions.length} excluded students`);
 
         // Get all eligible students (not excluded)
         let eligibleStudents;
@@ -56,6 +69,11 @@ export async function POST(
                 .where(notInArray(students.id, excludedIds));
         } else {
             eligibleStudents = await db.select().from(students);
+        }
+
+        console.log(`✓ Total eligible students: ${eligibleStudents.length}`);
+        if (eligibleStudents.length === 0) {
+            console.warn("⚠️  No eligible students found");
         }
 
         if (eligibleStudents.length === 0) {
@@ -94,42 +112,50 @@ export async function POST(
         const purpose = `Monthly Leave (${startDate.toISOString().split('T')[0]} - ${endDate.toISOString().split('T')[0]})`;
 
         for (const student of eligibleStudents) {
-            // Phone pass
+            // Phone pass - convert dates to ISO strings
             passRecords.push({
                 studentId: student.id,
                 mentorId: mentorId,
                 mentorName: mentorName,
                 purpose: `PHONE: ${purpose}`,
-                issueTime,
-                returnTime,
+                issueTime: issueTime.toISOString(),  // Convert to ISO string
+                returnTime: returnTime.toISOString(),  // Convert to ISO string
                 status: "ACTIVE",
             });
 
-            // Gate pass
+            // Gate pass - convert dates to ISO strings
             passRecords.push({
                 studentId: student.id,
                 mentorId: mentorId,
                 mentorName: mentorName,
                 purpose: `GATE: ${purpose}`,
-                issueTime,
-                returnTime,
+                issueTime: issueTime.toISOString(),  // Convert to ISO string
+                returnTime: returnTime.toISOString(),  // Convert to ISO string
                 status: "ACTIVE",
             });
         }
 
         if (passRecords.length > 0) {
             console.log(`💾 Inserting ${passRecords.length} pass records`);
-            await db.insert(specialPassGrants).values(passRecords);
-            console.log("✅ Passes created successfully");
+            try {
+                await db.insert(specialPassGrants).values(passRecords);
+                console.log("✅ Passes created successfully");
+            } catch (insertError) {
+                console.error("❌ Error inserting passes:", insertError);
+                throw insertError;
+            }
+        } else {
+            console.warn("⚠️  No pass records to insert");
         }
 
         // Mark leave as IN_PROGRESS with passes issued
+        console.log(`📝 Updating leave ${leaveId} status to IN_PROGRESS`);
         await db
             .update(monthlyLeaves)
             .set({ status: "IN_PROGRESS", passesIssued: "YES" })
             .where(eq(monthlyLeaves.id, leaveId));
 
-        console.log(`✅ Monthly leave ${leaveId} processed. ${passRecords.length / 2} students granted passes`);
+        console.log(`✅ Monthly leave ${leaveId} processed. ${passRecords.length / 2} students granted passes\n`);
 
         return NextResponse.json({
             success: true,
@@ -139,9 +165,14 @@ export async function POST(
             passesCreated: passRecords.length,
         });
     } catch (error) {
-        console.error("POST /api/monthly-leave/[id]/grant error:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : "";
+        console.error(`\n❌ POST /api/monthly-leave/[id]/grant error: ${errorMessage}`);
+        console.error("Stack:", errorStack);
+        console.error("Full error:", error);
+        
         return NextResponse.json(
-            { error: "Failed to schedule passes", details: error instanceof Error ? error.message : String(error) },
+            { error: "Failed to schedule passes", details: errorMessage },
             { status: 500 }
         );
     }
