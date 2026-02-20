@@ -11,8 +11,6 @@ export async function POST(
     const { id } = await params
     const grantId = parseInt(id)
 
-    console.log(`Processing OUT request for pass ID: ${grantId}`)
-
     // Check if grant exists
     const [grant] = await db
       .select()
@@ -20,7 +18,6 @@ export async function POST(
       .where(eq(specialPassGrants.id, grantId))
 
     if (!grant) {
-      console.warn(`Pass ID ${grantId} not found`)
       return NextResponse.json({ error: "Special pass not found" }, { status: 404 })
     }
 
@@ -32,8 +29,6 @@ export async function POST(
       })
       .where(eq(specialPassGrants.id, grantId))
       .returning()
-
-    console.log(`Successfully marked pass ${grantId} as OUT`)
 
     // Sync main phone status to OUT (synchronous)
     const studentId = grant.studentId
@@ -69,7 +64,7 @@ export async function POST(
         userId: grant.mentorId,
         action: "OUT_SPECIAL_PASS",
         details: `Student left with special pass. Student ID: ${grant.studentId}. Pass ID: ${grantId}`
-      }).catch(err => console.error("Failed to log activity:", err))
+      }).catch(err => {})
     }
 
     return NextResponse.json({
@@ -83,7 +78,6 @@ export async function POST(
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to process OUT request"
-    console.error("Error in POST /api/special-pass/out/[id]:", errorMessage, error)
     return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

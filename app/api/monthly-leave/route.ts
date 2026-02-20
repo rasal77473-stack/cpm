@@ -83,14 +83,11 @@ export async function POST(request: NextRequest) {
         if (!createdByName) missingFields.push("createdByName");
 
         if (missingFields.length > 0) {
-            console.error("Missing required fields:", missingFields, "Received:", body);
             return NextResponse.json(
                 { error: `Missing required fields: ${missingFields.join(", ")}` },
                 { status: 400 }
             );
         }
-
-        console.log("Creating monthly leave with:", { startDate, endDate, startTime, endTime });
 
         // Create the monthly leave record
         const [newLeave] = await db
@@ -106,8 +103,6 @@ export async function POST(request: NextRequest) {
                 status: "ACTIVE",
             })
             .returning();
-
-        console.log("Monthly leave created:", newLeave);
 
         // Add exclusions if any
         if (excludedStudents && excludedStudents.length > 0) {

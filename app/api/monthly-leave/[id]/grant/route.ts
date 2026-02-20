@@ -78,15 +78,11 @@ export async function POST(
         const issueTime = new Date(startDate);
         issueTime.setHours(startHour, startMin, 0, 0);
 
-        console.log("⏰ Passes will be issued at:", issueTime.toISOString());
-
         // Mark leave as PENDING - passes will be created automatically by scheduler at start time
         await db
             .update(monthlyLeaves)
             .set({ status: "PENDING", passesIssued: "YES" })
             .where(eq(monthlyLeaves.id, leaveId));
-
-        console.log("✅ Monthly leave marked as PENDING - scheduler will create passes at start time");
 
         return NextResponse.json({
             success: true,

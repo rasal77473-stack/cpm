@@ -12,17 +12,11 @@ export function middleware(request: NextRequest) {
     if (protectedRoutes.some(route => pathname.startsWith(route))) {
         if (!token) {
             const loginUrl = new URL('/login', request.url)
-            // loginUrl.searchParams.set('from', pathname) // Optional: Redirect back after login
             return NextResponse.redirect(loginUrl)
         }
     }
 
-    // 2. Allow access to Login page even if token exists (to allow re-login/logout fixes)
-    // if (pathname === '/login' && token) {
-    //     return NextResponse.redirect(new URL('/dashboard', request.url))
-    // }
-
-    // 3. If accessing root '/' -> Redirect to Dashboard if logged in, else Login
+    // 2. If accessing root '/' -> Redirect to Dashboard if logged in, else Login
     if (pathname === '/') {
         if (token) {
             return NextResponse.redirect(new URL('/dashboard', request.url))

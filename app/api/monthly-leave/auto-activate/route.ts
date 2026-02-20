@@ -10,7 +10,6 @@ import autoActivateMonthlyLeavePasses from "@/lib/auto-activate-passes"
  */
 export async function POST() {
   try {
-    console.log("🚀 Auto-activation endpoint triggered")
     await autoActivateMonthlyLeavePasses()
     
     return NextResponse.json({
@@ -19,7 +18,6 @@ export async function POST() {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error("❌ Error in auto-activation endpoint:", error)
     return NextResponse.json(
       { 
         error: "Failed to auto-activate passes",

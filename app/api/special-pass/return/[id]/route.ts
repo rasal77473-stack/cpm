@@ -52,7 +52,6 @@ export async function POST(
           .update(students)
           .set({ specialPass: "NO" })
           .where(eq(students.id, studentId))
-        console.log(`📝 Updated student ${studentId} status to specialPass: NO`)
 
         // Sync main phone status to IN (synchronous)
         const [existingStatus] = await db
@@ -88,7 +87,6 @@ export async function POST(
           updatedBy: grant.mentorName,
           notes: `PHONE PASS RETURNED: ${grant.purpose}`,
         })
-        console.log(`📜 Phone history recorded: student ${studentId} marked as IN (pass returned)`)
 
         // Log the action in background
         if (grant.mentorId) {
@@ -99,7 +97,6 @@ export async function POST(
           })
         }
       } catch (innerError) {
-        console.error("❌ Error in background sync during pass return:", innerError)
         // Don't throw here to ensure the response is still returned as success if the main pass status was updated
       }
     }
@@ -113,7 +110,6 @@ export async function POST(
       { status: 200 }
     )
   } catch (error) {
-    console.error("POST /api/special-pass/return/[id] error:", error)
     return NextResponse.json(
       { error: "Failed to return special pass" },
       { status: 500 }

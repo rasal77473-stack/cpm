@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!studentId || mentorId === undefined || mentorId === null || !mentorName || !purpose) {
-      console.log("Missing fields:", { studentId, mentorId, mentorName, purpose })
       return NextResponse.json(
         { error: "studentId, mentorId, mentorName, and purpose are required" },
         { status: 400 }
@@ -33,18 +32,14 @@ export async function POST(request: NextRequest) {
     const existingGatePass = existingPass.filter((p: any) => p.purpose?.startsWith("GATE:"))
 
     if (existingGatePass.length > 0) {
-      console.log("⚠️  Student already has active/pending gate pass:", existingGatePass[0])
       return NextResponse.json(
         { error: `Student already has an active gate pass (Status: ${existingGatePass[0].status})` },
         { status: 400 }
       )
     }
 
-    console.log("Creating gate pass for student:", studentId, "Purpose:", purpose)
-
     // Create new gate pass grant (using specialPassGrants table)
     const issueTime = submissionTime ? new Date(submissionTime) : new Date()
-    console.log("⏰ Issue time received from client:", issueTime.toISOString())
     
     const [newGrant] = await db
       .insert(specialPassGrants)
@@ -58,8 +53,6 @@ export async function POST(request: NextRequest) {
         status: "ACTIVE", // Gate pass starts as ACTIVE
       })
       .returning()
-
-    console.log("✅ Gate pass created with issueTime:", newGrant.issueTime)
 
     // Update student's special_pass status
     await db
@@ -81,18 +74,13 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error("❌ POST /api/gate-pass/grant CAUGHT ERROR:")
-    console.error("Error Type:", error instanceof Error ? error.constructor.name : typeof error)
-    console.error("Error Message:", error instanceof Error ? error.message : String(error))
-    console.error("Error Stack:", error instanceof Error ? error.stack : "N/A")
-    console.error("Full Error Object:", error)
+    console.error("POST /api/gate-pass/grant error:", error instanceof Error ? error.message : String(error))
     
     const errorDetails = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
       { 
         error: "Failed to grant gate pass",
         details: errorDetails,
-        timestamp: new Date().toISOString()
       },
       { status: 500 }
     )

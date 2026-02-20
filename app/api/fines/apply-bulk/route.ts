@@ -55,8 +55,6 @@ export async function POST(request: NextRequest) {
       )
       .returning()
 
-    console.log(`✅ Created ${createdFines.length} fines for ${studentIds.length} students`)
-
     return NextResponse.json(
       {
         success: true,
