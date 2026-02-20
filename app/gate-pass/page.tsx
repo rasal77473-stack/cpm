@@ -57,6 +57,7 @@ function GatePassContent() {
   const { data: studentsData = [], isLoading: studentLoading } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 3600000,
+    onError: () => setCanGrantPass(false),
   })
   const students = Array.isArray(studentsData) ? studentsData : []
 
