@@ -28,31 +28,30 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || ""
     const pageSize = 50 // Load 50 students per page
 
-    let query = db.select().from(students)
-
-    // Search by name or admission number
-    if (search) {
-      query = query.where(
-        search.includes("+") 
+    // Build the where condition
+    const whereCondition = search
+      ? (search.includes("+") 
           ? ilike(students.admissionNumber, `%${search}%`)
-          : ilike(students.name, `%${search}%`)
-      )
+          : ilike(students.name, `%${search}%`))
+      : undefined
+
+    // Count FILTERED total
+    let countQuery = db.select({ count: db.sql<number>`count(*)::integer` }).from(students)
+    if (whereCondition) {
+      countQuery = countQuery.where(whereCondition)
     }
 
-    // Count total
-    const countResult = await db
-      .select({ count: db.sql<number>`count(*)::integer` })
-      .from(students)
-
+    const countResult = await countQuery
     const total = countResult[0]?.count || 0
-    const totalPages = Math.ceil(total / pageSize)
+    const totalPages = total > 0 ? Math.ceil(total / pageSize) : 1
 
     // Fetch paginated results
     const offset = (page - 1) * pageSize
-    const result = await query
-      .orderBy(students.name)
-      .limit(pageSize)
-      .offset(offset)
+    let resultQuery = db.select().from(students).orderBy(students.name)
+    if (whereCondition) {
+      resultQuery = resultQuery.where(whereCondition)
+    }
+    const result = await resultQuery.limit(pageSize).offset(offset)
 
     return NextResponse.json({
       data: result.map(transformStudent),
