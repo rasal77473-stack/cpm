@@ -17,6 +17,7 @@ export default function GrantGatePassPage() {
 
   const [student, setStudent] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [mentorName, setMentorName] = useState("")
   const [mentorId, setMentorId] = useState("")
@@ -47,15 +48,16 @@ export default function GrantGatePassPage() {
         const found = await res.json()
         
         if (!found || !found.id) {
-          toast.error("Student not found")
-          setTimeout(() => router.back(), 1000)
+          setError("Student not found")
+          setTimeout(() => router.back(), 500)
           return
         }
         setStudent(found)
+        setError(null)
       } catch (error) {
         console.error("Error fetching student:", error)
-        toast.error("Failed to load student details")
-        setTimeout(() => router.back(), 1000)
+        setError("Failed to load student details")
+        setTimeout(() => router.back(), 500)
       } finally {
         setLoading(false)
       }
@@ -153,13 +155,10 @@ export default function GrantGatePassPage() {
     )
   }
 
-  if (!student) {
+  if (!student || error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-        <p className="text-muted-foreground mb-4">Student not found</p>
-        <Button variant="outline" onClick={() => router.back()}>
-          Go Back
-        </Button>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     )
   }
