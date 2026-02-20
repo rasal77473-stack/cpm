@@ -70,15 +70,21 @@ export async function GET() {
 // POST - Create a new monthly leave
 export async function POST(request: NextRequest) {
     try {
+        console.log("POST /api/monthly-leave - Request received");
+        
         if (!db) {
-            console.error("Database connection is null!");
+            console.error("❌ Database connection is null!");
             return NextResponse.json(
                 { error: "Database connection failed" },
                 { status: 500 }
             );
         }
+        
+        console.log("✓ Database connection verified");
 
         const body = await request.json();
+        console.log("Request body:", JSON.stringify(body, null, 2));
+        
         const { startDate, endDate, startTime, endTime, createdBy, createdByName, excludedStudents } = body;
 
         // Check each field and provide specific error message
@@ -91,18 +97,29 @@ export async function POST(request: NextRequest) {
         if (!createdByName) missingFields.push("createdByName");
 
         if (missingFields.length > 0) {
+            console.error("Missing fields:", missingFields);
             return NextResponse.json(
                 { error: `Missing required fields: ${missingFields.join(", ")}` },
                 { status: 400 }
             );
         }
 
+        console.log("✓ All required fields present");
+        console.log("Creating monthly leave with:", {
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            startTime,
+            endTime,
+            createdBy,
+            createdByName,
+        });
+
         // Create the monthly leave record
         const [newLeave] = await db
             .insert(monthlyLeaves)
             .values({
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
+                startDate: startDate, // Keep as ISO string - Drizzle/postgres will handle conversion
+                endDate: endDate,     // Keep as ISO string
                 startTime,
                 endTime,
                 reason: "Monthly Leave",
@@ -111,9 +128,12 @@ export async function POST(request: NextRequest) {
                 status: "ACTIVE",
             })
             .returning();
+        
+        console.log("✓ Monthly leave created with ID:", newLeave?.id);
 
         // Add exclusions if any
         if (excludedStudents && excludedStudents.length > 0) {
+            console.log(`Adding ${excludedStudents.length} student exclusions`);
             const exclusionRecords = excludedStudents.map((studentId: number) => ({
                 leaveId: newLeave.id,
                 studentId,
@@ -123,14 +143,20 @@ export async function POST(request: NextRequest) {
             }));
 
             await db.insert(leaveExclusions).values(exclusionRecords);
+            console.log("✓ Exclusions added");
         }
 
+        console.log("✓ Monthly leave creation successful");
         return NextResponse.json(newLeave, { status: 201 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         const errorStack = error instanceof Error ? error.stack : "";
-        console.error("POST /api/monthly-leave error:", errorMessage);
+        console.error("❌ POST /api/monthly-leave error:", errorMessage);
         console.error("Stack:", errorStack);
+        
+        // Log the full error object for debugging
+        console.error("Full error object:", error);
+        
         return NextResponse.json(
             { 
                 error: "Failed to create monthly leave", 
