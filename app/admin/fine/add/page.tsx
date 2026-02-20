@@ -19,8 +19,8 @@ interface FineType {
 interface Student {
   id: number
   name: string
-  admissionNumber: string
-  class?: string
+  admission_number: string
+  class_name?: string
 }
 
 export default function AddFinePage() {
@@ -292,9 +292,9 @@ export default function AddFinePage() {
                           />
                           <div className="ml-3 flex-1">
                             <p className="font-medium text-gray-900">{student.name}</p>
-                            <p className="text-sm text-gray-600">{student.admissionNumber}</p>
+                            <p className="text-sm text-gray-600">{student.admission_number || "-"}</p>
                           </div>
-                          {student.class && <span className="text-xs text-gray-500">{student.class}</span>}
+                          {student.class_name && <span className="text-xs text-gray-500">{student.class_name}</span>}
                         </label>
                       ))}
                     </div>

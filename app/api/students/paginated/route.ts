@@ -3,6 +3,24 @@ import { db } from "@/db"
 import { students } from "@/db/schema"
 import { ilike, desc } from "drizzle-orm"
 
+// Transform camelCase Drizzle object to snake_case API response
+function transformStudent(student: any) {
+  return {
+    id: student.id,
+    admission_number: student.admissionNumber,
+    name: student.name,
+    locker_number: student.lockerNumber,
+    phone_number: student.phoneNumber,
+    class: student.class,
+    roll_number: student.rollNumber,
+    phone_name: student.phoneName,
+    class_name: student.className,
+    roll_no: student.rollNo,
+    special_pass: student.specialPass,
+    created_at: student.createdAt,
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -37,7 +55,7 @@ export async function GET(request: NextRequest) {
       .offset(offset)
 
     return NextResponse.json({
-      data: result,
+      data: result.map(transformStudent),
       pagination: {
         page,
         pageSize,
