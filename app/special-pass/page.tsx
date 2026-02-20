@@ -73,10 +73,11 @@ function SpecialPassContent() {
   const students = Array.isArray(studentsData) ? studentsData : []
 
   // Fetch all special passes
-  // IMPORTANT: Reduced refreshInterval from 10000 to 30000 (30 sec) to prevent stale data loops
-  // COMPLETED passes should appear immediately after submission, not flip back
+  // IMPORTANT: Reduced refreshInterval to 3000ms (3 sec) for instant feedback on IN/OUT
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 30000,
+    refreshInterval: 3000,
+    revalidateOnFocus: true,
+    dedupingInterval: 1000,
   })
   // Filter ONLY phone passes - strictly exclude all gate passes
   const passes = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
@@ -87,7 +88,9 @@ function SpecialPassContent() {
 
   // Fetch phone statuses
   const { data: phoneStatusData = [] } = useSWR("/api/phone-status", fetcher, {
-    revalidateOnFocus: false,
+    refreshInterval: 2000,
+    revalidateOnFocus: true,
+    dedupingInterval: 500,
   })
 
   // --------------------------------------------------------------------------

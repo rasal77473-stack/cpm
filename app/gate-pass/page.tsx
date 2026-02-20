@@ -61,10 +61,12 @@ function GatePassContent() {
   const students = Array.isArray(studentsData) ? studentsData : []
 
   // Fetch gate passes (from special-pass/all since we use same table)
-  // IMPORTANT: Reduced refreshInterval from 5000 to 30000 (30 sec) to prevent stale data loops
+  // IMPORTANT: Reduced refreshInterval to 3000ms (3 sec) for instant feedback
   // COMPLETED passes should appear immediately after submission, not flip back
   const { data: allGatePasses = [], isLoading: gatePassesLoading } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 30000,
+    refreshInterval: 3000,
+    revalidateOnFocus: true,
+    dedupingInterval: 1000,
   })
   // Filter ONLY gate passes - strictly exclude all phone passes
   const gatePasses = Array.isArray(allGatePasses) ? allGatePasses.filter((p: any) => {
@@ -75,8 +77,9 @@ function GatePassContent() {
 
   // Fetch phone/gate pass statuses (same tracking)
   const { data: gatePassStatusData = [] } = useSWR("/api/phone-status", fetcher, {
-    revalidateOnFocus: false,
-    refreshInterval: 5000,
+    refreshInterval: 2000,
+    revalidateOnFocus: true,
+    dedupingInterval: 500,
   })
 
   const gatePassStatusMap = useMemo(() => {

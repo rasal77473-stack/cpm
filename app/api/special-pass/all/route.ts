@@ -26,7 +26,11 @@ export async function GET(request: NextRequest) {
       .innerJoin(students, eq(specialPassGrants.studentId, students.id))
       .orderBy(desc(specialPassGrants.issueTime))
 
-    return NextResponse.json(allPasses)
+    return NextResponse.json(allPasses, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=2, stale-while-revalidate=5'
+      }
+    })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch special passes"
     console.error("GET /api/special-pass/all error:", errorMessage, error)

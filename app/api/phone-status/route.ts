@@ -11,7 +11,11 @@ export async function GET() {
       .from(phoneStatus)
       .orderBy(desc(phoneStatus.lastUpdated));
 
-    return NextResponse.json(statuses);
+    return NextResponse.json(statuses, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=1, stale-while-revalidate=3'
+      }
+    });
   } catch (error) {
     console.error("GET /api/phone-status error:", error);
     return NextResponse.json(
