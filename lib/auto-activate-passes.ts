@@ -167,6 +167,9 @@ export async function autoActivateMonthlyLeavePasses() {
     for (const leave of completingLeaves) {
       console.log(`\n⏱️  Completing leave ${leave.id}`)
       
+      // Convert startDate to Date object (it comes as string from DB)
+      const leaveStartTime = new Date(leave.startDate).getTime()
+      
       // Get the corresponding ACTIVE passes for this leave
       const activePasses = await db
         .select()
@@ -174,8 +177,8 @@ export async function autoActivateMonthlyLeavePasses() {
         .where(
           and(
             eq(specialPassGrants.status, "ACTIVE"),
-            gte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() - 60000)),
-            lte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() + 60000))
+            gte(specialPassGrants.issueTime, new Date(leaveStartTime - 60000)),
+            lte(specialPassGrants.issueTime, new Date(leaveStartTime + 60000))
           )
         )
 
@@ -189,8 +192,8 @@ export async function autoActivateMonthlyLeavePasses() {
           .where(
             and(
               eq(specialPassGrants.status, "ACTIVE"),
-              gte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() - 60000)),
-              lte(specialPassGrants.issueTime, new Date(leave.startDate.getTime() + 60000))
+              gte(specialPassGrants.issueTime, new Date(leaveStartTime - 60000)),
+              lte(specialPassGrants.issueTime, new Date(leaveStartTime + 60000))
             )
           )
 

@@ -16,23 +16,29 @@ import {
 
 export default function PhonePassMenu() {
   const router = useRouter()
-  const [permissions, setPermissions] = useState<string[]>([])
-  const [role, setRole] = useState("")
-  const [isAuthorized, setIsAuthorized] = useState(false)
+  // Get initial values from localStorage for instant rendering
+  const [permissions, setPermissions] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      return JSON.parse(localStorage.getItem("permissions") || "[]")
+    }
+    return []
+  })
+  const [role, setRole] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("role") || ""
+    }
+    return ""
+  })
+  const [isAuthorized, setIsAuthorized] = useState(true) // Assume authorized by default
 
   useEffect(() => {
     const token = localStorage.getItem("token")
-    const role = localStorage.getItem("role")
-    const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
+      setIsAuthorized(false)
       router.push("/login")
       return
     }
-
-    setIsAuthorized(true)
-    setPermissions(perms)
-    setRole(role || "")
   }, [router])
 
   if (!isAuthorized) {
