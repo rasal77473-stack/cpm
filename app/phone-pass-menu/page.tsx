@@ -11,35 +11,37 @@ import {
   Ticket,
   History,
   ArrowRightCircle,
-  ChevronLeft
+  ChevronLeft,
+  Loader2
 } from "lucide-react"
 
 export default function PhonePassMenu() {
   const router = useRouter()
-  // Get initial values from localStorage for instant rendering
-  const [permissions, setPermissions] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      return JSON.parse(localStorage.getItem("permissions") || "[]")
-    }
-    return []
-  })
-  const [role, setRole] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("role") || ""
-    }
-    return ""
-  })
-  const [isAuthorized, setIsAuthorized] = useState(true) // Assume authorized by default
+  const [permissions, setPermissions] = useState<string[]>([])
+  const [role, setRole] = useState("")
+  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [loadingHref, setLoadingHref] = useState<string | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
+    const role = localStorage.getItem("role")
+    const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
-      setIsAuthorized(false)
       router.push("/login")
       return
     }
+
+    setIsAuthorized(true)
+    setPermissions(perms)
+    setRole(role || "")
   }, [router])
+
+  const handleNavigation = (href: string) => {
+    setLoadingHref(href)
+    // Push navigation immediately (non-blocking)
+    router.push(href)
+  }
 
   if (!isAuthorized) {
     return (
@@ -113,13 +115,25 @@ export default function PhonePassMenu() {
           {menuItems.map((item) => {
             if (!item.visible) return null
             const Icon = item.icon
+            const isLoading = loadingHref === item.href
             return (
-              <Link key={item.label} href={item.href} className="block">
-                <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-green-100 hover:border-green-300 h-full w-full">
-                  <Icon className={`w-8 h-8 ${item.color}`} strokeWidth={1.5} />
+              <button
+                key={item.label}
+                onClick={() => handleNavigation(item.href)}
+                disabled={loadingHref !== null}
+                className="block focus:outline-none"
+              >
+                <div className={`bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-all cursor-pointer border border-green-100 hover:border-green-300 h-full w-full ${
+                  isLoading ? "opacity-60 scale-95" : "hover:scale-105"
+                } ${loadingHref !== null && !isLoading ? "opacity-40" : ""}`}>
+                  {isLoading ? (
+                    <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+                  ) : (
+                    <Icon className={`w-8 h-8 text-green-600`} strokeWidth={1.5} />
+                  )}
                   <span className="text-xs font-semibold text-gray-700 text-center leading-tight">{item.label}</span>
                 </div>
-              </Link>
+              </button>
             )
           })}
         </div>
