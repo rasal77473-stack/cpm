@@ -109,8 +109,8 @@ export async function autoActivateMonthlyLeavePasses() {
           mentorId: leave.createdBy,
           mentorName: leave.createdByName,
           purpose: `PHONE: ${leaveReason}`,
-          issueTime,
-          returnTime,
+          issueTime: issueTime.toISOString(),
+          returnTime: returnTime.toISOString(),
           status: "ACTIVE",
         })
 
@@ -120,8 +120,8 @@ export async function autoActivateMonthlyLeavePasses() {
           mentorId: leave.createdBy,
           mentorName: leave.createdByName,
           purpose: `GATE: ${leaveReason}`,
-          issueTime,
-          returnTime,
+          issueTime: issueTime.toISOString(),
+          returnTime: returnTime.toISOString(),
           status: "ACTIVE",
         })
       })
@@ -168,7 +168,12 @@ export async function autoActivateMonthlyLeavePasses() {
       console.log(`\n⏱️  Completing leave ${leave.id}`)
       
       // Convert startDate to Date object (it comes as string from DB)
-      const leaveStartTime = new Date(leave.startDate).getTime()
+      const leaveStartDate = new Date(leave.startDate)
+      const leaveStartTime = leaveStartDate.getTime()
+      
+      // Create date boundaries and convert to ISO strings
+      const lowerBound = new Date(leaveStartTime - 60000).toISOString()
+      const upperBound = new Date(leaveStartTime + 60000).toISOString()
       
       // Get the corresponding ACTIVE passes for this leave
       const activePasses = await db
@@ -177,8 +182,8 @@ export async function autoActivateMonthlyLeavePasses() {
         .where(
           and(
             eq(specialPassGrants.status, "ACTIVE"),
-            gte(specialPassGrants.issueTime, new Date(leaveStartTime - 60000)),
-            lte(specialPassGrants.issueTime, new Date(leaveStartTime + 60000))
+            gte(specialPassGrants.issueTime, lowerBound),
+            lte(specialPassGrants.issueTime, upperBound)
           )
         )
 
@@ -192,8 +197,8 @@ export async function autoActivateMonthlyLeavePasses() {
           .where(
             and(
               eq(specialPassGrants.status, "ACTIVE"),
-              gte(specialPassGrants.issueTime, new Date(leaveStartTime - 60000)),
-              lte(specialPassGrants.issueTime, new Date(leaveStartTime + 60000))
+              gte(specialPassGrants.issueTime, lowerBound),
+              lte(specialPassGrants.issueTime, upperBound)
             )
           )
 
