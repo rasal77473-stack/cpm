@@ -185,7 +185,7 @@ export default function GrantGatePassPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase">Admission No</p>
-                <p className="font-bold text-gray-900">{student.admission_number}</p>
+                <p className="font-bold text-gray-900">{student.admission_number || "-"}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase">Locker</p>

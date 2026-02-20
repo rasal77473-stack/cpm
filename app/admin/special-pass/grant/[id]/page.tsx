@@ -200,19 +200,19 @@ export default function GrantSpecialPassPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Admission Number</p>
-                  <p className="font-semibold text-gray-900">{student.admissionNumber}</p>
+                  <p className="font-semibold text-gray-900">{student.admission_number || "-"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Class</p>
-                  <p className="font-semibold text-gray-900">{student.className || student.class || "-"}</p>
+                  <p className="font-semibold text-gray-900">{student.class_name || student.class || "-"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Locker</p>
-                  <p className="font-semibold text-gray-900">{student.lockerNumber || "-"}</p>
+                  <p className="font-semibold text-gray-900">{student.locker_number || "-"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Phone</p>
-                  <p className="font-semibold text-gray-900">{student.phoneName || student.phoneNumber || "-"}</p>
+                  <p className="font-semibold text-gray-900">{student.phone_name || student.phone_number || "-"}</p>
                 </div>
               </div>
             </div>
