@@ -162,13 +162,15 @@ export default function GrantSpecialPassPage() {
 
       toast.success("Special pass granted successfully!")
       console.log("✅ Phone pass created successfully")
-      setTimeout(() => router.push("/special-pass"), 500)
+      // Redirect to phone pass page immediately
+      router.push("/special-pass")
     } catch (error: any) {
       console.error("❌ Catch Block Error:", error)
       console.error("❌ Error Stack:", error?.stack)
       const errorMessage = error?.message || "Failed to grant special pass"
       console.error("❌ Final Error Message:", errorMessage)
       toast.error(errorMessage)
+    } finally {
       setSubmitting(false)
     }
   }

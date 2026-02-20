@@ -140,13 +140,15 @@ export default function GrantGatePassPage() {
       
       toast.success("Gate pass granted successfully!")
       console.log("✅ Gate pass created successfully")
-      setTimeout(() => router.push("/gate-pass"), 500)
+      // Redirect to gate pass page immediately
+      router.push("/gate-pass")
     } catch (error: any) {
       console.error("❌ Catch Block Error:", error)
       console.error("❌ Error Stack:", error?.stack)
       const errorMessage = error?.message || "Failed to grant gate pass"
       console.error("❌ Final Error Message:", errorMessage)
       toast.error(errorMessage)
+    } finally {
       setSubmitting(false)
     }
   }

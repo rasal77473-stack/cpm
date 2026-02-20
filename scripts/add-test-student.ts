@@ -6,15 +6,15 @@ async function addTestStudent() {
     console.log("Adding test student...")
 
     const newStudent = await db.insert(students).values({
-      admission_number: "TST001",
+      admissionNumber: "TST001",
       name: "Test Student",
-      locker_number: "L-001",
-      phone_number: "+1234567890",
+      lockerNumber: "L-001",
+      phoneNumber: "+1234567890",
       class: "10A",
-      roll_number: "01",
-      phone_name: "iPhone 12",
-      class_name: "Class 10-A",
-      roll_no: "01",
+      rollNumber: "01",
+      phoneName: "iPhone 12",
+      className: "Class 10-A",
+      rollNo: "01",
     }).returning()
 
     console.log("✓ Test student added successfully:", newStudent[0])

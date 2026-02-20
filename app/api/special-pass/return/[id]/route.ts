@@ -37,7 +37,7 @@ export async function POST(
       .update(specialPassGrants)
       .set({
         status: "COMPLETED",
-        submissionTime: new Date(),
+        submissionTime: new Date().toISOString(),
       })
       .where(eq(specialPassGrants.id, grantId))
       .returning()

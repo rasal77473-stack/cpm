@@ -47,7 +47,7 @@ export async function POST(
       await db.update(phoneStatus)
         .set({
           status: "OUT",
-          lastUpdated: new Date(),
+          lastUpdated: new Date().toISOString(),
           updatedBy: grant.mentorName,
           notes: grant.purpose
         })
@@ -59,7 +59,8 @@ export async function POST(
           status: "OUT",
           updatedBy: grant.mentorName,
           notes: grant.purpose,
-          lastUpdated: new Date()
+          lastUpdated: new Date().toISOString()
+        })
         })
     }
 

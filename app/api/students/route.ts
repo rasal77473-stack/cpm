@@ -12,6 +12,24 @@ async function logActivity(userId: number, action: string, details: string) {
   }
 }
 
+// Transform camelCase Drizzle object to snake_case API response
+function transformStudent(student: any) {
+  return {
+    id: student.id,
+    admission_number: student.admissionNumber,
+    name: student.name,
+    locker_number: student.lockerNumber,
+    phone_number: student.phoneNumber,
+    class: student.class,
+    roll_number: student.rollNumber,
+    phone_name: student.phoneName,
+    class_name: student.className,
+    roll_no: student.rollNo,
+    special_pass: student.specialPass,
+    created_at: student.createdAt,
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -24,7 +42,7 @@ export async function GET(request: NextRequest) {
       if (!student) {
         return NextResponse.json({ error: "Student not found" }, { status: 404 })
       }
-      return NextResponse.json(student, {
+      return NextResponse.json(transformStudent(student), {
         headers: {
           'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
         }
@@ -35,7 +53,7 @@ export async function GET(request: NextRequest) {
     const cached = getCached<any[]>(STUDENTS_CACHE_KEY)
     if (cached) {
       console.log("⚡ Serving students from cache (instant)")
-      return NextResponse.json(cached, {
+      return NextResponse.json(cached.map(transformStudent), {
         headers: {
           'Cache-Control': 'no-store, max-age=0, must-revalidate',
           'Pragma': 'no-cache'
@@ -46,7 +64,7 @@ export async function GET(request: NextRequest) {
     const allStudents = await db.select().from(students)
     setCache(STUDENTS_CACHE_KEY, allStudents)
     console.log("📥 Fetched students from DB and cached")
-    return NextResponse.json(allStudents, {
+    return NextResponse.json(allStudents.map(transformStudent), {
       headers: {
         'Cache-Control': 'no-store, max-age=0, must-revalidate',
         'Pragma': 'no-cache'
@@ -84,15 +102,15 @@ export async function POST(request: NextRequest) {
     }
 
     const newStudent = await db.insert(students).values({
-      admission_number: String(data.admission_number).trim(),
+      admissionNumber: String(data.admission_number).trim(),
       name: String(data.name).trim(),
-      locker_number: String(data.locker_number || "-").trim(),
-      phone_number: data.phone_number ? String(data.phone_number).trim() : null,
+      lockerNumber: String(data.locker_number || "-").trim(),
+      phoneNumber: data.phone_number ? String(data.phone_number).trim() : null,
       class: data.class ? String(data.class).trim() : null,
-      roll_number: data.roll_number ? String(data.roll_number).trim() : null,
-      phone_name: data.phone_name ? String(data.phone_name).trim() : null,
-      class_name: data.class_name ? String(data.class_name).trim() : null,
-      roll_no: data.roll_no ? String(data.roll_no).trim() : null,
+      rollNumber: data.roll_number ? String(data.roll_number).trim() : null,
+      phoneName: data.phone_name ? String(data.phone_name).trim() : null,
+      className: data.class_name ? String(data.class_name).trim() : null,
+      rollNo: data.roll_no ? String(data.roll_no).trim() : null,
       specialPass: data.special_pass ? String(data.special_pass).trim() : "NO",
     }).returning()
 
@@ -102,7 +120,7 @@ export async function POST(request: NextRequest) {
       await logActivity(Number(data.staffId), "ADD_STUDENT", `Added student: ${data.name} (${data.admission_number})`)
     }
 
-    return NextResponse.json(newStudent[0])
+    return NextResponse.json(transformStudent(newStudent[0]))
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to create student"
     console.error("POST /api/students error:", errorMessage, error)
@@ -121,15 +139,15 @@ export async function PUT(request: NextRequest) {
 
     const updated = await db.update(students)
       .set({
-        admission_number: updateData.admission_number ? String(updateData.admission_number).trim() : undefined,
+        admissionNumber: updateData.admission_number ? String(updateData.admission_number).trim() : undefined,
         name: updateData.name ? String(updateData.name).trim() : undefined,
-        locker_number: updateData.locker_number ? String(updateData.locker_number).trim() : undefined,
-        phone_number: updateData.phone_number ? String(updateData.phone_number).trim() : undefined,
+        lockerNumber: updateData.locker_number ? String(updateData.locker_number).trim() : undefined,
+        phoneNumber: updateData.phone_number ? String(updateData.phone_number).trim() : undefined,
         class: updateData.class ? String(updateData.class).trim() : undefined,
-        roll_number: updateData.roll_number ? String(updateData.roll_number).trim() : undefined,
-        phone_name: updateData.phone_name ? String(updateData.phone_name).trim() : undefined,
-        class_name: updateData.class_name ? String(updateData.class_name).trim() : undefined,
-        roll_no: updateData.roll_no ? String(updateData.roll_no).trim() : undefined,
+        rollNumber: updateData.roll_number ? String(updateData.roll_number).trim() : undefined,
+        phoneName: updateData.phone_name ? String(updateData.phone_name).trim() : undefined,
+        className: updateData.class_name ? String(updateData.class_name).trim() : undefined,
+        rollNo: updateData.roll_no ? String(updateData.roll_no).trim() : undefined,
         specialPass: updateData.special_pass ? String(updateData.special_pass).trim() : undefined,
       })
       .where(eq(students.id, Number(id)))
@@ -140,7 +158,7 @@ export async function PUT(request: NextRequest) {
     }
 
     invalidateCache(STUDENTS_CACHE_KEY)
-    return NextResponse.json(updated[0])
+    return NextResponse.json(transformStudent(updated[0]))
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to update student"
     console.error("PUT /api/students error:", errorMessage, error)
