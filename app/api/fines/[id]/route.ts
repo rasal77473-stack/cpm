@@ -5,9 +5,10 @@ import { eq } from "drizzle-orm"
 import { invalidateCache, FINES_CACHE_KEY } from "@/lib/student-cache"
 
 // PUT /api/fines/[id] — update fine type
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const id = parseInt(params.id)
+        const { id: idStr } = await params
+        const id = parseInt(idStr)
         if (isNaN(id)) {
             return NextResponse.json({ error: "Invalid fine ID" }, { status: 400 })
         }
@@ -49,9 +50,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/fines/[id] — delete a fine type
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const id = parseInt(params.id)
+        const { id: idStr } = await params
+        const id = parseInt(idStr)
         if (isNaN(id)) {
             return NextResponse.json({ error: "Invalid fine ID" }, { status: 400 })
         }

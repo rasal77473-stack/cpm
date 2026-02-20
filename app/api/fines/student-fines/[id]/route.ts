@@ -5,10 +5,11 @@ import { eq } from "drizzle-orm"
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const fineId = parseInt(params.id)
+    const { id: idStr } = await params
+    const fineId = parseInt(idStr)
     const body = await request.json()
     const { isPaid } = body
 

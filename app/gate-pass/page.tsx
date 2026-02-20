@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import { useDebounce } from "@/hooks/use-debounce"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -49,6 +50,10 @@ function GatePassContent() {
   const [gatePassStates, setGatePassStates] = useState<{ [key: number]: "OUT" | "IN" }>({})
   const [returningGatePassId, setReturningGatePassId] = useState<number | null>(null)
 
+  // Debounced search queries for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
+  const debouncedStudentSearchQuery = useDebounce(studentSearchQuery, 300)
+
   const [canGrantPass, setCanGrantPass] = useState(false)
   const [canViewLogs, setCanViewLogs] = useState(false)
   const [canManageStatus, setCanManageStatus] = useState(false)
@@ -62,12 +67,11 @@ function GatePassContent() {
   const students = Array.isArray(studentsData) ? studentsData : []
 
   // Fetch gate passes (from special-pass/all since we use same table)
-  // IMPORTANT: Reduced refreshInterval to 3000ms (3 sec) for instant feedback
-  // COMPLETED passes should appear immediately after submission, not flip back
+  // OPTIMIZED: Reduced polling to 10s for smooth UX
   const { data: allGatePasses = [], isLoading: gatePassesLoading } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 3000,
-    revalidateOnFocus: true,
-    dedupingInterval: 1000,
+    refreshInterval: 10000, // CHANGED: 3000ms → 10000ms
+    revalidateOnFocus: false, // CHANGED: true → false
+    dedupingInterval: 5000, // CHANGED: 1000ms → 5000ms
   })
   // Filter ONLY gate passes - strictly exclude all phone passes
   const gatePasses = Array.isArray(allGatePasses) ? allGatePasses.filter((p: any) => {
@@ -77,10 +81,11 @@ function GatePassContent() {
   }) : []
 
   // Fetch phone/gate pass statuses (same tracking)
+  // OPTIMIZED: Reduced polling to 15s for better performance
   const { data: gatePassStatusData = [] } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 2000,
-    revalidateOnFocus: true,
-    dedupingInterval: 500,
+    refreshInterval: 15000, // CHANGED: 2000ms → 15000ms
+    revalidateOnFocus: false, // CHANGED: true → false
+    dedupingInterval: 5000, // CHANGED: 500ms → 5000ms
   })
 
   const gatePassStatusMap = useMemo(() => {
@@ -111,8 +116,8 @@ function GatePassContent() {
     if (activeTab === "gate-pass") {
       list = gatePasses.map((p: any) => ({ ...p, type: "pass", originalId: p.id }))
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase()
+      if (debouncedSearchQuery.trim()) {
+        const q = debouncedSearchQuery.toLowerCase()
         list = list.filter((item: any) =>
           item.studentName?.toLowerCase().includes(q) ||
           item.admissionNumber?.toLowerCase().includes(q)
@@ -148,8 +153,8 @@ function GatePassContent() {
         studentList = studentList.filter((s: any) => s.status === "IN")
       }
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase()
+      if (debouncedSearchQuery.trim()) {
+        const q = debouncedSearchQuery.toLowerCase()
         studentList = studentList.filter((item: any) =>
           item.studentName?.toLowerCase().includes(q) ||
           item.admissionNumber?.toLowerCase().includes(q)
@@ -158,7 +163,7 @@ function GatePassContent() {
 
       return studentList.sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
     }
-  }, [gatePasses, students, activeTab, searchQuery, gatePassStatusMap])
+  }, [gatePasses, students, activeTab, debouncedSearchQuery, gatePassStatusMap])
 
   const classes = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.class_name).filter(Boolean))).sort()], [students])
   const lockers = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.locker_number).filter(Boolean))).sort((a: any, b: any) => Number(a) - Number(b))], [students])
@@ -166,15 +171,15 @@ function GatePassContent() {
   const filteredStudents = useMemo(() => {
     return students
       .filter((s: any) => {
-        const matchesSearch = !studentSearchQuery.trim() ||
-          s.name?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
-          s.admission_number?.toLowerCase().includes(studentSearchQuery.toLowerCase())
+        const matchesSearch = !debouncedStudentSearchQuery.trim() ||
+          s.name?.toLowerCase().includes(debouncedStudentSearchQuery.toLowerCase()) ||
+          s.admission_number?.toLowerCase().includes(debouncedStudentSearchQuery.toLowerCase())
         const matchesClass = selectedClass === "all" || s.class_name === selectedClass
         const matchesLocker = selectedLocker === "all" || s.locker_number === selectedLocker
         return matchesSearch && matchesClass && matchesLocker
       })
       .sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""))
-  }, [students, studentSearchQuery, selectedClass, selectedLocker])
+  }, [students, debouncedStudentSearchQuery, selectedClass, selectedLocker])
 
   useEffect(() => {
     const token = localStorage.getItem("token")

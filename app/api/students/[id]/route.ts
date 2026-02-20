@@ -23,10 +23,11 @@ function transformStudent(student: any) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const studentId = parseInt(params.id)
+    const { id } = await params
+    const studentId = parseInt(id)
 
     if (isNaN(studentId)) {
       return NextResponse.json(
