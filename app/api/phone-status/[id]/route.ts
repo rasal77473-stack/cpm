@@ -145,26 +145,7 @@ export async function PUT(
         .catch(err => console.error("Error fetching student:", err))
     }
 
-    // Sync active special pass in background (fire and forget)
-    db.select()
-      .from(specialPassGrants)
-      .where(and(
-        eq(specialPassGrants.studentId, studentId),
-        eq(specialPassGrants.status, "ACTIVE")
-      ))
-      .limit(1)
-      .then(([activePass]) => {
-        if (activePass) {
-          const passStatus = status === "OUT" ? "OUT" : "ACTIVE"
-          if (passStatus !== activePass.status) {
-            db.update(specialPassGrants)
-              .set({ status: passStatus })
-              .where(eq(specialPassGrants.id, activePass.id))
-              .catch(err => console.error("Error syncing special pass:", err))
-          }
-        }
-      })
-      .catch(err => console.error("Error fetching special pass:", err))
+
 
     return NextResponse.json(
       { success: true, message: "Phone status updated successfully", data: result },
