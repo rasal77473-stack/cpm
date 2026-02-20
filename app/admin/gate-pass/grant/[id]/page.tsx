@@ -42,12 +42,11 @@ export default function GrantGatePassPage() {
 
     const fetchStudent = async () => {
       try {
-        const res = await fetch(`/api/students`)
-        if (!res.ok) throw new Error("Failed to fetch students")
-        const students = await res.json()
-        const found = students.find((s: any) => s.id === parseInt(studentId as string))
+        const res = await fetch(`/api/students/${studentId}`)
+        if (!res.ok) throw new Error("Failed to fetch student")
+        const found = await res.json()
         
-        if (!found) {
+        if (!found || !found.id) {
           toast.error("Student not found")
           setTimeout(() => router.back(), 1000)
           return
@@ -90,11 +89,9 @@ export default function GrantGatePassPage() {
 
     // Subtract 5 hours and 30 minutes from start time to fix timezone difference
     const submissionTime = new Date()
-    console.log("⏰ Original submission time:", submissionTime.toISOString())
     
     submissionTime.setHours(submissionTime.getHours() - 5)
     submissionTime.setMinutes(submissionTime.getMinutes() - 30)
-    console.log("⏰ Adjusted submission time (-5:30):", submissionTime.toISOString())
 
     const payload = {
       studentId: parseInt(studentId as string),
@@ -106,17 +103,12 @@ export default function GrantGatePassPage() {
       staffId: mentorId,
     }
 
-    console.log("📤 Sending Gate Pass Request:", payload)
-
     try {
       const res = await fetch("/api/gate-pass/grant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-
-      console.log("📥 Response Status:", res.status)
-      console.log("📥 Response Headers:", res.headers)
 
       let data: any
       try {

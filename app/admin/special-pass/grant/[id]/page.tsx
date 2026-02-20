@@ -32,11 +32,8 @@ export default function GrantSpecialPassPage() {
     const name = localStorage.getItem("staffName")
     const id = localStorage.getItem("staffId")
 
-    console.log("📋 Retrieved from localStorage - staffId:", id, "staffName:", name)
-
     // Explicitly check for "0" or invalid ID
     if (!id || id === "0" || id === "undefined" || id === "null") {
-      console.error("❌ Invalid or missing staffId in localStorage:", id)
       toast.error("Invalid session detected. Please login again.")
       localStorage.removeItem("staffId")
       localStorage.removeItem("staffName")
@@ -62,12 +59,11 @@ export default function GrantSpecialPassPage() {
 
     const fetchStudent = async () => {
       try {
-        const res = await fetch(`/api/students`)
-        if (!res.ok) throw new Error("Failed to fetch students")
-        const students = await res.json()
-        const found = students.find((s: any) => s.id === parseInt(studentId as string))
+        const res = await fetch(`/api/students/${studentId}`)
+        if (!res.ok) throw new Error("Failed to fetch student")
+        const found = await res.json()
 
-        if (!found) {
+        if (!found || !found.id) {
           toast.error("Student not found")
           setTimeout(() => router.back(), 1000)
           return
@@ -114,7 +110,6 @@ export default function GrantSpecialPassPage() {
     // Validate mentorId is a valid positive number
     const parsedMentorId = parseInt(mentorId)
     if (isNaN(parsedMentorId) || parsedMentorId <= 0) {
-      console.error("❌ Invalid mentorId:", mentorId, "parsed:", parsedMentorId)
       toast.error("Invalid staff ID. Please login again.")
       setSubmitting(false)
       router.push("/login")
@@ -131,8 +126,6 @@ export default function GrantSpecialPassPage() {
       expectedReturnTime: expectedReturnTime,
     }
 
-    console.log("📤 Sending Phone Pass Request:", payload)
-
     try {
       const res = await fetch("/api/special-pass/grant", {
         method: "POST",
@@ -147,28 +140,19 @@ export default function GrantSpecialPassPage() {
       try {
         data = await res.json()
       } catch (e) {
-        console.error("❌ Failed to parse response JSON:", e)
         data = { error: "Invalid response from server" }
       }
 
-      console.log("📥 Response Data:", data)
-
       if (!res.ok) {
         const errorMsg = data?.details || data?.error || `Server error: ${res.status}`
-        console.error("❌ API Error Details:", errorMsg)
-        console.error("❌ Full Response:", data)
         throw new Error(errorMsg)
       }
 
       toast.success("Special pass granted successfully!")
-      console.log("✅ Phone pass created successfully")
       // Redirect to phone pass page immediately
       router.push("/special-pass")
     } catch (error: any) {
-      console.error("❌ Catch Block Error:", error)
-      console.error("❌ Error Stack:", error?.stack)
       const errorMessage = error?.message || "Failed to grant special pass"
-      console.error("❌ Final Error Message:", errorMessage)
       toast.error(errorMessage)
     } finally {
       setSubmitting(false)
