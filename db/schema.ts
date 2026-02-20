@@ -156,3 +156,38 @@ export const studentFines = pgTable("student_fines", {
 	paidDate: timestamp("paid_date", { mode: 'string' }),
 	issuedAt: timestamp("issued_at", { mode: 'string' }).defaultNow(),
 });
+
+// Tally Types - Types of rule violations
+export const tallyTypes = pgTable("tally_types", {
+	id: serial().primaryKey().notNull(),
+	name: text().notNull(),
+	type: text().notNull(), // 'NORMAL' or 'FIXED'
+	description: text(),
+	isActive: text("is_active").default('YES'),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+});
+
+// Student Tallies - Individual tally entries for students
+export const studentTallies = pgTable("student_tallies", {
+	id: serial().primaryKey().notNull(),
+	studentId: integer("student_id").notNull(),
+	tallyTypeId: integer("tally_type_id").notNull(),
+	tallyTypeName: text("tally_type_name").notNull(),
+	tallyType: text("tally_type").notNull(), // 'NORMAL' or 'FIXED'
+	reason: text(),
+	issuedBy: integer("issued_by").notNull(),
+	issuedByName: text("issued_by_name").notNull(),
+	issuedAt: timestamp("issued_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	foreignKey({
+		columns: [table.studentId],
+		foreignColumns: [students.id],
+		name: "student_tallies_student_id_students_id_fk"
+	}),
+	foreignKey({
+		columns: [table.tallyTypeId],
+		foreignColumns: [tallyTypes.id],
+		name: "student_tallies_tally_type_id_tally_types_id_fk"
+	}),
+]);

@@ -92,7 +92,7 @@ export default function Dashboard() {
           </Link>
 
           {/* Punishments Button */}
-          <Link href="/admin/fine" className="block">
+          <Link href="/admin/punishments" className="block">
             <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-red-100 hover:border-red-300 h-full w-full">
               <AlertCircle className="w-8 h-8 text-red-600" strokeWidth={1.5} />
               <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Punishments</span>
