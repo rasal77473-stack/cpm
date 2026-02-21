@@ -31,7 +31,7 @@ export default function AddOtherTallyPage() {
   const [submitting, setSubmitting] = useState(false)
 
   // Mode selection: 'predefined' or 'custom'
-  const [mode, setMode] = useState<'predefined' | 'custom'>('predefined')
+  const [mode, setMode] = useState<'predefined' | 'custom'>('custom')
 
   // Tally selection (predefined)
   const [tallyTypes, setTallyTypes] = useState<TallyType[]>([])
