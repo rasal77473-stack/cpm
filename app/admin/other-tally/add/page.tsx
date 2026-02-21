@@ -23,7 +23,7 @@ interface Student {
   class_name?: string
 }
 
-export default function AddTallyPage() {
+export default function AddOtherTallyPage() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
   const [staffId, setStaffId] = useState("")
@@ -64,9 +64,9 @@ export default function AddTallyPage() {
       const res = await fetch("/api/tally-types")
       if (!res.ok) throw new Error("Failed to fetch tally types")
       const data = await res.json()
-      // Filter for NORMAL type only
-      const normalTallies = data.filter((t: TallyType) => t && t.name && t.type === 'NORMAL')
-      setTallyTypes(normalTallies)
+      // Filter for FIXED type only
+      const fixedTallies = data.filter((t: TallyType) => t && t.name && t.type === 'FIXED')
+      setTallyTypes(fixedTallies)
     } catch (error) {
       console.error("Failed to fetch tally types:", error)
       toast.error("Failed to load tally types")
@@ -159,10 +159,10 @@ export default function AddTallyPage() {
       setStudentPage(1)
       
       // Redirect after 1 second
-      setTimeout(() => router.push("/admin/tally"), 1000)
+      setTimeout(() => router.push("/admin/other-tally"), 1000)
     } catch (error) {
       console.error("Failed to add tallies:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to add tallies")
+      toast.error(error instanceof Error ? error.message : "Failed to add other tallies")
     } finally {
       setSubmitting(false)
     }
@@ -189,7 +189,7 @@ export default function AddTallyPage() {
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Add Tallies to Students</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Add Other Tallies to Students</h1>
                 <p className="text-sm text-gray-600">{staffName}</p>
               </div>
             </div>
@@ -206,7 +206,7 @@ export default function AddTallyPage() {
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Select Tally Type</CardTitle>
+                <CardTitle className="text-lg">Select Other Tally Type</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative">
@@ -220,25 +220,32 @@ export default function AddTallyPage() {
                 </div>
 
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {filteredTallies.map((tally) => (
-                    <button
-                      key={tally.id}
-                      onClick={() => setSelectedTally(tally)}
-                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                        selectedTally?.id === tally.id
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <p className="font-semibold text-gray-900">{tally.name}</p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        {tally.type === 'NORMAL' ? 'Can be reduced' : 'Cannot be reduced'}
-                      </p>
-                      {tally.description && (
-                        <p className="text-xs text-gray-500 mt-1">{tally.description}</p>
-                      )}
-                    </button>
-                  ))}
+                  {filteredTallies.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <p className="text-sm">No other tally types available</p>
+                      <p className="text-xs text-gray-400 mt-2">Create types in Manage Types first</p>
+                    </div>
+                  ) : (
+                    filteredTallies.map((tally) => (
+                      <button
+                        key={tally.id}
+                        onClick={() => setSelectedTally(tally)}
+                        className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                          selectedTally?.id === tally.id
+                            ? "border-orange-500 bg-orange-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <p className="font-semibold text-gray-900">{tally.name}</p>
+                        <p className="text-xs text-orange-600 mt-1">
+                          Fixed - Cannot be reduced by stars
+                        </p>
+                        {tally.description && (
+                          <p className="text-xs text-gray-500 mt-1">{tally.description}</p>
+                        )}
+                      </button>
+                    ))
+                  )}
                 </div>
 
                 {selectedTally && (
@@ -295,7 +302,7 @@ export default function AddTallyPage() {
                             type="checkbox"
                             checked={selectedStudents.has(student.id)}
                             onChange={() => handleStudentToggle(student.id)}
-                            className="w-4 h-4 text-green-600 border-gray-300 rounded"
+                            className="w-4 h-4 text-orange-600 border-gray-300 rounded"
                           />
                           <div className="ml-3 flex-1">
                             <p className="font-medium text-gray-900">{student.name}</p>
@@ -347,13 +354,13 @@ export default function AddTallyPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Category</p>
-                <p className="font-semibold text-gray-900">
-                  {selectedTally ? selectedTally.type : "—"}
+                <p className="font-semibold text-orange-600">
+                  {selectedTally ? 'Fixed' : "—"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Students</p>
-                <p className="font-semibold text-lg text-green-600">{selectedStudents.size}</p>
+                <p className="font-semibold text-lg text-orange-600">{selectedStudents.size}</p>
               </div>
             </div>
 
@@ -364,7 +371,7 @@ export default function AddTallyPage() {
               <Button
                 onClick={handleSubmit}
                 disabled={submitting || !selectedTally || selectedStudents.size === 0}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
               >
                 {submitting ? (
                   <>
@@ -374,7 +381,7 @@ export default function AddTallyPage() {
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Add Tally to {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
+                    Add Other Tally to {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
                   </>
                 )}
               </Button>

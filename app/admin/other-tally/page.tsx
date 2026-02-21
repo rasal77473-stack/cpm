@@ -24,7 +24,7 @@ interface StudentTally {
   issuedAt: string
 }
 
-export default function TallyManagementPage() {
+export default function OtherTallyManagementPage() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
@@ -66,14 +66,14 @@ export default function TallyManagementPage() {
       setTallyTypes(uniqueTypes as string[])
     } catch (error) {
       console.error("Failed to fetch tallies:", error)
-      toast.error("Failed to load tallies")
+      toast.error("Failed to load other tallies")
     } finally {
       setLoading(false)
     }
   }
 
   const filteredTallies = tallies.filter((tally) => {
-    const isNormalType = tally.tallyType === 'NORMAL'
+    const isFixedType = tally.tallyType === 'FIXED'
     const matchesSearch = 
       tally.studentName.toLowerCase().includes(search.toLowerCase()) ||
       tally.admissionNumber.toLowerCase().includes(search.toLowerCase())
@@ -81,8 +81,19 @@ export default function TallyManagementPage() {
     const matchesClass = classFilter === "all" || tally.studentClass === classFilter
     const matchesType = tallyTypeFilter === "all" || tally.tallyTypeName === tallyTypeFilter
     
-    return isNormalType && matchesSearch && matchesClass && matchesType
+    return isFixedType && matchesSearch && matchesClass && matchesType
   })
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -99,21 +110,21 @@ export default function TallyManagementPage() {
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Tally Management</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Other Tally Management</h1>
                 <p className="text-sm text-gray-600">{staffName}</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <Link href="/admin/tally/manage">
+              <Link href="/admin/other-tally/manage">
                 <Button variant="outline" className="gap-2">
                   <Plus className="w-4 h-4" />
                   Manage Types
                 </Button>
               </Link>
-              <Link href="/admin/tally/add">
-                <Button className="gap-2 bg-green-600 hover:bg-green-700">
+              <Link href="/admin/other-tally/add">
+                <Button className="gap-2 bg-orange-600 hover:bg-orange-700">
                   <Plus className="w-4 h-4" />
-                  Add Tally
+                  Add Other Tally
                 </Button>
               </Link>
               <Button variant="outline" onClick={handleLogout} className="gap-2">
@@ -166,9 +177,9 @@ export default function TallyManagementPage() {
         <Card>
           <CardContent className="pt-6">
             {loading ? (
-              <div className="text-center py-8 text-gray-500">Loading tallies...</div>
+              <div className="text-center py-8 text-gray-500">Loading other tallies...</div>
             ) : filteredTallies.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">No tallies found</div>
+              <div className="text-center py-8 text-gray-500">No other tallies found</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -178,7 +189,6 @@ export default function TallyManagementPage() {
                       <th className="text-left py-3 px-4 font-semibold">Admission#</th>
                       <th className="text-left py-3 px-4 font-semibold">Class</th>
                       <th className="text-left py-3 px-4 font-semibold">Tally Type</th>
-                      <th className="text-left py-3 px-4 font-semibold">Type</th>
                       <th className="text-left py-3 px-4 font-semibold">Issued By</th>
                       <th className="text-left py-3 px-4 font-semibold">Date</th>
                     </tr>
@@ -190,15 +200,6 @@ export default function TallyManagementPage() {
                         <td className="py-3 px-4">{tally.admissionNumber}</td>
                         <td className="py-3 px-4">{tally.studentClass || "-"}</td>
                         <td className="py-3 px-4">{tally.tallyTypeName}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            tally.tallyType === 'NORMAL' 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {tally.tallyType}
-                          </span>
-                        </td>
                         <td className="py-3 px-4">{tally.issuedByName}</td>
                         <td className="py-3 px-4">{new Date(tally.issuedAt).toLocaleDateString()}</td>
                       </tr>
@@ -211,7 +212,7 @@ export default function TallyManagementPage() {
         </Card>
 
         <div className="mt-4 text-sm text-gray-600">
-          Total Tallies: <span className="font-semibold">{filteredTallies.length}</span>
+          Total Other Tallies: <span className="font-semibold">{filteredTallies.length}</span>
         </div>
       </main>
     </div>

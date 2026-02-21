@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChevronLeft, LogOut, Banknote, CheckCircle } from "lucide-react"
+import { ChevronLeft, LogOut, Banknote, CheckCircle, Zap } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 
 export default function PunishmentsPage() {
@@ -64,7 +64,7 @@ export default function PunishmentsPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Fines Card */}
           <Link href="/admin/fine">
             <Card className="cursor-pointer hover:shadow-lg transition-shadow h-full">
@@ -75,11 +75,12 @@ export default function PunishmentsPage() {
                 </div>
               </CardHeader>
               <CardContent>
+                <p className="text-sm text-gray-600">Manage student fines and payments</p>
               </CardContent>
             </Card>
           </Link>
 
-          {/* Tallies Card */}
+          {/* Tally Card */}
           <Link href="/admin/tally">
             <Card className="cursor-pointer hover:shadow-lg transition-shadow h-full">
               <CardHeader>
@@ -89,6 +90,22 @@ export default function PunishmentsPage() {
                 </div>
               </CardHeader>
               <CardContent>
+                <p className="text-sm text-gray-600">Manage discipline tally marks</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Other Tally Card */}
+          <Link href="/admin/other-tally">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow h-full">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Zap className="w-8 h-8 text-orange-600" />
+                  <CardTitle>Other Tally Management</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">Manage fixed tally types</p>
               </CardContent>
             </Card>
           </Link>

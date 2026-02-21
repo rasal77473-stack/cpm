@@ -21,11 +21,11 @@ interface TallyType {
 
 const emptyForm = {
   name: "",
-  type: "NORMAL",
+  type: "FIXED",
   description: "",
 }
 
-export default function ManageTallyTypesPage() {
+export default function ManageOtherTallyTypesPage() {
   const router = useRouter()
   const [staffName, setStaffName] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
@@ -114,7 +114,7 @@ export default function ManageTallyTypesPage() {
         throw new Error(error.error || "Failed to save tally type")
       }
 
-      toast.success(isEditing ? "Tally type updated!" : "Tally type created!")
+      toast.success(isEditing ? "Other tally type updated!" : "Other tally type created!")
       setShowModal(false)
       fetchTallyTypes()
     } catch (error) {
@@ -148,7 +148,7 @@ export default function ManageTallyTypesPage() {
     try {
       const res = await fetch(`/api/tally-types/${deletingId}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to delete")
-      toast.success("Tally type deleted!")
+      toast.success("Other tally type deleted!")
       setShowDeleteModal(false)
       fetchTallyTypes()
     } catch (error) {
@@ -179,12 +179,12 @@ export default function ManageTallyTypesPage() {
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Manage Tally Types</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Manage Other Tally Types</h1>
                 <p className="text-sm text-gray-600">{staffName}</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => handleOpenModal()} className="gap-2">
+              <Button onClick={() => handleOpenModal()} className="gap-2 bg-orange-600 hover:bg-orange-700">
                 <Plus className="w-4 h-4" />
                 Add Type
               </Button>
@@ -199,7 +199,7 @@ export default function ManageTallyTypesPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Tally Types (Normal)</CardTitle>
+            <CardTitle>Other Tally Types (Fixed)</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -208,7 +208,7 @@ export default function ManageTallyTypesPage() {
               <div className="text-center py-8 text-gray-500">No tally types yet</div>
             ) : (
               <div className="space-y-3">
-                {tallyTypes.filter(t => t.type === 'NORMAL').map((tallyType) => (
+                {tallyTypes.filter(t => t.type === 'FIXED').map((tallyType) => (
                   <div
                     key={tallyType.id}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
@@ -217,9 +217,9 @@ export default function ManageTallyTypesPage() {
                       <p className="font-semibold text-gray-900">{tallyType.name}</p>
                       <div className="flex gap-3 mt-1 text-sm text-gray-600">
                         <span className={`px-2 py-1 rounded ${
-                          tallyType.type === 'NORMAL' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-red-100 text-red-800'
+                          tallyType.type === 'FIXED' 
+                            ? 'bg-orange-100 text-orange-800' 
+                            : 'bg-blue-100 text-blue-800'
                         }`}>
                           {tallyType.type}
                         </span>
@@ -269,7 +269,7 @@ export default function ManageTallyTypesPage() {
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{isEditing ? "Edit Tally Type" : "Add Tally Type"}</DialogTitle>
+            <DialogTitle>{isEditing ? "Edit Other Tally Type" : "Add Other Tally Type"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -277,7 +277,7 @@ export default function ManageTallyTypesPage() {
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g., Late to class"
+                placeholder="e.g., Uniform violation"
               />
             </div>
             <div>
@@ -286,10 +286,12 @@ export default function ManageTallyTypesPage() {
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                disabled
               >
                 <option value="NORMAL">Normal (Can be reduced by stars)</option>
                 <option value="FIXED">Fixed (Cannot be reduced)</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">Other tallies are always FIXED type</p>
             </div>
             <div>
               <label className="text-sm font-medium">Description</label>
@@ -304,7 +306,7 @@ export default function ManageTallyTypesPage() {
               <Button variant="outline" onClick={() => setShowModal(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={saving}>
+              <Button onClick={handleSave} disabled={saving} className="bg-orange-600 hover:bg-orange-700">
                 {saving ? "Saving..." : "Save"}
               </Button>
             </div>
@@ -317,7 +319,7 @@ export default function ManageTallyTypesPage() {
         <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete Tally Type?</DialogTitle>
+              <DialogTitle>Delete Other Tally Type?</DialogTitle>
             </DialogHeader>
             <p className="text-gray-600">
               Are you sure you want to delete <strong>{deletingName}</strong>? This cannot be undone.
