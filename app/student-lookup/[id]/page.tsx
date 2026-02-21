@@ -58,6 +58,9 @@ export default function StudentDetailPage() {
   const [tallies, setTallies] = useState<TallyEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"phone" | "fines" | "tallies">("phone")
+  const [tallyFilter, setTallyFilter] = useState<"all" | "normal" | "fixed">("all")
+  const [tallyStartDate, setTallyStartDate] = useState("")
+  const [tallyEndDate, setTallyEndDate] = useState("")
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -113,6 +116,35 @@ export default function StudentDetailPage() {
       hour: "2-digit",
       minute: "2-digit",
     })
+  }
+
+  // Filter and calculate tallies
+  const filteredTallies = tallies.filter((tally) => {
+    const tallyDate = new Date(tally.issuedAt)
+    const startDate = tallyStartDate ? new Date(tallyStartDate) : null
+    const endDate = tallyEndDate ? new Date(tallyEndDate) : null
+
+    // Check type filter
+    let typeMatch = true
+    if (tallyFilter === "normal" && tally.tallyType !== "NORMAL") typeMatch = false
+    if (tallyFilter === "fixed" && tally.tallyType !== "FIXED") typeMatch = false
+
+    // Check date filter
+    let dateMatch = true
+    if (startDate && tallyDate < startDate) dateMatch = false
+    if (endDate) {
+      const endOfDay = new Date(endDate)
+      endOfDay.setHours(23, 59, 59, 999)
+      if (tallyDate > endOfDay) dateMatch = false
+    }
+
+    return typeMatch && dateMatch
+  })
+
+  const tallyCounts = {
+    total: filteredTallies.length,
+    normal: filteredTallies.filter(t => t.tallyType === "NORMAL").length,
+    fixed: filteredTallies.filter(t => t.tallyType === "FIXED").length,
   }
 
   if (loading || !student) {
@@ -305,51 +337,89 @@ export default function StudentDetailPage() {
                 </CardContent>
               </Card>
             ) : (
-              <>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <Card className="bg-blue-50">
-                    <CardContent className="py-4">
-                      <p className="text-sm text-gray-600">Normal Tallies</p>
-                      <p className="font-bold text-2xl text-blue-600">
-                        {tallies.filter(t => t.tallyType === 'NORMAL').length}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">Can be reduced by stars</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-red-50">
-                    <CardContent className="py-4">
-                      <p className="text-sm text-gray-600">Fixed Tallies</p>
-                      <p className="font-bold text-2xl text-red-600">
-                        {tallies.filter(t => t.tallyType === 'FIXED').length}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">Cannot be reduced</p>
-                    </CardContent>
-                  </Card>
-                </div>
-                {tallies.map((tally) => (
-                  <Card key={tally.id} className="bg-white">
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="font-semibold text-gray-900">{tally.tallyTypeName}</p>
-                          <p className="text-sm text-gray-600">Issued by: {tally.issuedByName}</p>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                          tally.tallyType === 'NORMAL'
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-red-100 text-red-800"
-                        }`}>
-                          {tally.tallyType}
-                        </span>
+              <Card>
+                <CardHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <CardTitle>Tallies & Rule Violations</CardTitle>
+                      <p className="text-sm text-gray-600 mt-2">Normal: {tallyCounts.normal} | Fixed: {tallyCounts.fixed} | Total: {tallyCounts.total}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <select
+                        value={tallyFilter}
+                        onChange={(e) => setTallyFilter(e.target.value as any)}
+                        className="px-3 py-2 border border-gray-300 rounded text-sm"
+                      >
+                        <option value="all">All Tallies</option>
+                        <option value="normal">Normal</option>
+                        <option value="fixed">Fixed/Other</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="text-xs font-medium">From</label>
+                        <input
+                          type="date"
+                          value={tallyStartDate}
+                          onChange={(e) => setTallyStartDate(e.target.value)}
+                          className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                        />
                       </div>
-                      {tally.reason && (
-                        <p className="text-sm text-gray-700 mt-2">Reason: {tally.reason}</p>
+                      <div className="flex-1">
+                        <label className="text-xs font-medium">To</label>
+                        <input
+                          type="date"
+                          value={tallyEndDate}
+                          onChange={(e) => setTallyEndDate(e.target.value)}
+                          className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                      {(tallyStartDate || tallyEndDate) && (
+                        <button
+                          onClick={() => {
+                            setTallyStartDate("")
+                            setTallyEndDate("")
+                          }}
+                          className="self-end px-3 py-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Clear
+                        </button>
                       )}
-                      <p className="text-xs text-gray-500 mt-2">{formatDate(tally.issuedAt)}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {filteredTallies.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No tallies match the selected filters</p>
+                  ) : (
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {filteredTallies.map((tally) => (
+                        <Card key={tally.id} className="bg-white">
+                          <CardContent className="py-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className="font-semibold text-gray-900">{tally.tallyTypeName}</p>
+                                <p className="text-sm text-gray-600">Issued by: {tally.issuedByName}</p>
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                tally.tallyType === 'NORMAL'
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}>
+                                {tally.tallyType}
+                              </span>
+                            </div>
+                            {tally.reason && (
+                              <p className="text-sm text-gray-700 mt-2">Reason: {tally.reason}</p>
+                            )}
+                            <p className="text-xs text-gray-500 mt-2">{formatDate(tally.issuedAt)}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
           </div>
         )}
