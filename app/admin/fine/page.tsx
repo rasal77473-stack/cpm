@@ -37,6 +37,23 @@ export default function FineManagementPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [classes, setClasses] = useState<string[]>([])
 
+  // Calculate fine statistics
+  const fineStats = {
+    totalPending: fines.reduce((sum, f) => f.isPaid === "NO" ? sum + f.amount : sum, 0),
+    totalPaid: fines.reduce((sum, f) => f.isPaid === "YES" ? sum + f.amount : sum, 0),
+    totalAmount: fines.reduce((sum, f) => sum + f.amount, 0),
+    pendingCount: fines.filter(f => f.isPaid === "NO").length,
+    paidCount: fines.filter(f => f.isPaid === "YES").length,
+  }
+
+  // Sort fines - pending first, then by date
+  const sortedFines = [...fines].sort((a, b) => {
+    if (a.isPaid !== b.isPaid) {
+      return a.isPaid === "NO" ? -1 : 1 // Pending (NO) comes first
+    }
+    return new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime()
+  })
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
@@ -157,6 +174,49 @@ export default function FineManagementPage() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* Statistics */}
+        {!loading && fines.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            {/* Total Amount */}
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardContent className="p-6">
+                <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Total Fines</p>
+                <p className="text-3xl font-bold text-blue-900 mt-2">₹{fineStats.totalAmount.toFixed(2)}</p>
+                <p className="text-xs text-blue-600 mt-1">{fines.length} fine{fines.length !== 1 ? "s" : ""}</p>
+              </CardContent>
+            </Card>
+
+            {/* Pending Amount */}
+            <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+              <CardContent className="p-6">
+                <p className="text-xs text-yellow-600 font-semibold uppercase tracking-wide">Pending</p>
+                <p className="text-3xl font-bold text-yellow-900 mt-2">₹{fineStats.totalPending.toFixed(2)}</p>
+                <p className="text-xs text-yellow-600 mt-1">{fineStats.pendingCount} pending</p>
+              </CardContent>
+            </Card>
+
+            {/* Paid Amount */}
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <CardContent className="p-6">
+                <p className="text-xs text-green-600 font-semibold uppercase tracking-wide">Paid</p>
+                <p className="text-3xl font-bold text-green-900 mt-2">₹{fineStats.totalPaid.toFixed(2)}</p>
+                <p className="text-xs text-green-600 mt-1">{fineStats.paidCount} paid</p>
+              </CardContent>
+            </Card>
+
+            {/* Collection Rate */}
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <CardContent className="p-6">
+                <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Collection Rate</p>
+                <p className="text-3xl font-bold text-purple-900 mt-2">
+                  {fineStats.totalAmount > 0 ? ((fineStats.totalPaid / fineStats.totalAmount) * 100).toFixed(1) : '0'}%
+                </p>
+                <p className="text-xs text-purple-600 mt-1">of total amount</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -239,9 +299,9 @@ export default function FineManagementPage() {
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
-              Showing {fines.length} fine{fines.length !== 1 ? "s" : ""} • Pending listed first
+              Showing {sortedFines.length} fine{sortedFines.length !== 1 ? "s" : ""} • <span className="font-semibold">Pending fines shown first</span>
             </p>
-            {fines.map((fine) => (
+            {sortedFines.map((fine) => (
               <Card key={fine.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
