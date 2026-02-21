@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       role: role || "mentor",
       // Convert permissions array to JSON string for storage
       permissions: JSON.stringify(permissions || ["view_only"]),
-      special_pass: special_pass || "NO",
+      specialPass: special_pass || "NO",
     };
 
     console.log("POST /api/users - Creating user with data:", userData);
@@ -74,7 +74,7 @@ export async function PUT(req: Request) {
         role,
         // Convert permissions array to JSON string for storage
         permissions: JSON.stringify(permissions),
-        special_pass
+        specialPass: special_pass
       })
       .where(eq(users.id, id))
       .returning();
