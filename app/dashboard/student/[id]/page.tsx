@@ -57,6 +57,7 @@ export default function StudentDetailPage() {
   const [tallyEndDate, setTallyEndDate] = useState("")
   const [fineStartDate, setFineStartDate] = useState("")
   const [fineEndDate, setFineEndDate] = useState("")
+  const [activeTab, setActiveTab] = useState<"phone" | "fines" | "tallies">("phone")
 
   useEffect(() => {
     fetchStudentData()
@@ -214,8 +215,44 @@ export default function StudentDetailPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Manage Phone Status</h1>
-            <p className="text-sm text-muted-foreground mt-1">{student.name}</p>
+            <h1 className="text-2xl font-bold text-foreground">{student.name}</h1>
+            <p className="text-sm text-muted-foreground mt-1">Admission: {student.admission_number}</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="border-t border-border px-4">
+          <div className="flex gap-8 max-w-3xl mx-auto">
+            <button
+              onClick={() => setActiveTab("phone")}
+              className={`py-3 px-1 border-b-2 font-medium transition ${
+                activeTab === "phone"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Phone History
+            </button>
+            <button
+              onClick={() => setActiveTab("fines")}
+              className={`py-3 px-1 border-b-2 font-medium transition ${
+                activeTab === "fines"
+                  ? "border-green-600 text-green-600"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Fines
+            </button>
+            <button
+              onClick={() => setActiveTab("tallies")}
+              className={`py-3 px-1 border-b-2 font-medium transition ${
+                activeTab === "tallies"
+                  ? "border-orange-600 text-orange-600"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Tallies ({filteredTallies.length})
+            </button>
           </div>
         </div>
       </header>
@@ -257,32 +294,91 @@ export default function StudentDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Phone Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Phone Status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div
-              className={`p-4 rounded-lg flex items-center gap-3 ${
-                isPhoneIn
-                  ? "bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100"
-                  : "bg-orange-100 text-orange-900 dark:bg-orange-900 dark:text-orange-100"
-              }`}
-            >
-              {isPhoneIn ? <CheckCircle className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
-              <div>
-                <div className="font-bold text-lg">{phoneStatus?.status || "UNKNOWN"}</div>
-                <div className="text-sm">
-                  Last updated:{" "}
-                  {phoneStatus?.last_updated ? new Date(phoneStatus.last_updated).toLocaleString() : "N/A"}
+        {/* Tab Content */}
+        {activeTab === "phone" && (
+          <>
+            {/* Phone Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Current Phone Status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div
+                  className={`p-4 rounded-lg flex items-center gap-3 ${
+                    isPhoneIn
+                      ? "bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100"
+                      : "bg-orange-100 text-orange-900 dark:bg-orange-900 dark:text-orange-100"
+                  }`}
+                >
+                  {isPhoneIn ? <CheckCircle className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+                  <div>
+                    <div className="font-bold text-lg">{phoneStatus?.status || "UNKNOWN"}</div>
+                    <div className="text-sm">
+                      Last updated:{" "}
+                      {phoneStatus?.last_updated ? new Date(phoneStatus.last_updated).toLocaleString() : "N/A"}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+
+            {/* Toggle Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Update Phone Status</CardTitle>
+                <CardDescription>Change the phone status and add optional notes</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {message && (
+                  <div
+                    className={`p-3 rounded-lg text-sm ${
+                      message.includes("updated")
+                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
+                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200"
+                    }`}
+                  >
+                    {message}
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="notes" className="text-sm font-medium">
+                    Notes (Optional)
+                  </label>
+                  <Input
+                    id="notes"
+                    placeholder="Add any notes about this transaction"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => handleToggleStatus("IN")}
+                    disabled={updating || isPhoneIn}
+                    className={isPhoneIn ? "opacity-50" : ""}
+                    variant={isPhoneIn ? "outline" : "default"}
+                  >
+                    {updating ? "Updating..." : "Mark Phone IN"}
+                  </Button>
+                  <Button
+                    onClick={() => handleToggleStatus("OUT")}
+                    disabled={updating || !isPhoneIn}
+                    className={!isPhoneIn ? "opacity-50" : ""}
+                    variant={!isPhoneIn ? "outline" : "default"}
+                  >
+                    {updating ? "Updating..." : "Mark Phone OUT"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
 
         {/* Tallies Section */}
+        {activeTab === "tallies" && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
@@ -357,8 +453,10 @@ export default function StudentDetailPage() {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Fines Section */}
+        {activeTab === "fines" && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
@@ -439,59 +537,7 @@ export default function StudentDetailPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Toggle Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Update Phone Status</CardTitle>
-            <CardDescription>Change the phone status and add optional notes</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {message && (
-              <div
-                className={`p-3 rounded-lg text-sm ${
-                  message.includes("updated")
-                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
-                    : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200"
-                }`}
-              >
-                {message}
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="notes" className="text-sm font-medium">
-                Notes (Optional)
-              </label>
-              <Input
-                id="notes"
-                placeholder="Add any notes about this transaction"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="mt-2"
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={() => handleToggleStatus("IN")}
-                disabled={updating || isPhoneIn}
-                className={isPhoneIn ? "opacity-50" : ""}
-                variant={isPhoneIn ? "outline" : "default"}
-              >
-                {updating ? "Updating..." : "Mark Phone IN"}
-              </Button>
-              <Button
-                onClick={() => handleToggleStatus("OUT")}
-                disabled={updating || !isPhoneIn}
-                className={!isPhoneIn ? "opacity-50" : ""}
-                variant={!isPhoneIn ? "outline" : "default"}
-              >
-                {updating ? "Updating..." : "Mark Phone OUT"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        )}
       </main>
     </div>
   )
