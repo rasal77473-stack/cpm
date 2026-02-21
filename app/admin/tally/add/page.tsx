@@ -144,7 +144,7 @@ export default function AddTallyPage() {
             studentIds: Array.from(selectedStudents),
             tallyTypeId: tallyType.id,
             tallyTypeName: tallyType.name,
-            tallyType: "NORMAL",
+            tallyType: tallyType.type,
             reason: tallyReason || null,
             issuedByName: staffName,
             issuedById: parseInt(staffId),
