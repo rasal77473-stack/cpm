@@ -23,6 +23,21 @@ interface PhoneStatus {
   last_updated: string
 }
 
+interface StudentTally {
+  id: number
+  tallyTypeName: string
+  count: number
+  issuedAt: string
+}
+
+interface StudentFine {
+  id: number
+  fineName: string
+  amount: number
+  isPaid: string
+  issuedAt: string
+}
+
 export default function StudentDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -34,6 +49,10 @@ export default function StudentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [message, setMessage] = useState("")
+  const [tallies, setTallies] = useState<StudentTally[]>([])
+  const [fines, setFines] = useState<StudentFine[]>([])
+  const [tallyFilter, setTallyFilter] = useState<"all" | "normal" | "fixed">("all")
+  const [fineFilter, setFineFilter] = useState<"all" | "paid" | "pending">("all")
 
   useEffect(() => {
     fetchStudentData()
@@ -41,9 +60,11 @@ export default function StudentDetailPage() {
 
   const fetchStudentData = async () => {
     try {
-      const [studentRes, statusRes] = await Promise.all([
+      const [studentRes, statusRes, talliesRes, finesRes] = await Promise.all([
         fetch(`/api/students?id=${studentId}`),
         fetch(`/api/phone-status/${studentId}`),
+        fetch(`/api/students/${studentId}/tallies`),
+        fetch(`/api/students/${studentId}/fines`),
       ])
 
       if (studentRes.ok) {
@@ -54,6 +75,16 @@ export default function StudentDetailPage() {
       if (statusRes.ok) {
         const status = await statusRes.json()
         setPhoneStatus(status)
+      }
+
+      if (talliesRes.ok) {
+        const data = await talliesRes.json()
+        setTallies(data)
+      }
+
+      if (finesRes.ok) {
+        const data = await finesRes.json()
+        setFines(data)
       }
 
       setLoading(false)
@@ -184,6 +215,112 @@ export default function StudentDetailPage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Tallies Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Tallies & Rule Violations</CardTitle>
+                <CardDescription>Total: {tallies.reduce((sum, t) => sum + t.count, 0)} tallies = ₹{tallies.reduce((sum, t) => sum + (t.count * 10), 0)}</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={tallyFilter}
+                  onChange={(e) => setTallyFilter(e.target.value as any)}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm"
+                >
+                  <option value="all">All Tallies</option>
+                  <option value="normal">Normal</option>
+                  <option value="fixed">Fixed/Other</option>
+                </select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {tallies.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No tallies recorded</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {tallies.map((tally) => (
+                  <div key={tally.id} className="flex items-center justify-between p-3 rounded-lg border bg-background">
+                    <div>
+                      <p className="font-medium">{tally.tallyTypeName}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(tally.issuedAt).toLocaleDateString()}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold mr-2">
+                        {tally.count} tally
+                      </span>
+                      <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                        ₹{tally.count * 10}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Fines Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Fines to Pay</CardTitle>
+                <CardDescription>
+                  Pending: ₹{fines.filter(f => f.isPaid === 'NO').reduce((sum, f) => sum + f.amount, 0)} | Paid: ₹{fines.filter(f => f.isPaid === 'YES').reduce((sum, f) => sum + f.amount, 0)}
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={fineFilter}
+                  onChange={(e) => setFineFilter(e.target.value as any)}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm"
+                >
+                  <option value="all">All Fines</option>
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                </select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {fines.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No fines recorded</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {fines
+                  .filter((fine) => {
+                    if (fineFilter === "paid") return fine.isPaid === "YES"
+                    if (fineFilter === "pending") return fine.isPaid === "NO"
+                    return true
+                  })
+                  .map((fine) => (
+                    <div key={fine.id} className="flex items-center justify-between p-3 rounded-lg border bg-background">
+                      <div className="flex-1">
+                        <p className="font-medium">{fine.fineName}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(fine.issuedAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right flex items-center gap-3">
+                        <span className="font-semibold">₹{fine.amount}</span>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            fine.isPaid === "YES"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {fine.isPaid === "YES" ? "Paid" : "Pending"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
