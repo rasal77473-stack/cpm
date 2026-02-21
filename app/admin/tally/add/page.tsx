@@ -30,11 +30,18 @@ export default function AddTallyPage() {
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  // Tally selection
+  // Mode selection: 'predefined' or 'custom'
+  const [mode, setMode] = useState<'predefined' | 'custom'>('predefined')
+
+  // Tally selection (predefined)
   const [tallyTypes, setTallyTypes] = useState<TallyType[]>([])
   const [selectedTally, setSelectedTally] = useState<TallyType | null>(null)
   const [tallySearch, setTallySearch] = useState("")
   const [tallyReason, setTallyReason] = useState("")
+
+  // Custom tally
+  const [customTallyName, setCustomTallyName] = useState("")
+  const [customTallyCount, setCustomTallyCount] = useState(1)
 
   // Student selection
   const [students, setStudents] = useState<Student[]>([])
@@ -116,9 +123,20 @@ export default function AddTallyPage() {
   }
 
   const handleSubmit = async () => {
-    if (!selectedTally) {
-      toast.error("Please select a tally type")
-      return
+    if (mode === 'predefined') {
+      if (!selectedTally) {
+        toast.error("Please select a tally type")
+        return
+      }
+    } else {
+      if (!customTallyName.trim()) {
+        toast.error("Please enter a tally name")
+        return
+      }
+      if (customTallyCount < 1 || customTallyCount > 10) {
+        toast.error("Tally count must be between 1 and 10")
+        return
+      }
     }
 
     if (selectedStudents.size === 0) {
@@ -129,30 +147,78 @@ export default function AddTallyPage() {
     setSubmitting(true)
 
     try {
-      const res = await fetch("/api/tallies/add-bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentIds: Array.from(selectedStudents),
-          tallyTypeId: selectedTally.id,
-          tallyTypeName: selectedTally.name,
-          tallyType: selectedTally.type,
-          reason: tallyReason || null,
-          issuedByName: staffName,
-          issuedById: parseInt(staffId),
-        }),
-      })
+      // For custom tally, create it first, then add
+      if (mode === 'custom') {
+        // Create custom tally type first
+        const createRes = await fetch("/api/tally-types", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: customTallyName,
+            type: "NORMAL",
+            description: "Custom tally"
+          })
+        })
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error)
+        if (!createRes.ok) {
+          const error = await createRes.json()
+          throw new Error(error.error || "Failed to create custom tally type")
+        }
+
+        const tallyType = await createRes.json()
+
+        // Now add the tally to students (multiple times if count > 1)
+        for (let i = 0; i < customTallyCount; i++) {
+          const res = await fetch("/api/tallies/add-bulk", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              studentIds: Array.from(selectedStudents),
+              tallyTypeId: tallyType.id,
+              tallyTypeName: tallyType.name,
+              tallyType: "NORMAL",
+              reason: tallyReason || null,
+              issuedByName: staffName,
+              issuedById: parseInt(staffId),
+            }),
+          })
+
+          if (!res.ok) {
+            const error = await res.json()
+            throw new Error(error.error)
+          }
+        }
+
+        toast.success(`${customTallyCount} custom tally(ies) added to ${selectedStudents.size} student(s)`)
+      } else {
+        // Predefined tally
+        const res = await fetch("/api/tallies/add-bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentIds: Array.from(selectedStudents),
+            tallyTypeId: selectedTally!.id,
+            tallyTypeName: selectedTally!.name,
+            tallyType: selectedTally!.type,
+            reason: tallyReason || null,
+            issuedByName: staffName,
+            issuedById: parseInt(staffId),
+          }),
+        })
+
+        if (!res.ok) {
+          const error = await res.json()
+          throw new Error(error.error)
+        }
+
+        const data = await res.json()
+        toast.success(data.message)
       }
-
-      const data = await res.json()
-      toast.success(data.message)
       
       // Reset form
       setSelectedTally(null)
+      setCustomTallyName("")
+      setCustomTallyCount(1)
       setTallyReason("")
       setSelectedStudents(new Set())
       setStudentSearch("")
@@ -206,45 +272,141 @@ export default function AddTallyPage() {
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Select Tally Type</CardTitle>
+                <CardTitle className="text-lg">Tally Type</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Search tally types..."
-                    value={tallySearch}
-                    onChange={(e) => setTallySearch(e.target.value)}
-                    className="pl-10"
-                  />
+                {/* Mode Tabs */}
+                <div className="flex gap-2 border-b">
+                  <button
+                    onClick={() => {
+                      setMode('predefined')
+                      setSelectedTally(null)
+                      setCustomTallyName("")
+                      setCustomTallyCount(1)
+                    }}
+                    className={`pb-2 px-3 font-medium text-sm transition-colors ${
+                      mode === 'predefined'
+                        ? 'border-b-2 border-green-600 text-green-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Predefined
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMode('custom')
+                      setSelectedTally(null)
+                    }}
+                    className={`pb-2 px-3 font-medium text-sm transition-colors ${
+                      mode === 'custom'
+                        ? 'border-b-2 border-green-600 text-green-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Custom
+                  </button>
                 </div>
 
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {filteredTallies.map((tally) => (
-                    <button
-                      key={tally.id}
-                      onClick={() => setSelectedTally(tally)}
-                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                        selectedTally?.id === tally.id
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <p className="font-semibold text-gray-900">{tally.name}</p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        {tally.type === 'NORMAL' ? 'Can be reduced' : 'Cannot be reduced'}
-                      </p>
-                      {tally.description && (
-                        <p className="text-xs text-gray-500 mt-1">{tally.description}</p>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                {/* Predefined Mode */}
+                {mode === 'predefined' && (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                      <Input
+                        placeholder="Search tally types..."
+                        value={tallySearch}
+                        onChange={(e) => setTallySearch(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
 
-                {selectedTally && (
-                  <>
-                    <div className="pt-4 border-t">
-                      <p className="text-sm font-medium text-gray-700 mb-2">Reason (Optional)</p>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {filteredTallies.map((tally) => (
+                        <button
+                          key={tally.id}
+                          onClick={() => setSelectedTally(tally)}
+                          className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                            selectedTally?.id === tally.id
+                              ? "border-green-500 bg-green-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <p className="font-semibold text-gray-900">{tally.name}</p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {tally.type === 'NORMAL' ? 'Can be reduced' : 'Cannot be reduced'}
+                          </p>
+                          {tally.description && (
+                            <p className="text-xs text-gray-500 mt-1">{tally.description}</p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {selectedTally && (
+                      <>
+                        <div className="pt-4 border-t">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Reason (Optional)</p>
+                          <textarea
+                            placeholder="Describe the violation..."
+                            value={tallyReason}
+                            onChange={(e) => setTallyReason(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none"
+                            rows={3}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Custom Mode */}
+                {mode === 'custom' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Tally Name*</label>
+                      <Input
+                        placeholder="e.g., Late to class, Uniform violation"
+                        value={customTallyName}
+                        onChange={(e) => setCustomTallyName(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Number of Tallies*</label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCustomTallyCount(Math.max(1, customTallyCount - 1))}
+                        >
+                          −
+                        </Button>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={customTallyCount}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value)
+                            if (!isNaN(val) && val >= 1 && val <= 10) {
+                              setCustomTallyCount(val)
+                            }
+                          }}
+                          className="text-center w-16"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCustomTallyCount(Math.min(10, customTallyCount + 1))}
+                        >
+                          +
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Maximum 10 tallies at once</p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Reason (Optional)</label>
                       <textarea
                         placeholder="Describe the violation..."
                         value={tallyReason}
@@ -253,7 +415,7 @@ export default function AddTallyPage() {
                         rows={3}
                       />
                     </div>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -340,15 +502,21 @@ export default function AddTallyPage() {
         {/* Submit Section */}
         <Card className="mt-8">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
               <div>
-                <p className="text-sm text-gray-600">Tally Type</p>
-                <p className="font-semibold text-gray-900">{selectedTally?.name || "None selected"}</p>
+                <p className="text-sm text-gray-600">Mode</p>
+                <p className="font-semibold text-gray-900 capitalize">{mode}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Category</p>
+                <p className="text-sm text-gray-600">Tally Type</p>
                 <p className="font-semibold text-gray-900">
-                  {selectedTally ? selectedTally.type : "—"}
+                  {mode === 'predefined' ? selectedTally?.name || "None selected" : customTallyName || "Custom"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">{mode === 'custom' ? 'Count' : 'Category'}</p>
+                <p className="font-semibold text-gray-900">
+                  {mode === 'custom' ? `${customTallyCount}x` : selectedTally?.type || "—"}
                 </p>
               </div>
               <div>
@@ -363,7 +531,7 @@ export default function AddTallyPage() {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || !selectedTally || selectedStudents.size === 0}
+                disabled={submitting || (mode === 'predefined' ? !selectedTally : !customTallyName.trim()) || selectedStudents.size === 0}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               >
                 {submitting ? (
@@ -374,7 +542,7 @@ export default function AddTallyPage() {
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Add Tally to {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
+                    Add {mode === 'custom' && customTallyCount > 1 ? `${customTallyCount}x ` : ''}Tally to {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
                   </>
                 )}
               </Button>
