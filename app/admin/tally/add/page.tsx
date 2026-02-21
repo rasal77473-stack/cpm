@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, LogOut, Search, Check, Loader2 } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface TallyType {
   id: number
   name: string
-  type: string // 'NORMAL' or 'FIXED'
+  type: string
   description?: string
 }
 
@@ -30,9 +31,12 @@ export default function AddTallyPage() {
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  // Custom tally
-  const [customTallyName, setCustomTallyName] = useState("")
-  const [customTallyCount, setCustomTallyCount] = useState(1)
+  // Tally type selection
+  const [tallyTypes, setTallyTypes] = useState<TallyType[]>([])
+  const [selectedTallyId, setSelectedTallyId] = useState<number | null>(null)
+  const [tallySearch, setTallySearch] = useState("")
+
+  // Reason
   const [tallyReason, setTallyReason] = useState("")
 
   // Student selection
@@ -41,6 +45,7 @@ export default function AddTallyPage() {
   const [studentSearch, setStudentSearch] = useState("")
   const [studentPage, setStudentPage] = useState(1)
   const [studentPagination, setStudentPagination] = useState({ total: 0, totalPages: 0, hasMore: false })
+  const [studentLoading, setStudentLoading] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -54,12 +59,29 @@ export default function AddTallyPage() {
 
     setStaffName(name || "Staff")
     setStaffId(id || "")
+    fetchTallyTypes()
     fetchStudents(1, "")
   }, [router])
 
-  const fetchStudents = async (page: number = 1, search: string = "") => {
+  const fetchTallyTypes = async () => {
     try {
       setLoading(true)
+      const res = await fetch("/api/tally-types")
+      if (!res.ok) throw new Error("Failed to fetch tally types")
+      const data = await res.json()
+      const normalTallies = data.filter((t: TallyType) => t.type === 'NORMAL')
+      setTallyTypes(normalTallies)
+    } catch (error) {
+      console.error("Failed to fetch tally types:", error)
+      toast.error("Failed to load tally types")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchStudents = async (page: number = 1, search: string = "") => {
+    try {
+      setStudentLoading(true)
       const params = new URLSearchParams()
       params.append("page", String(page))
       if (search) params.append("search", search)
@@ -78,7 +100,7 @@ export default function AddTallyPage() {
       console.error("Failed to fetch students:", error)
       toast.error("Failed to load students")
     } finally {
-      setLoading(false)
+      setStudentLoading(false)
     }
   }
 
@@ -100,12 +122,8 @@ export default function AddTallyPage() {
   }
 
   const handleSubmit = async () => {
-    if (!customTallyName.trim()) {
-      toast.error("Please enter a tally name")
-      return
-    }
-    if (customTallyCount < 1 || customTallyCount > 10) {
-      toast.error("Tally count must be between 1 and 10")
+    if (!selectedTallyId) {
+      toast.error("Please select a tally type")
       return
     }
 
@@ -117,61 +135,43 @@ export default function AddTallyPage() {
     setSubmitting(true)
 
     try {
-      // Create custom tally type first
-      const createRes = await fetch("/api/tally-types", {
+      const selectedTally = tallyTypes.find(t => t.id === selectedTallyId)
+      if (!selectedTally) throw new Error("Tally type not found")
+
+      const res = await fetch("/api/tallies/add-bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: customTallyName,
-          type: "NORMAL",
-          description: "Custom tally"
-        })
+          studentIds: Array.from(selectedStudents),
+          tallyTypeId: selectedTally.id,
+          tallyTypeName: selectedTally.name,
+          tallyType: selectedTally.type,
+          reason: tallyReason || null,
+          issuedByName: staffName,
+          issuedById: parseInt(staffId),
+        }),
       })
 
-      if (!createRes.ok) {
-        const error = await createRes.json()
-        throw new Error(error.error || "Failed to create custom tally type")
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error)
       }
 
-      const tallyType = await createRes.json()
-
-      // Now add the tally to students (multiple times if count > 1)
-      for (let i = 0; i < customTallyCount; i++) {
-        const res = await fetch("/api/tallies/add-bulk", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            studentIds: Array.from(selectedStudents),
-            tallyTypeId: tallyType.id,
-            tallyTypeName: tallyType.name,
-            tallyType: tallyType.type,
-            reason: tallyReason || null,
-            issuedByName: staffName,
-            issuedById: parseInt(staffId),
-          }),
-        })
-
-        if (!res.ok) {
-          const error = await res.json()
-          throw new Error(error.error)
-        }
-      }
-
-      toast.success(`${customTallyCount} tally(ies) added to ${selectedStudents.size} student(s)`)
+      toast.success(`Tally added to ${selectedStudents.size} student(s)`)
       
       // Reset form
-      setCustomTallyName("")
-      setCustomTallyCount(1)
+      setSelectedTallyId(null)
       setTallyReason("")
       setSelectedStudents(new Set())
       setStudentSearch("")
       setStudentPage(1)
+      fetchTallyTypes()
       
       // Redirect after 1 second
       setTimeout(() => router.push("/admin/tally"), 1000)
     } catch (error) {
-      console.error("Failed to add tallies:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to add tallies")
+      console.error("Failed to add tally:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to add tally")
     } finally {
       setSubmitting(false)
     }
@@ -209,50 +209,50 @@ export default function AddTallyPage() {
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Tally Type</CardTitle>
+                <CardTitle className="text-lg">Select Tally Type</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Tally Name*</label>
-                  <Input
-                    placeholder="e.g., Late to class, Uniform violation"
-                    value={customTallyName}
-                    onChange={(e) => setCustomTallyName(e.target.value)}
-                  />
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Search Type</label>
+                  <div className="flex items-center gap-2">
+                    <Search className="w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Search tally types..."
+                      value={tallySearch}
+                      onChange={(e) => setTallySearch(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Number of Tallies*</label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCustomTallyCount(Math.max(1, customTallyCount - 1))}
-                    >
-                      −
-                    </Button>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={customTallyCount}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value)
-                        if (!isNaN(val) && val >= 1 && val <= 10) {
-                          setCustomTallyCount(val)
-                        }
-                      }}
-                      className="text-center w-16"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCustomTallyCount(Math.min(10, customTallyCount + 1))}
-                    >
-                      +
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Maximum 10 tallies at once</p>
+                <div className="border rounded-lg p-3 max-h-96 overflow-y-auto space-y-2">
+                  {loading ? (
+                    <div className="text-center py-4">Loading types...</div>
+                  ) : tallyTypes.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500 text-sm">No tally types available</div>
+                  ) : (
+                    tallyTypes
+                      .filter(t => 
+                        t.name.toLowerCase().includes(tallySearch.toLowerCase()) ||
+                        t.description?.toLowerCase().includes(tallySearch.toLowerCase())
+                      )
+                      .map((tally) => (
+                        <button
+                          key={tally.id}
+                          onClick={() => setSelectedTallyId(tally.id)}
+                          className={`w-full text-left p-3 rounded-lg border-2 transition ${
+                            selectedTallyId === tally.id
+                              ? "border-green-500 bg-green-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <p className="font-semibold text-gray-900">{tally.name}</p>
+                          {tally.description && (
+                            <p className="text-xs text-gray-500 mt-1">{tally.description}</p>
+                          )}
+                        </button>
+                      ))
+                  )}
                 </div>
 
                 <div>
@@ -291,7 +291,7 @@ export default function AddTallyPage() {
                   />
                 </div>
 
-                {loading ? (
+                {studentLoading ? (
                   <div className="text-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
                     <p className="text-sm text-gray-600 mt-2">Loading students...</p>
@@ -323,7 +323,7 @@ export default function AddTallyPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => fetchStudents(studentPage - 1, studentSearch)}
-                          disabled={studentPage === 1 || loading}
+                          disabled={studentPage === 1 || studentLoading}
                         >
                           Previous
                         </Button>
@@ -334,7 +334,7 @@ export default function AddTallyPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => fetchStudents(studentPage + 1, studentSearch)}
-                          disabled={!studentPagination.hasMore || loading}
+                          disabled={!studentPagination.hasMore || studentLoading}
                         >
                           Next
                         </Button>
@@ -352,16 +352,18 @@ export default function AddTallyPage() {
           <CardContent className="pt-6">
             <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
               <div>
-                <p className="text-sm text-gray-600">Tally Name</p>
-                <p className="font-semibold text-gray-900">{customTallyName || "—"}</p>
+                <p className="text-sm text-gray-600">Tally Type</p>
+                <p className="font-semibold text-gray-900">
+                  {selectedTallyId ? tallyTypes.find(t => t.id === selectedTallyId)?.name : "—"}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Count</p>
-                <p className="font-semibold text-lg text-green-600">{customTallyCount}x</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Students</p>
+                <p className="text-sm text-gray-600">Selected</p>
                 <p className="font-semibold text-lg text-green-600">{selectedStudents.size}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Ready</p>
+                <p className="font-semibold text-lg text-green-600">{selectedTallyId && selectedStudents.size > 0 ? "✓" : "—"}</p>
               </div>
             </div>
 
@@ -371,18 +373,18 @@ export default function AddTallyPage() {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || !customTallyName.trim() || selectedStudents.size === 0}
+                disabled={submitting || !selectedTallyId || selectedStudents.size === 0}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               >
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Adding {customTallyCount}x Tally to {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}...
+                    Adding Tally...
                   </>
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Add {customTallyCount}x Tally to {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
+                    Add Tally to {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
                   </>
                 )}
               </Button>
