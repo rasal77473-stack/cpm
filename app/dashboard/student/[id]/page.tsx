@@ -25,7 +25,9 @@ interface PhoneStatus {
 
 interface StudentTally {
   id: number
+  tallyTypeId: number
   tallyTypeName: string
+  tallyType: string  // 'NORMAL' or 'FIXED'
   count: number
   issuedAt: string
 }
@@ -379,150 +381,154 @@ export default function StudentDetailPage() {
 
         {/* Tallies Section */}
         {activeTab === "tallies" && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <CardTitle>Tallies & Rule Violations</CardTitle>
-                <CardDescription>Total: {tallyCounts.total} tallies = ₹{tallyCounts.rupees}</CardDescription>
-              </div>
-              <select
-                value={tallyFilter}
-                onChange={(e) => setTallyFilter(e.target.value as any)}
-                className="px-3 py-1 border border-gray-300 rounded text-sm"
-              >
-                <option value="all">All Tallies</option>
-                <option value="normal">Normal</option>
-                <option value="fixed">Fixed/Other</option>
-              </select>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="text-xs font-medium">From</label>
-                <input
-                  type="date"
-                  value={tallyStartDate}
-                  onChange={(e) => setTallyStartDate(e.target.value)}
-                  className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs font-medium">To</label>
-                <input
-                  type="date"
-                  value={tallyEndDate}
-                  onChange={(e) => setTallyEndDate(e.target.value)}
-                  className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
-                />
-              </div>
-              {(tallyStartDate || tallyEndDate) && (
-                <button
-                  onClick={() => {
-                    setTallyStartDate("")
-                    setTallyEndDate("")
-                  }}
-                  className="self-end px-3 py-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {filteredTallies.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">No tallies found</p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {filteredTallies.map((tally) => (
-                  <div key={tally.id} className="flex items-center justify-between p-3 rounded-lg border bg-background">
-                    <div>
-                      <p className="font-medium">{tally.tallyTypeName}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(tally.issuedAt).toLocaleDateString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold mr-2">
-                        {tally.count} tally
-                      </span>
-                      <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                        ₹{tally.count * 10}
-                      </span>
-                    </div>
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="space-y-4">
+                <div>
+                  <CardTitle>Tallies & Rule Violations</CardTitle>
+                  <CardDescription>Total: {tallyCounts.total} tallies = ₹{tallyCounts.rupees}</CardDescription>
+                </div>
+                <div className="flex items-center gap-4">
+                  <select
+                    value={tallyFilter}
+                    onChange={(e) => setTallyFilter(e.target.value as any)}
+                    className="px-3 py-2 border border-gray-300 rounded text-sm"
+                  >
+                    <option value="all">All Tallies</option>
+                    <option value="normal">Normal</option>
+                    <option value="fixed">Fixed/Other</option>
+                  </select>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="text-xs font-medium">From</label>
+                    <input
+                      type="date"
+                      value={tallyStartDate}
+                      onChange={(e) => setTallyStartDate(e.target.value)}
+                      className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                    />
                   </div>
-                ))}
+                  <div className="flex-1">
+                    <label className="text-xs font-medium">To</label>
+                    <input
+                      type="date"
+                      value={tallyEndDate}
+                      onChange={(e) => setTallyEndDate(e.target.value)}
+                      className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                  {(tallyStartDate || tallyEndDate) && (
+                    <button
+                      onClick={() => {
+                        setTallyStartDate("")
+                        setTallyEndDate("")
+                      }}
+                      className="self-end px-3 py-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {filteredTallies.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No tallies found</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {filteredTallies.map((tally) => (
+                    <div key={tally.id} className="flex items-center justify-between p-3 rounded-lg border bg-background">
+                      <div>
+                        <p className="font-medium">{tally.tallyTypeName}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(tally.issuedAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold mr-2">
+                          {tally.count} tally
+                        </span>
+                        <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                          ₹{tally.count * 10}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Fines Section */}
         {activeTab === "fines" && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <CardTitle>Fines to Pay</CardTitle>
-                <CardDescription>
-                  Total: ₹{fineTotals.total} | Pending: ₹{fineTotals.pending} | Paid: ₹{fineTotals.paid}
-                </CardDescription>
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="space-y-4">
+                <div>
+                  <CardTitle>Fines to Pay</CardTitle>
+                  <CardDescription>
+                    Total: ₹{fineTotals.total} | Pending: ₹{fineTotals.pending} | Paid: ₹{fineTotals.paid}
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-4">
+                  <select
+                    value={fineFilter}
+                    onChange={(e) => setFineFilter(e.target.value as any)}
+                    className="px-3 py-2 border border-gray-300 rounded text-sm"
+                  >
+                    <option value="all">All Fines</option>
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                  </select>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="text-xs font-medium">From</label>
+                    <input
+                      type="date"
+                      value={fineStartDate}
+                      onChange={(e) => setFineStartDate(e.target.value)}
+                      className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs font-medium">To</label>
+                    <input
+                      type="date"
+                      value={fineEndDate}
+                      onChange={(e) => setFineEndDate(e.target.value)}
+                      className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                  {(fineStartDate || fineEndDate) && (
+                    <button
+                      onClick={() => {
+                        setFineStartDate("")
+                        setFineEndDate("")
+                      }}
+                      className="self-end px-3 py-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
-              <select
-                value={fineFilter}
-                onChange={(e) => setFineFilter(e.target.value as any)}
-                className="px-3 py-1 border border-gray-300 rounded text-sm"
-              >
-                <option value="all">All Fines</option>
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
-              </select>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="text-xs font-medium">From</label>
-                <input
-                  type="date"
-                  value={fineStartDate}
-                  onChange={(e) => setFineStartDate(e.target.value)}
-                  className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs font-medium">To</label>
-                <input
-                  type="date"
-                  value={fineEndDate}
-                  onChange={(e) => setFineEndDate(e.target.value)}
-                  className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
-                />
-              </div>
-              {(fineStartDate || fineEndDate) && (
-                <button
-                  onClick={() => {
-                    setFineStartDate("")
-                    setFineEndDate("")
-                  }}
-                  className="self-end px-3 py-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {filteredFines.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">No fines found</p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {filteredFines.map((fine) => (
-                  <div key={fine.id} className="flex items-center justify-between p-3 rounded-lg border bg-background">
-                    <div className="flex-1">
-                      <p className="font-medium">{fine.fineName}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(fine.issuedAt).toLocaleDateString()}</p>
-                    </div>
-                    <div className="text-right flex items-center gap-3">
-                      <span className="font-semibold">₹{fine.amount}</span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            </CardHeader>
+            <CardContent>
+              {filteredFines.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No fines found</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {filteredFines.map((fine) => (
+                    <div key={fine.id} className="flex items-center justify-between p-3 rounded-lg border bg-background">
+                      <div className="flex-1">
+                        <p className="font-medium">{fine.fineName}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(fine.issuedAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right flex items-center gap-3">
+                        <span className="font-semibold">₹{fine.amount}</span>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
                           fine.isPaid === "YES"
                             ? "bg-green-100 text-green-800"
                             : "bg-red-100 text-red-800"
