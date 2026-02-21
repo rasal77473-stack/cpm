@@ -18,6 +18,7 @@ interface StudentTally {
   admissionNumber: string
   tallyTypeName: string
   tallyType: string
+  count: number
   reason: string | null
   issuedBy: number
   issuedByName: string
@@ -90,7 +91,7 @@ export default function TallyManagementPage() {
         }
         
         const entry = countMap.get(tally.studentId)!
-        entry.count += 1
+        entry.count += tally.count || 1 // Sum the count from each tally entry
         entry.rupees = entry.count * 10
         entry.lastDate = tally.issuedAt
       })

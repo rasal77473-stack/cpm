@@ -16,6 +16,7 @@ interface TallyType {
   name: string
   type: string
   description: string | null
+  tallyValue: number
   isActive: string
   createdAt: string | null
 }
@@ -31,7 +32,7 @@ const emptyForm = {
   name: "",
   type: "NORMAL",
   description: "",
-  defaultCount: 1,
+  tallyValue: 1,
 }
 
 export default function ManageTallyTypesPage() {
@@ -94,7 +95,7 @@ export default function ManageTallyTypesPage() {
         name: tallyType.name,
         type: tallyType.type,
         description: tallyType.description || "",
-        defaultCount: 1,
+        tallyValue: tallyType.tallyValue || 1,
       })
     } else {
       setIsEditing(false)
@@ -370,12 +371,12 @@ export default function ManageTallyTypesPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Default Count (How many times to add)</label>
+              <label className="text-sm font-medium">Tally Value (How many tallies for this violation)</label>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setForm({ ...form, defaultCount: Math.max(1, form.defaultCount - 1) })}
+                  onClick={() => setForm({ ...form, tallyValue: Math.max(1, form.tallyValue - 1) })}
                 >
                   −
                 </Button>
@@ -383,11 +384,11 @@ export default function ManageTallyTypesPage() {
                   type="number"
                   min="1"
                   max="10"
-                  value={form.defaultCount}
+                  value={form.tallyValue}
                   onChange={(e) => {
                     const val = parseInt(e.target.value)
                     if (!isNaN(val) && val >= 1 && val <= 10) {
-                      setForm({ ...form, defaultCount: val })
+                      setForm({ ...form, tallyValue: val })
                     }
                   }}
                   className="text-center w-16"
@@ -395,12 +396,12 @@ export default function ManageTallyTypesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setForm({ ...form, defaultCount: Math.min(10, form.defaultCount + 1) })}
+                  onClick={() => setForm({ ...form, tallyValue: Math.min(10, form.tallyValue + 1) })}
                 >
                   +
                 </Button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Default: {form.defaultCount}</p>
+              <p className="text-xs text-gray-500 mt-1">1 tally = ₹10 | Selecting {form.tallyValue} = ₹{form.tallyValue * 10}</p>
             </div>
             {formError && <p className="text-sm text-red-600">{formError}</p>}
             <div className="flex gap-2 justify-end">

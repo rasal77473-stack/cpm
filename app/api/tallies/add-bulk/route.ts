@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       tallyTypeId,
       tallyTypeName,
       tallyType,
+      count,
       reason,
       issuedByName,
       issuedById,
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
       tallyTypeId,
       tallyTypeName,
       tallyType,
+      count: count || 1, // Default to 1 if not specified
       reason: reason || null,
       issuedBy: issuedById,
       issuedByName,

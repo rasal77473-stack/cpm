@@ -15,6 +15,7 @@ function transformTally(tally: any, student: any) {
     tallyTypeId: tally.tallyTypeId,
     tallyTypeName: tally.tallyTypeName,
     tallyType: tally.tallyType,
+    count: tally.count || 1, // Include count field
     reason: tally.reason,
     issuedBy: tally.issuedBy,
     issuedByName: tally.issuedByName,

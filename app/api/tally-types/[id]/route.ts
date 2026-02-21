@@ -19,7 +19,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, type, description } = body
+    const { name, type, description, tallyValue } = body
 
     if (!name || !type) {
       return NextResponse.json(
@@ -34,6 +34,7 @@ export async function PUT(
         name,
         type,
         description: description || null,
+        tallyValue: tallyValue || 1, // Include tallyValue in update
         updatedAt: new Date().toISOString(),
       })
       .where(eq(tallyTypes.id, tallyTypeId))

@@ -163,6 +163,7 @@ export const tallyTypes = pgTable("tally_types", {
 	name: text().notNull(),
 	type: text().notNull(), // 'NORMAL' or 'FIXED'
 	description: text(),
+	tallyValue: integer("tally_value").default(1), // How many tallies this violation carries (1-10)
 	isActive: text("is_active").default('YES'),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
@@ -175,6 +176,7 @@ export const studentTallies = pgTable("student_tallies", {
 	tallyTypeId: integer("tally_type_id").notNull(),
 	tallyTypeName: text("tally_type_name").notNull(),
 	tallyType: text("tally_type").notNull(), // 'NORMAL' or 'FIXED'
+	count: integer().default(1), // Number of tallies for this violation (based on tallyValue)
 	reason: text(),
 	issuedBy: integer("issued_by").notNull(),
 	issuedByName: text("issued_by_name").notNull(),

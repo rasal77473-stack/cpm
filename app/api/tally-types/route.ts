@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, type, description } = body
+    const { name, type, description, tallyValue } = body
 
     if (!name || !type) {
       return NextResponse.json(
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
         name,
         type,
         description: description || null,
+        tallyValue: tallyValue || 1, // Default to 1 if not provided
         isActive: "YES",
       })
       .returning()

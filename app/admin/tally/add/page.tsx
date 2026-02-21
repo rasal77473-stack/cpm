@@ -15,6 +15,7 @@ interface TallyType {
   name: string
   type: string
   description?: string
+  tallyValue: number
 }
 
 interface Student {
@@ -146,6 +147,7 @@ export default function AddTallyPage() {
           tallyTypeId: selectedTally.id,
           tallyTypeName: selectedTally.name,
           tallyType: selectedTally.type,
+          count: selectedTally.tallyValue || 1, // Use tallyValue as the count
           reason: tallyReason || null,
           issuedByName: staffName,
           issuedById: parseInt(staffId),
@@ -350,12 +352,16 @@ export default function AddTallyPage() {
         {/* Submit Section */}
         <Card className="mt-8">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
               <div>
                 <p className="text-sm text-gray-600">Tally Type</p>
                 <p className="font-semibold text-gray-900">
                   {selectedTallyId ? tallyTypes.find(t => t.id === selectedTallyId)?.name : "—"}
                 </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Count</p>
+                <p className="font-semibold text-lg text-blue-600">{selectedTallyId ? tallyTypes.find(t => t.id === selectedTallyId)?.tallyValue || 1 : "—"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Selected</p>
