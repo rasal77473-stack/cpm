@@ -41,6 +41,7 @@ interface TallyEntry {
   tallyTypeId: number
   tallyTypeName: string
   tallyType: string // 'NORMAL' or 'FIXED'
+  count: number
   reason: string | null
   issuedBy: number
   issuedByName: string
@@ -145,10 +146,10 @@ export default function StudentDetailPage() {
   })
 
   const tallyCounts = {
-    total: filteredTallies.length,
-    normal: filteredTallies.filter(t => t.tallyType === "NORMAL").length,
-    fixed: filteredTallies.filter(t => t.tallyType === "FIXED").length,
-    rupees: filteredTallies.length * 10,
+    total: filteredTallies.reduce((sum, t) => sum + t.count, 0),
+    normal: filteredTallies.filter(t => t.tallyType === "NORMAL").reduce((sum, t) => sum + t.count, 0),
+    fixed: filteredTallies.filter(t => t.tallyType === "FIXED").reduce((sum, t) => sum + t.count, 0),
+    rupees: filteredTallies.reduce((sum, t) => sum + (t.count * 10), 0),
   }
 
   // Filter and calculate fines
@@ -522,13 +523,21 @@ export default function StudentDetailPage() {
                                 <p className="font-semibold text-gray-900">{tally.tallyTypeName}</p>
                                 <p className="text-sm text-gray-600">Issued by: {tally.issuedByName}</p>
                               </div>
-                              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                                tally.tallyType === 'NORMAL'
-                                  ? "bg-blue-100 text-blue-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}>
-                                {tally.tallyType}
-                              </span>
+                              <div className="flex gap-2 items-center">
+                                <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                  {tally.count} tally
+                                </span>
+                                <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                  ₹{tally.count * 10}
+                                </span>
+                                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                  tally.tallyType === 'NORMAL'
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}>
+                                  {tally.tallyType}
+                                </span>
+                              </div>
                             </div>
                             {tally.reason && (
                               <p className="text-sm text-gray-700 mt-2">Reason: {tally.reason}</p>
