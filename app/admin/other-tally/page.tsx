@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronLeft, LogOut, Plus, Search, Filter } from "lucide-react"
+import { ChevronLeft, LogOut, Plus, Search } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
 
@@ -17,11 +17,22 @@ interface StudentTally {
   studentClass: string | null
   admissionNumber: string
   tallyTypeName: string
-  tallyType: string // 'NORMAL' or 'FIXED'
+  tallyType: string
   reason: string | null
   issuedBy: number
   issuedByName: string
   issuedAt: string
+}
+
+interface StudentTallyCount {
+  studentId: number
+  studentName: string
+  admissionNumber: string
+  studentClass: string | null
+  count: number
+  rupees: number
+  issuedByName: string
+  lastDate: string
 }
 
 export default function OtherTallyManagementPage() {
@@ -29,12 +40,11 @@ export default function OtherTallyManagementPage() {
   const [staffName, setStaffName] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [tallies, setTallies] = useState<StudentTally[]>([])
+  const [tallyCountMap, setTallyCountMap] = useState<Map<number, StudentTallyCount>>(new Map())
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [classFilter, setClassFilter] = useState("all")
-  const [tallyTypeFilter, setTallyTypeFilter] = useState("all")
   const [classes, setClasses] = useState<string[]>([])
-  const [tallyTypes, setTallyTypes] = useState<string[]>([])
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -56,14 +66,39 @@ export default function OtherTallyManagementPage() {
       setLoading(true)
       const res = await fetch("/api/tallies")
       if (!res.ok) throw new Error("Failed to fetch tallies")
-      const data = await res.json()
+      const data: StudentTally[] = await res.json()
       setTallies(data)
 
-      // Extract unique classes and tally types
-      const uniqueClasses = [...new Set(data.map((t: any) => t.studentClass).filter(Boolean))]
-      const uniqueTypes = [...new Set(data.map((t: any) => t.tallyTypeName))]
+      // Group tallies by student and calculate counts (FIXED type only)
+      const countMap = new Map<number, StudentTallyCount>()
+      
+      data.forEach((tally) => {
+        if (tally.tallyType !== 'FIXED') return // Only FIXED type
+        
+        if (!countMap.has(tally.studentId)) {
+          countMap.set(tally.studentId, {
+            studentId: tally.studentId,
+            studentName: tally.studentName,
+            admissionNumber: tally.admissionNumber,
+            studentClass: tally.studentClass,
+            count: 0,
+            rupees: 0,
+            issuedByName: tally.issuedByName,
+            lastDate: tally.issuedAt,
+          })
+        }
+        
+        const entry = countMap.get(tally.studentId)!
+        entry.count += 1
+        entry.rupees = entry.count * 10
+        entry.lastDate = tally.issuedAt
+      })
+
+      setTallyCountMap(countMap)
+
+      // Extract unique classes
+      const uniqueClasses = [...new Set(data.map((t) => t.studentClass).filter(Boolean))]
       setClasses(uniqueClasses as string[])
-      setTallyTypes(uniqueTypes as string[])
     } catch (error) {
       console.error("Failed to fetch tallies:", error)
       toast.error("Failed to load other tallies")
@@ -72,17 +107,15 @@ export default function OtherTallyManagementPage() {
     }
   }
 
-  const filteredTallies = tallies.filter((tally) => {
-    const isFixedType = tally.tallyType === 'FIXED'
+  const filteredTallies = Array.from(tallyCountMap.values()).filter((tally) => {
     const matchesSearch = 
       tally.studentName.toLowerCase().includes(search.toLowerCase()) ||
       tally.admissionNumber.toLowerCase().includes(search.toLowerCase())
     
     const matchesClass = classFilter === "all" || tally.studentClass === classFilter
-    const matchesType = tallyTypeFilter === "all" || tally.tallyTypeName === tallyTypeFilter
     
-    return isFixedType && matchesSearch && matchesClass && matchesType
-  })
+    return matchesSearch && matchesClass
+  }).sort((a, b) => b.count - a.count) // Sort by count descending
 
   if (!isAuthorized) {
     return (
@@ -139,7 +172,7 @@ export default function OtherTallyManagementPage() {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                 <Input
@@ -159,16 +192,6 @@ export default function OtherTallyManagementPage() {
                   <option key={cls} value={cls}>{cls}</option>
                 ))}
               </select>
-              <select 
-                value={tallyTypeFilter}
-                onChange={(e) => setTallyTypeFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="all">All Types</option>
-                {tallyTypes.map((type) => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
             </div>
           </CardContent>
         </Card>
@@ -177,7 +200,10 @@ export default function OtherTallyManagementPage() {
         <Card>
           <CardContent className="pt-6">
             {loading ? (
-              <div className="text-center py-8 text-gray-500">Loading other tallies...</div>
+              <div className="text-center py-8 text-gray-500">
+                <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-2">Loading students other tally...</p>
+              </div>
             ) : filteredTallies.length === 0 ? (
               <div className="text-center py-8 text-gray-500">No other tallies found</div>
             ) : (
@@ -188,20 +214,30 @@ export default function OtherTallyManagementPage() {
                       <th className="text-left py-3 px-4 font-semibold">Student</th>
                       <th className="text-left py-3 px-4 font-semibold">Admission#</th>
                       <th className="text-left py-3 px-4 font-semibold">Class</th>
-                      <th className="text-left py-3 px-4 font-semibold">Tally Type</th>
+                      <th className="text-center py-3 px-4 font-semibold">Tally Count</th>
+                      <th className="text-center py-3 px-4 font-semibold">Rupees</th>
                       <th className="text-left py-3 px-4 font-semibold">Issued By</th>
-                      <th className="text-left py-3 px-4 font-semibold">Date</th>
+                      <th className="text-left py-3 px-4 font-semibold">Last Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredTallies.map((tally) => (
-                      <tr key={tally.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4">{tally.studentName}</td>
+                      <tr key={tally.studentId} className="border-b hover:bg-gray-50">
+                        <td className="py-3 px-4 font-medium">{tally.studentName}</td>
                         <td className="py-3 px-4">{tally.admissionNumber}</td>
                         <td className="py-3 px-4">{tally.studentClass || "-"}</td>
-                        <td className="py-3 px-4">{tally.tallyTypeName}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            {tally.count}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            ₹{tally.rupees}
+                          </span>
+                        </td>
                         <td className="py-3 px-4">{tally.issuedByName}</td>
-                        <td className="py-3 px-4">{new Date(tally.issuedAt).toLocaleDateString()}</td>
+                        <td className="py-3 px-4">{new Date(tally.lastDate).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -212,7 +248,9 @@ export default function OtherTallyManagementPage() {
         </Card>
 
         <div className="mt-4 text-sm text-gray-600">
-          Total Other Tallies: <span className="font-semibold">{filteredTallies.length}</span>
+          Total Students with Other Tallies: <span className="font-semibold">{filteredTallies.length}</span>
+          <span className="ml-4">Total Other Tallies: <span className="font-semibold text-orange-600">{Array.from(tallyCountMap.values()).reduce((sum, t) => sum + t.count, 0)}</span></span>
+          <span className="ml-4">Total Rupees: <span className="font-semibold text-blue-600">₹{Array.from(tallyCountMap.values()).reduce((sum, t) => sum + t.rupees, 0)}</span></span>
         </div>
       </main>
     </div>

@@ -31,6 +31,7 @@ const emptyForm = {
   name: "",
   type: "FIXED",
   description: "",
+  defaultCount: 1,
 }
 
 export default function ManageOtherTallyTypesPage() {
@@ -148,6 +149,7 @@ export default function ManageOtherTallyTypesPage() {
         name: tallyType.name,
         type: tallyType.type,
         description: tallyType.description || "",
+        defaultCount: 1,
       })
     } else {
       setIsEditing(false)
@@ -599,6 +601,39 @@ export default function ManageOtherTallyTypesPage() {
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Optional description"
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Default Count (How many times to add)</label>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setForm({ ...form, defaultCount: Math.max(1, form.defaultCount - 1) })}
+                >
+                  −
+                </Button>
+                <Input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={form.defaultCount}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value)
+                    if (!isNaN(val) && val >= 1 && val <= 10) {
+                      setForm({ ...form, defaultCount: val })
+                    }
+                  }}
+                  className="text-center w-16"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setForm({ ...form, defaultCount: Math.min(10, form.defaultCount + 1) })}
+                >
+                  +
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Default: {form.defaultCount}</p>
             </div>
             {formError && <p className="text-sm text-red-600">{formError}</p>}
             <div className="flex gap-2 justify-end">
