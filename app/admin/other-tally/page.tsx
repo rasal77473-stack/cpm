@@ -46,6 +46,7 @@ export default function OtherTallyManagementPage() {
   const [search, setSearch] = useState("")
   const [classFilter, setClassFilter] = useState("all")
   const [classes, setClasses] = useState<string[]>([])
+  const [viewMode, setViewMode] = useState<"summary" | "logs">("summary")
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -193,6 +194,22 @@ export default function OtherTallyManagementPage() {
                   <option key={cls} value={cls}>{cls}</option>
                 ))}
               </select>
+              <div className="flex gap-2">
+                <Button
+                  variant={viewMode === "summary" ? "default" : "outline"}
+                  onClick={() => setViewMode("summary")}
+                  className="flex-1"
+                >
+                  Summary
+                </Button>
+                <Button
+                  variant={viewMode === "logs" ? "default" : "outline"}
+                  onClick={() => setViewMode("logs")}
+                  className="flex-1"
+                >
+                  Detailed Logs
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -205,45 +222,100 @@ export default function OtherTallyManagementPage() {
                 <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                 <p className="mt-2">Loading students other tally...</p>
               </div>
-            ) : filteredTallies.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">No other tallies found</div>
+            ) : viewMode === "summary" ? (
+              // Summary View
+              <>
+                {filteredTallies.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">No other tallies found</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4 font-semibold">Student</th>
+                          <th className="text-left py-3 px-4 font-semibold">Admission#</th>
+                          <th className="text-left py-3 px-4 font-semibold">Class</th>
+                          <th className="text-center py-3 px-4 font-semibold">Tally Count</th>
+                          <th className="text-center py-3 px-4 font-semibold">Rupees</th>
+                          <th className="text-left py-3 px-4 font-semibold">Issued By</th>
+                          <th className="text-left py-3 px-4 font-semibold">Last Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTallies.map((tally) => (
+                          <tr key={tally.studentId} className="border-b hover:bg-gray-50">
+                            <td className="py-3 px-4 font-medium">{tally.studentName}</td>
+                            <td className="py-3 px-4">{tally.admissionNumber}</td>
+                            <td className="py-3 px-4">{tally.studentClass || "-"}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                {tally.count}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                ₹{tally.rupees}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">{tally.issuedByName}</td>
+                            <td className="py-3 px-4">{new Date(tally.lastDate).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-semibold">Student</th>
-                      <th className="text-left py-3 px-4 font-semibold">Admission#</th>
-                      <th className="text-left py-3 px-4 font-semibold">Class</th>
-                      <th className="text-center py-3 px-4 font-semibold">Tally Count</th>
-                      <th className="text-center py-3 px-4 font-semibold">Rupees</th>
-                      <th className="text-left py-3 px-4 font-semibold">Issued By</th>
-                      <th className="text-left py-3 px-4 font-semibold">Last Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTallies.map((tally) => (
-                      <tr key={tally.studentId} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium">{tally.studentName}</td>
-                        <td className="py-3 px-4">{tally.admissionNumber}</td>
-                        <td className="py-3 px-4">{tally.studentClass || "-"}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
-                            {tally.count}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                            ₹{tally.rupees}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">{tally.issuedByName}</td>
-                        <td className="py-3 px-4">{new Date(tally.lastDate).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              // Detailed Logs View
+              <>
+                {tallies.filter(t => t.tallyType === 'FIXED').length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">No other tally logs found</div>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {tallies
+                      .filter(t => t.tallyType === 'FIXED')
+                      .sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime())
+                      .map((tally) => (
+                        <div key={tally.id} className="p-4 border rounded-lg hover:bg-gray-50 transition">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <p className="text-xs text-gray-500 font-medium">Student</p>
+                              <p className="font-semibold text-gray-900">{tally.studentName}</p>
+                              <p className="text-xs text-gray-600">{tally.admissionNumber}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 font-medium">Violation</p>
+                              <p className="font-semibold text-gray-900">{tally.tallyTypeName}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 font-medium">Count & Amount</p>
+                              <div className="flex gap-2">
+                                <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                  {tally.count} tallies
+                                </span>
+                                <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                  ₹{tally.count * 10}
+                                </span>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 font-medium">Date & Staff</p>
+                              <p className="font-semibold text-gray-900">{new Date(tally.issuedAt).toLocaleDateString()}</p>
+                              <p className="text-xs text-gray-600">{tally.issuedByName}</p>
+                            </div>
+                          </div>
+                          {tally.reason && (
+                            <div className="mt-2 pt-2 border-t">
+                              <p className="text-xs text-gray-500 font-medium">Reason</p>
+                              <p className="text-sm text-gray-700">{tally.reason}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
