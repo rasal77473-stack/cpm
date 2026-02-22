@@ -55,9 +55,6 @@ function SpecialPassContent() {
   const [selectedClass, setSelectedClass] = useState("all")
   const [selectedLocker, setSelectedLocker] = useState("all")
 
-  // Optimistic UI States
-  const [passStates, setPassStates] = useState<{ [key: number]: "OUT" | "IN" }>({})
-
   // Debounced search queries for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const debouncedStudentSearchQuery = useDebounce(studentSearchQuery, 300)
@@ -80,11 +77,11 @@ function SpecialPassContent() {
   const students = Array.isArray(studentsData) ? studentsData : []
 
   // Fetch all special passes
-  // OPTIMIZED: Reduced polling to 10s (10000ms) for smooth UX without constant re-renders
+  // INSTANT: Real-time polling at 1.5s for instant updates
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 10000, // CHANGED: 3000ms → 10000ms (10 sec) for better performance
-    revalidateOnFocus: false, // CHANGED: true → false to prevent re-render on focus
-    dedupingInterval: 5000, // CHANGED: 1000ms → 5000ms
+    refreshInterval: 1500, // INSTANT: 1.5s for real-time updates
+    revalidateOnFocus: true, // Revalidate when user switches tab
+    dedupingInterval: 500,
   })
   // Filter ONLY phone passes - strictly exclude all gate passes
   const passes = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
@@ -94,11 +91,11 @@ function SpecialPassContent() {
   }) : []
 
   // Fetch phone statuses
-  // OPTIMIZED: Reduced polling to 15s for better performance
+  // INSTANT: Real-time polling at 1.5s for instant status changes
   const { data: phoneStatusData = [] } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 15000, // CHANGED: 2000ms → 15000ms (15 sec) for better performance
-    revalidateOnFocus: false, // CHANGED: true → false
-    dedupingInterval: 5000, // CHANGED: 500ms → 5000ms
+    refreshInterval: 1500, // INSTANT: 1.5s for real-time updates
+    revalidateOnFocus: true,
+    dedupingInterval: 500,
   })
 
   // --------------------------------------------------------------------------
@@ -269,10 +266,18 @@ function SpecialPassContent() {
   // --------------------------------------------------------------------------
 
   const handleSubmitOut = async (passId: number) => {
-    setPassStates(prev => ({ ...prev, [passId]: "OUT" }))
+    // Set loading state to prevent double-clicks
+    setReturningPassId(passId)
+    
+    const pass = passes.find((p: any) => p.id === passId)
+    if (!pass) {
+      setReturningPassId(null)
+      toast.error("Pass not found")
+      return
+    }
+
+    // Optimistic update for phone status
     mutate("/api/phone-status", (current: any[] = []) => {
-      const pass = passes.find((p: any) => p.id === passId)
-      if (!pass) return current
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
         ? current.map(s => s.studentId === pass.studentId ? { ...s, status: "OUT" } : s)
@@ -284,18 +289,17 @@ function SpecialPassContent() {
     try {
       const res = await fetch(`/api/special-pass/out/${passId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
+      
+      // Revalidate to ensure server consistency
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
-      // Clear the optimistic state after successful API response
-      setPassStates(prev => {
-        const n = { ...prev }; delete n[passId]; return n
-      })
     } catch (e) {
-      setPassStates(prev => {
-        const n = { ...prev }; delete n[passId]; return n
-      })
+      // Rollback on error
       mutate("/api/phone-status")
+      mutate("/api/special-pass/all")
       toast.error("Failed to update status")
+    } finally {
+      setReturningPassId(null)
     }
   }
 
@@ -323,11 +327,6 @@ function SpecialPassContent() {
       setReturningPassId(passId)
       const res = await fetch(`/api/special-pass/return/${passId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
-
-      // Clear the optimistic state after successful API response
-      setPassStates(prev => {
-        const n = { ...prev }; delete n[passId]; return n
-      })
 
       // Revalidate to ensure server consistency
       mutate("/api/special-pass/all")
@@ -622,10 +621,6 @@ function SpecialPassContent() {
             const isCompleted = currentStatus === "COMPLETED" // Only COMPLETED status means completed, not IN
             const isNotIssued = isStudent && !item.issueTime // Student with no pass issued
 
-            // For Pass objects, we might check passStates for local optimistic updates
-            // effectiveOut checks: local passStates first, then the actual status
-            const effectiveOut = !isCompleted && (isStudent ? isOut : (passStates[item.originalId] === "OUT" || isOut))
-
             return (
               <div key={item.id} className="bg-green-50/50 rounded-[20px] p-5 shadow-sm border border-green-100">
                 <div className="flex gap-4">
@@ -636,13 +631,13 @@ function SpecialPassContent() {
                       {/* Status Badge */}
                       <Badge variant="outline" className={`
                         rounded-md px-2 py-0.5 text-xs font-normal bg-white
-                        ${isNotIssued ? "text-orange-600 border-orange-400" : (!isCompleted && effectiveOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300"))}
+                        ${isNotIssued ? "text-orange-600 border-orange-400" : (!isCompleted && isOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300"))}
                       `}>
                         {isNotIssued
                           ? "not issued"
                           : (isStudent
-                            ? (effectiveOut ? "out" : "in")
-                            : (isCompleted ? "returned" : (effectiveOut ? "out" : isActive ? "active" : "gate pass"))
+                            ? (isOut ? "out" : "in")
+                            : (isCompleted ? "returned" : (isOut ? "out" : isActive ? "active" : "gate pass"))
                           )
                         }
                       </Badge>
@@ -730,23 +725,23 @@ function SpecialPassContent() {
                       <div className="flex gap-3 mt-4 justify-end items-center">
                         {!isCompleted && (
                           <div className="flex items-center gap-3">
-                            {/* Status Badge - Red rounded for OUT, Green for IN */}
-                            <Badge className={`rounded-full px-4 py-1 text-xs font-semibold border-2 ${effectiveOut ? "bg-red-50 text-red-600 border-red-400" : "bg-green-50 text-green-600 border-green-400"}`}>
-                              {effectiveOut ? "OUT" : "IN"}
+            {/* Status Badge - Red rounded for OUT, Green for IN */}
+                            <Badge className={`rounded-full px-4 py-1 text-xs font-semibold border-2 ${isOut ? "bg-red-50 text-red-600 border-red-400" : "bg-green-50 text-green-600 border-green-400"}`}>
+                              {isOut ? "OUT" : "IN"}
                             </Badge>
 
                             {/* Action Button - Green rounded toggle button */}
                             <Button
                               className="h-9 px-6 rounded-full text-xs font-semibold bg-green-500 hover:bg-green-600 text-white border-none transition-all"
-                              onClick={() => effectiveOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
+                              onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
                               disabled={returningPassId === item.originalId}
                             >
                               {returningPassId === item.originalId ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <>
-                                  {effectiveOut ? "Submit In" : "Submit Out"}
-                                  {!effectiveOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
+                                  {isOut ? "Submit In" : "Submit Out"}
+                                  {!isOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
                                 </>
                               )}
                             </Button>
@@ -759,7 +754,7 @@ function SpecialPassContent() {
                     {/* Action for Students: Quick Grant Pass OR Submit In */}
                     {isStudent && canGrantPass && (
                       <div className="flex gap-3 mt-4 justify-end">
-                        {effectiveOut ? (
+                        {isOut ? (
                           <Button
                             variant="outline"
                             className="h-8 px-3 rounded-md text-xs font-medium border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 bg-white"
@@ -772,9 +767,9 @@ function SpecialPassContent() {
                                 toast.error("Active pass record not found");
                               }
                             }}
-                            disabled={returningPassId === item.originalId} // Note: returningPassId might handle pass ID, not student ID, but we can't easily track student ID loading here without logic change. It's fine for now as it's instant.
+                            disabled={returningPassId === item.originalId}
                           >
-                            Submit In
+                            {returningPassId === item.originalId ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit In"}
                           </Button>
                         ) : (
                           <Button

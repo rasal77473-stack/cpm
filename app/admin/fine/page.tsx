@@ -135,36 +135,36 @@ export default function FineManagementPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="w-full px-4 md:px-6 py-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => router.push("/dashboard")}
-                className="rounded-full"
+                className="rounded-full flex-shrink-0"
               >
                 <ChevronLeft className="w-5 h-5" />
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Fine Management</h1>
-                <p className="text-sm text-gray-600">Logged in as: {staffName}</p>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Fine Management</h1>
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Logged in as: {staffName}</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Link href="/admin/fine/manage">
-                <Button variant="outline" className="gap-2">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              <Link href="/admin/fine/manage" className="flex-1 min-w-max sm:flex-initial">
+                <Button variant="outline" className="gap-2 w-full sm:w-auto text-sm">
                   <Settings className="w-4 h-4" />
-                  Manage Fines
+                  <span className="hidden sm:inline">Manage</span>
                 </Button>
               </Link>
-              <Link href="/admin/fine/add">
-                <Button className="gap-2 bg-green-600 hover:bg-green-700">
+              <Link href="/admin/fine/add" className="flex-1 min-w-max sm:flex-initial">
+                <Button className="gap-2 bg-green-600 hover:bg-green-700 w-full sm:w-auto text-sm">
                   <Plus className="w-4 h-4" />
-                  Add Fine
+                  <span className="hidden sm:inline">Add Fine</span>
                 </Button>
               </Link>
-              <Button variant="outline" onClick={handleLogout} className="gap-2">
+              <Button variant="outline" onClick={handleLogout} className="gap-2 w-auto text-sm">
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
@@ -173,7 +173,7 @@ export default function FineManagementPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="w-full px-4 md:px-6 py-6 md:py-8">
         {/* Statistics */}
         {!loading && fines.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

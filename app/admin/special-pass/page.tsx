@@ -21,7 +21,7 @@ export default function AdminSpecialPassPage() {
 
   const { data: studentsData = [], isLoading } = useSWR("/api/students", fetcher)
   const { data: allPasses = [], isLoading: isLoadingLogs } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 5000
+    refreshInterval: 1500 // INSTANT: 1.5s for real-time updates
   })
 
   const students = Array.isArray(studentsData) ? studentsData : []

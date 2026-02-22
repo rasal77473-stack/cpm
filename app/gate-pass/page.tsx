@@ -68,9 +68,9 @@ function GatePassContent() {
   const students = Array.isArray(studentsData) ? studentsData : []
 
   // Fetch gate passes (from special-pass/all since we use same table)
-  // OPTIMIZED: Reduced polling to 10s for smooth UX
-  const { data: allGatePasses = [], isLoading: gatePassesLoading } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 10000, // CHANGED: 3000ms → 10000ms
+  // INSTANT: Real-time polling at 1.5s for instant updates
+  const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/gate-pass/all", fetcher, {
+    refreshInterval: 1500, // INSTANT: 1.5s for real-time updates
     revalidateOnFocus: false, // CHANGED: true → false
     dedupingInterval: 5000, // CHANGED: 1000ms → 5000ms
   })
@@ -82,9 +82,9 @@ function GatePassContent() {
   }) : []
 
   // Fetch phone/gate pass statuses (same tracking)
-  // OPTIMIZED: Reduced polling to 15s for better performance
-  const { data: gatePassStatusData = [] } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 15000, // CHANGED: 2000ms → 15000ms
+  // INSTANT: Real-time polling at 1.5s for instant updates
+  const { data: phoneStatusData = [] } = useSWR("/api/phone-status", fetcher, {
+    refreshInterval: 1500, // INSTANT: 1.5s for real-time updates
     revalidateOnFocus: false, // CHANGED: true → false
     dedupingInterval: 5000, // CHANGED: 500ms → 5000ms
   })

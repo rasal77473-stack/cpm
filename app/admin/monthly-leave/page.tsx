@@ -56,8 +56,8 @@ export default function MonthlyLeavePage() {
     const { data: leavesData = [], isLoading: leavesLoading } = useSWR("/api/monthly-leave", fetcher, {
         revalidateOnFocus: true,
         revalidateOnReconnect: true,
-        refreshInterval: 5000, // Refresh every 5 seconds for real-time status
-        dedupingInterval: 1000, // Wait 1 second before making duplicate requests
+        refreshInterval: 1500, // INSTANT: 1.5s for real-time updates
+        dedupingInterval: 500,
     })
     const leaves = Array.isArray(leavesData) ? leavesData : []
 
