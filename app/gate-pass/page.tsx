@@ -506,7 +506,7 @@ function GatePassContent() {
         </div>
 
         <div className="space-y-4">
-          {gatePassesLoading || studentLoading ? (
+          {passesLoading || studentLoading ? (
             <div className="text-center py-10 opacity-50"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>
           ) : filteredList.map((item: any) => {
             const isStudent = item.type === "student"
