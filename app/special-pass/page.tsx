@@ -111,6 +111,31 @@ function SpecialPassContent() {
     return map
   }, [phoneStatusData])
 
+  // Detect duplicate active passes per student (violation of 1-pass-per-student rule)
+  const duplicatePassesPerStudent = useMemo(() => {
+    const duplicates = new Map<number, any[]>()
+    
+    passes.forEach((pass: any) => {
+      // Only check non-completed passes
+      if (pass.status !== "COMPLETED") {
+        const studentId = pass.studentId
+        if (!duplicates.has(studentId)) {
+          duplicates.set(studentId, [])
+        }
+        duplicates.get(studentId)!.push(pass)
+      }
+    })
+    
+    // Return only students with multiple active passes
+    const result: Map<number, any[]> = new Map()
+    duplicates.forEach((passArray, studentId) => {
+      if (passArray.length > 1) {
+        result.set(studentId, passArray)
+      }
+    })
+    return result
+  }, [passes])
+
   // Stats for the top cards
   const stats = useMemo(() => {
     const totalPasses = passes.length
@@ -260,6 +285,20 @@ function SpecialPassContent() {
     setCanViewLogs(role === "admin" || perms.includes("view_phone_logs") || perms.includes("issue_phone_pass") || perms.includes("access_phone_pass"))
     setCanManageStatus(role === "admin" || perms.includes("manage_phone_status") || perms.includes("issue_phone_pass"))
   }, [router])
+
+  // Warn about duplicate active passes per student
+  useEffect(() => {
+    if (duplicatePassesPerStudent.size > 0) {
+      const duplicateCounts = Array.from(duplicatePassesPerStudent.entries())
+        .map(([_, passes]) => passes[0].studentName)
+        .join(", ")
+      
+      toast.error(
+        `⚠️ Rule Violation: ${duplicatePassesPerStudent.size} student(s) have multiple active passes: ${duplicateCounts}. Only 1 pass per student allowed!`,
+        { duration: 8000 }
+      )
+    }
+  }, [duplicatePassesPerStudent])
 
   // --------------------------------------------------------------------------
   // Handlers
