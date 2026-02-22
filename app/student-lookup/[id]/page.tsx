@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogOut, ChevronLeft, Phone, Banknote, AlertCircle, Star } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
+import { toast } from "sonner"
 
 interface StudentData {
   id: number
@@ -198,6 +199,80 @@ export default function StudentDetailPage() {
 
     return statusMatch && dateMatch
   })
+
+  const awardStudentStar = async () => {
+    try {
+      setAwardingStars(true)
+      const token = localStorage.getItem("token")
+      const staffName = localStorage.getItem("staffName") || "Staff"
+      
+      const res = await fetch(`/api/students/${studentId}/stars`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "award",
+          stars: 1,
+          awardedBy: parseInt(localStorage.getItem("userId") || "0"),
+          awardedByName: staffName,
+          reason: "Awarded for good behavior - Student Lookup",
+        }),
+      })
+
+      if (res.ok) {
+        const newStars = await res.json()
+        setStars(newStars)
+        toast.success("⭐ Star awarded!")
+      } else {
+        const error = await res.json()
+        toast.error(error.error || "Failed to award star")
+      }
+    } catch (error) {
+      console.error("Error awarding star:", error)
+      toast.error("Failed to award star")
+    } finally {
+      setAwardingStars(false)
+    }
+  }
+
+  const removeStudentStar = async () => {
+    try {
+      setAwardingStars(true)
+      const token = localStorage.getItem("token")
+      const staffName = localStorage.getItem("staffName") || "Staff"
+      
+      const res = await fetch(`/api/students/${studentId}/stars`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "remove",
+          stars: 1,
+          awardedBy: parseInt(localStorage.getItem("userId") || "0"),
+          awardedByName: staffName,
+          reason: "Star removed",
+        }),
+      })
+
+      if (res.ok) {
+        const newStars = await res.json()
+        setStars(newStars)
+        toast.success("⭐ Star removed")
+      } else {
+        const error = await res.json()
+        toast.error(error.error || "Failed to remove star")
+      }
+    } catch (error) {
+      console.error("Error removing star:", error)
+      toast.error("Failed to remove star")
+    } finally {
+      setAwardingStars(false)
+    }
+  }
 
   const fineTotals = {
     pending: filteredFines.filter(f => f.isPaid === "NO").reduce((sum, f) => sum + f.amount, 0),
@@ -613,6 +688,13 @@ export default function StudentDetailPage() {
                   <Star className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 font-medium">No stars awarded yet</p>
                   <p className="text-sm text-gray-400 mt-2">This student will receive stars for good behavior and achievements</p>
+                  <Button
+                    onClick={() => awardStudentStar()}
+                    className="mt-6 gap-2 bg-amber-600 hover:bg-amber-700"
+                  >
+                    <Star className="w-4 h-4 fill-amber-300" />
+                    Award Star
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
@@ -633,24 +715,39 @@ export default function StudentDetailPage() {
                       <p className="text-xs text-gray-500 mt-4">
                         Awarded by {stars.awardedByName} on {formatDate(stars.awardedAt)}
                       </p>
+                      <div className="flex gap-3 justify-center mt-6">
+                        <Button
+                          onClick={() => awardStudentStar()}
+                          disabled={awardingStars}
+                          className="gap-2 bg-amber-600 hover:bg-amber-700"
+                        >
+                          <Star className="w-4 h-4 fill-amber-300" />
+                          {awardingStars ? "Adding..." : "Add Star"}
+                        </Button>
+                        <Button
+                          onClick={() => removeStudentStar()}
+                          disabled={awardingStars}
+                          variant="outline"
+                          className="gap-2 text-red-600 hover:text-red-800"
+                        >
+                          <Star className="w-4 h-4" />
+                          Remove Star
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardContent className="py-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">Star Benefits</h4>
-                        <p className="text-sm text-gray-600 mt-1">Each star reduces your tally count by 2</p>
-                      </div>
-                      <Button
-                        onClick={() => router.push(`/student-lookup/${studentId}?edit=stars`)}
-                        className="gap-2"
-                      >
-                        <Star className="w-4 h-4" />
-                        Manage
-                      </Button>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Star Benefits</h4>
+                      <p className="text-sm text-gray-600 mt-2">Each star reduces your tally count by 2</p>
+                      <ul className="list-disc list-inside text-sm text-gray-600 mt-2 space-y-1">
+                        <li>Normal tallies only</li>
+                        <li>Applied automatically in calculations</li>
+                        <li>Visible in student lookup page</li>
+                      </ul>
                     </div>
                   </CardContent>
                 </Card>
