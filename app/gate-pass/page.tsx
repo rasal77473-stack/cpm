@@ -572,14 +572,8 @@ function GatePassContent() {
                               onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
                               disabled={returningGatePassId === item.originalId}
                             >
-                              {returningGatePassId === item.originalId ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  {isOut ? "Submit In" : "Submit Out"}
-                                  {!effectiveOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
-                                </>
-                              )}
+                              {isOut ? "Submit In" : "Submit Out"}
+                              {!isOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
                             </Button>
                           </div>
                         )}

@@ -775,14 +775,8 @@ function SpecialPassContent() {
                               onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
                               disabled={returningPassId === item.originalId}
                             >
-                              {returningPassId === item.originalId ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  {isOut ? "Submit In" : "Submit Out"}
-                                  {!isOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
-                                </>
-                              )}
+                              {isOut ? "Submit In" : "Submit Out"}
+                              {!isOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
                             </Button>
                           </div>
                         )}
@@ -808,7 +802,7 @@ function SpecialPassContent() {
                             }}
                             disabled={returningPassId === item.originalId}
                           >
-                            {returningPassId === item.originalId ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit In"}
+                            Submit In
                           </Button>
                         ) : (
                           <Button
