@@ -755,3 +755,7 @@ export default function StudentDetailPage() {
             )}
           </div>
         )}
+      </main>
+    </div>
+  )
+}
