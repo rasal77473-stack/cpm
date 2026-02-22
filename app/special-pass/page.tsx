@@ -77,9 +77,9 @@ function SpecialPassContent() {
   const students = Array.isArray(studentsData) ? studentsData : []
 
   // Fetch all special passes
-  // INSTANT: Real-time polling at 1.5s for instant updates
+  // INSTANT: Real-time polling at 3.5s for instant updates without flickering
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 1500, // INSTANT: 1.5s for real-time updates
+    refreshInterval: 3500, // INSTANT: 3.5s for real-time updates without constant re-renders
     revalidateOnFocus: true, // Revalidate when user switches tab
     dedupingInterval: 500,
   })
@@ -91,9 +91,9 @@ function SpecialPassContent() {
   }) : []
 
   // Fetch phone statuses
-  // INSTANT: Real-time polling at 1.5s for instant status changes
+  // INSTANT: Real-time polling at 3.5s for instant status changes without flickering
   const { data: phoneStatusData = [] } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 1500, // INSTANT: 1.5s for real-time updates
+    refreshInterval: 3500, // INSTANT: 3.5s for real-time updates without constant re-renders
     revalidateOnFocus: true,
     dedupingInterval: 500,
   })
