@@ -48,7 +48,6 @@ function GatePassContent() {
   const [selectedClass, setSelectedClass] = useState("all")
   const [selectedLocker, setSelectedLocker] = useState("all")
 
-  const [gatePassStates, setGatePassStates] = useState<{ [key: number]: "OUT" | "IN" }>({})
   const [returningGatePassId, setReturningGatePassId] = useState<number | null>(null)
 
   // Debounced search queries for better performance
@@ -75,7 +74,7 @@ function GatePassContent() {
     dedupingInterval: 5000, // CHANGED: 1000ms → 5000ms
   })
   // Filter ONLY gate passes - strictly exclude all phone passes
-  const gatePasses = Array.isArray(allGatePasses) ? allGatePasses.filter((p: any) => {
+  const gatePasses = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
     // Show ONLY gate passes (those that start with "GATE:")
     if (!p.purpose) return false
     return p.purpose.startsWith("GATE:")
@@ -91,11 +90,11 @@ function GatePassContent() {
 
   const gatePassStatusMap = useMemo(() => {
     const map = new Map()
-    if (Array.isArray(gatePassStatusData)) {
-      gatePassStatusData.forEach((s: any) => map.set(s.studentId, s.status))
+    if (Array.isArray(phoneStatusData)) {
+      phoneStatusData.forEach((s: any) => map.set(s.studentId, s.status))
     }
     return map
-  }, [gatePassStatusData])
+  }, [phoneStatusData])
 
   const stats = useMemo(() => {
     const totalPasses = gatePasses.length
@@ -204,10 +203,18 @@ function GatePassContent() {
   }, [router])
 
   const handleSubmitOut = async (gatePassId: number) => {
-    setGatePassStates(prev => ({ ...prev, [gatePassId]: "OUT" }))
+    // Set loading state to prevent double-clicks
+    setReturningGatePassId(gatePassId)
+    
+    const pass = gatePasses.find((p: any) => p.id === gatePassId)
+    if (!pass) {
+      setReturningGatePassId(null)
+      toast.error("Pass not found")
+      return
+    }
+
+    // Optimistic update for phone status
     mutate("/api/phone-status", (current: any[] = []) => {
-      const pass = gatePasses.find((p: any) => p.id === gatePassId)
-      if (!pass) return current
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
         ? current.map(s => s.studentId === pass.studentId ? { ...s, status: "OUT" } : s)
@@ -219,18 +226,17 @@ function GatePassContent() {
     try {
       const res = await fetch(`/api/special-pass/out/${gatePassId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
+      
+      // Revalidate to ensure server consistency
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
-      // Clear the optimistic state after successful API response
-      setGatePassStates(prev => {
-        const n = { ...prev }; delete n[gatePassId]; return n
-      })
     } catch (e) {
-      setGatePassStates(prev => {
-        const n = { ...prev }; delete n[gatePassId]; return n
-      })
+      // Rollback on error
       mutate("/api/phone-status")
+      mutate("/api/special-pass/all")
       toast.error("Failed to update status")
+    } finally {
+      setReturningGatePassId(null)
     }
   }
 
@@ -238,10 +244,12 @@ function GatePassContent() {
     const pass = gatePasses.find((p: any) => p.id === gatePassId)
     if (!pass) return
 
+    // 1. Optimistic Update for PASS STATUS (The list item)
     mutate("/api/special-pass/all", (current: any[] = []) => {
       return current.map(p => p.id === gatePassId ? { ...p, status: "COMPLETED", submissionTime: new Date().toISOString() } : p)
     }, false)
 
+    // 2. Optimistic Update for PHONE STATUS (The counts)
     mutate("/api/phone-status", (current: any[] = []) => {
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
@@ -256,14 +264,11 @@ function GatePassContent() {
       const res = await fetch(`/api/special-pass/return/${gatePassId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
 
-      // Clear the optimistic state after successful API response
-      setGatePassStates(prev => {
-        const n = { ...prev }; delete n[gatePassId]; return n
-      })
-
+      // Revalidate to ensure server consistency
       mutate("/api/special-pass/all")
       mutate("/api/phone-status")
     } catch (e) {
+      // Rollback on error
       mutate("/api/special-pass/all")
       mutate("/api/phone-status")
       toast.error("Failed to complete gate pass")
@@ -509,7 +514,6 @@ function GatePassContent() {
             const isOut = currentStatus === "OUT"
             const isCompleted = currentStatus === "COMPLETED"
             const isNotIssued = isStudent && !item.issueTime // Student with no gate pass issued
-            const effectiveOut = !isCompleted && (isStudent ? isOut : (gatePassStates[item.originalId] === "OUT" || isOut))
 
             return (
               <div key={item.id} className="bg-green-50/50 rounded-[20px] p-5 shadow-sm border border-green-100">
@@ -519,13 +523,13 @@ function GatePassContent() {
                       <h3 className="font-bold text-green-600 text-base truncate pr-2">{item.studentName}</h3>
                       <Badge variant="outline" className={`
                         rounded-md px-2 py-0.5 text-xs font-normal bg-white
-                        ${isNotIssued ? "text-orange-600 border-orange-400" : (!isCompleted && effectiveOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300"))}
+                        ${isNotIssued ? "text-orange-600 border-orange-400" : (!isCompleted && isOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300"))}
                       `}>
                         {isNotIssued
                           ? "not issued"
                           : (isStudent
-                            ? (effectiveOut ? "out" : "in")
-                            : (isCompleted ? "returned" : (effectiveOut ? "out" : "active"))
+                            ? (isOut ? "out" : "in")
+                            : (isCompleted ? "returned" : (isOut ? "out" : "active"))
                           )
                         }
                       </Badge>
@@ -559,20 +563,20 @@ function GatePassContent() {
                       <div className="flex gap-3 mt-4 justify-end items-center">
                         {!isCompleted && (
                           <div className="flex items-center gap-3">
-                            <Badge className={`rounded-full px-4 py-1 text-xs font-semibold border-2 ${effectiveOut ? "bg-red-50 text-red-600 border-red-400" : "bg-green-50 text-green-600 border-green-400"}`}>
-                              {effectiveOut ? "OUT" : "IN"}
+                            <Badge className={`rounded-full px-4 py-1 text-xs font-semibold border-2 ${isOut ? "bg-red-50 text-red-600 border-red-400" : "bg-green-50 text-green-600 border-green-400"}`}>
+                              {isOut ? "OUT" : "IN"}
                             </Badge>
 
                             <Button
                               className="h-9 px-6 rounded-full text-xs font-semibold bg-green-500 hover:bg-green-600 text-white border-none transition-all"
-                              onClick={() => effectiveOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
+                              onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
                               disabled={returningGatePassId === item.originalId}
                             >
                               {returningGatePassId === item.originalId ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <>
-                                  {effectiveOut ? "Submit In" : "Submit Out"}
+                                  {isOut ? "Submit In" : "Submit Out"}
                                   {!effectiveOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
                                 </>
                               )}
