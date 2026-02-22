@@ -134,35 +134,36 @@ export default function OtherTallyManagementPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => router.back()}
+                className="flex-shrink-0"
               >
                 <ChevronLeft className="w-5 h-5" />
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Other Tally Management</h1>
-                <p className="text-sm text-gray-600">{staffName}</p>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">Other Tally Management</h1>
+                <p className="text-xs sm:text-sm text-gray-600 truncate">{staffName}</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1 sm:gap-2 flex-wrap justify-end">
               <Link href="/admin/other-tally/manage">
-                <Button variant="outline" className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Manage Types
+                <Button variant="outline" className="gap-1 sm:gap-2 text-xs sm:text-base p-2 sm:px-4">
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Manage Types</span>
                 </Button>
               </Link>
               <Link href="/admin/other-tally/add">
-                <Button className="gap-2 bg-orange-600 hover:bg-orange-700">
-                  <Plus className="w-4 h-4" />
-                  Add Other Tally
+                <Button className="gap-1 sm:gap-2 text-xs sm:text-base p-2 sm:px-4 bg-orange-600 hover:bg-orange-700">
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Add Other Tally</span>
                 </Button>
               </Link>
-              <Button variant="outline" onClick={handleLogout} className="gap-2">
+              <Button variant="outline" onClick={handleLogout} className="gap-1 p-2" size="icon">
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
@@ -170,7 +171,7 @@ export default function OtherTallyManagementPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 pb-20 sm:pb-8">
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
