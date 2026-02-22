@@ -15,7 +15,8 @@ import {
   LogOut,
   DoorOpen,
   AlertCircle,
-  UserCheck
+  UserCheck,
+  Star
 } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 
@@ -98,7 +99,14 @@ export default function Dashboard() {
               <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Punishments</span>
             </div>
           </Link>
-        </div>
+
+          {/* Rewards & Achievements Button */}
+          <Link href="/admin/rewards" className="block">
+            <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-transform cursor-pointer border border-amber-100 hover:border-amber-300 h-full w-full">
+              <Star className="w-8 h-8 text-amber-500" strokeWidth={1.5} />
+              <span className="text-xs font-semibold text-gray-700 text-center leading-tight">Rewards</span>
+            </div>
+          </Link>
       </main>
     </div>
   )

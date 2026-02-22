@@ -69,13 +69,14 @@ export default function StudentDetailPage() {
   const [tallies, setTallies] = useState<TallyEntry[]>([])
   const [stars, setStars] = useState<StarRecord | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<"phone" | "fines" | "tallies">("phone")
+  const [activeTab, setActiveTab] = useState<"phone" | "fines" | "tallies" | "stars">("phone")
   const [tallyFilter, setTallyFilter] = useState<"all" | "normal" | "fixed">("all")
   const [tallyStartDate, setTallyStartDate] = useState("")
   const [tallyEndDate, setTallyEndDate] = useState("")
   const [fineFilter, setFineFilter] = useState<"all" | "paid" | "pending">("all")
   const [fineStartDate, setFineStartDate] = useState("")
   const [fineEndDate, setFineEndDate] = useState("")
+  const [awardingStars, setAwardingStars] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -309,7 +310,17 @@ export default function StudentDetailPage() {
             <AlertCircle className="w-4 h-4 inline mr-2" />
             Tallies ({tallies.length})
           </button>
-        </div>
+          <button
+            onClick={() => setActiveTab("stars")}
+            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${
+              activeTab === "stars"
+                ? "border-green-600 text-green-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <Star className="w-4 h-4 inline mr-2" />
+            Stars
+          </button>
 
         {/* Phone History Tab */}
         {activeTab === "phone" && (
@@ -592,7 +603,58 @@ export default function StudentDetailPage() {
             )}
           </div>
         )}
-      </main>
-    </div>
-  )
-}
+
+        {/* Stars Tab */}
+        {activeTab === "stars" && (
+          <div className="space-y-4">
+            {!stars || stars.stars === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Star className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 font-medium">No stars awarded yet</p>
+                  <p className="text-sm text-gray-400 mt-2">This student will receive stars for good behavior and achievements</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="text-center">
+                      <div className="flex justify-center gap-2 mb-4">
+                        {Array.from({ length: stars.stars }).map((_, i) => (
+                          <Star key={i} className="w-8 h-8 fill-amber-400 text-amber-400" />
+                        ))}
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-900">{stars.stars} Star{stars.stars !== 1 ? 's' : ''}</h3>
+                      <p className="text-sm text-gray-600 mt-2">Tally Reduction: {stars.stars * 2}</p>
+                      {stars.reason && (
+                        <p className="text-sm text-gray-600 mt-3 italic">"{stars.reason}"</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-4">
+                        Awarded by {stars.awardedByName} on {formatDate(stars.awardedAt)}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="py-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">Star Benefits</h4>
+                        <p className="text-sm text-gray-600 mt-1">Each star reduces your tally count by 2</p>
+                      </div>
+                      <Button
+                        onClick={() => router.push(`/student-lookup/${studentId}?edit=stars`)}
+                        className="gap-2"
+                      >
+                        <Star className="w-4 h-4" />
+                        Manage
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+        )}
