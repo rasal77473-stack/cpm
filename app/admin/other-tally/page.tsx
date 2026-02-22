@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronLeft, LogOut, Plus, Search } from "lucide-react"
+import { ChevronLeft, LogOut, Plus, Search, Star } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
 
@@ -47,6 +47,7 @@ export default function OtherTallyManagementPage() {
   const [classFilter, setClassFilter] = useState("all")
   const [classes, setClasses] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<"summary" | "logs">("summary")
+  const [awardingStars, setAwardingStars] = useState<number | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -106,6 +107,40 @@ export default function OtherTallyManagementPage() {
       toast.error("Failed to load other tallies")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const awardStar = async (studentId: number, studentName: string) => {
+    try {
+      setAwardingStars(studentId)
+      const token = localStorage.getItem("token")
+      
+      const res = await fetch(`/api/students/${studentId}/stars`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "award",
+          stars: 1,
+          awardedBy: parseInt(localStorage.getItem("userId") || "0"),
+          awardedByName: staffName,
+          reason: "Awarded by staff - Tally reduction",
+        }),
+      })
+
+      if (res.ok) {
+        toast.success(`⭐ Star awarded to ${studentName}! (Reduces tally by 2)`)
+      } else {
+        const error = await res.json()
+        toast.error(error.error || "Failed to award star")
+      }
+    } catch (error) {
+      console.error("Error awarding star:", error)
+      toast.error("Failed to award star")
+    } finally {
+      setAwardingStars(null)
     }
   }
 
@@ -240,6 +275,7 @@ export default function OtherTallyManagementPage() {
                           <th className="text-center py-3 px-4 font-semibold">Rupees</th>
                           <th className="text-left py-3 px-4 font-semibold">Issued By</th>
                           <th className="text-left py-3 px-4 font-semibold">Last Date</th>
+                          <th className="text-center py-3 px-4 font-semibold">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -260,6 +296,18 @@ export default function OtherTallyManagementPage() {
                             </td>
                             <td className="py-3 px-4">{tally.issuedByName}</td>
                             <td className="py-3 px-4">{new Date(tally.lastDate).toLocaleDateString()}</td>
+                            <td className="py-3 px-4 text-center">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => awardStar(tally.studentId, tally.studentName)}
+                                disabled={awardingStars === tally.studentId}
+                                className="gap-1 text-xs"
+                              >
+                                <Star className="w-3 h-3" />
+                                Award
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

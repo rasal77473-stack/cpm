@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, ChevronLeft, Phone, Banknote, AlertCircle } from "lucide-react"
+import { LogOut, ChevronLeft, Phone, Banknote, AlertCircle, Star } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 
 interface StudentData {
@@ -48,6 +48,16 @@ interface TallyEntry {
   issuedAt: string
 }
 
+interface StarRecord {
+  id: number
+  studentId: number
+  stars: number
+  awardedBy: number
+  awardedByName: string
+  reason: string | null
+  awardedAt: string
+}
+
 export default function StudentDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -57,6 +67,7 @@ export default function StudentDetailPage() {
   const [phoneHistory, setPhoneHistory] = useState<PhoneHistoryEntry[]>([])
   const [fines, setFines] = useState<FineEntry[]>([])
   const [tallies, setTallies] = useState<TallyEntry[]>([])
+  const [stars, setStars] = useState<StarRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"phone" | "fines" | "tallies">("phone")
   const [tallyFilter, setTallyFilter] = useState<"all" | "normal" | "fixed">("all")
@@ -78,11 +89,12 @@ export default function StudentDetailPage() {
 
   const fetchStudentData = async () => {
     try {
-      const [studentRes, phoneRes, finesRes, talliesRes] = await Promise.all([
+      const [studentRes, phoneRes, finesRes, talliesRes, starsRes] = await Promise.all([
         fetch(`/api/students/${studentId}`),
         fetch(`/api/students/${studentId}/phone-history`),
         fetch(`/api/students/${studentId}/fines`),
         fetch(`/api/students/${studentId}/tallies`),
+        fetch(`/api/students/${studentId}/stars`),
       ])
 
       if (studentRes.ok) {
@@ -103,6 +115,11 @@ export default function StudentDetailPage() {
       if (talliesRes.ok) {
         const data = await talliesRes.json()
         setTallies(data)
+      }
+
+      if (starsRes.ok) {
+        const data = await starsRes.json()
+        setStars(data)
       }
 
       setLoading(false)
@@ -146,11 +163,17 @@ export default function StudentDetailPage() {
   })
 
   const tallyCounts = {
-    total: filteredTallies.reduce((sum, t) => sum + t.count, 0),
-    normal: filteredTallies.filter(t => t.tallyType === "NORMAL").reduce((sum, t) => sum + t.count, 0),
+    normalBefore: filteredTallies.filter(t => t.tallyType === "NORMAL").reduce((sum, t) => sum + t.count, 0),
+    normal: Math.max(0, filteredTallies.filter(t => t.tallyType === "NORMAL").reduce((sum, t) => sum + t.count, 0) - ((stars?.stars || 0) * 2)),
+    starReduction: (stars?.stars || 0) * 2,
     fixed: filteredTallies.filter(t => t.tallyType === "FIXED").reduce((sum, t) => sum + t.count, 0),
-    rupees: filteredTallies.reduce((sum, t) => sum + (t.count * 10), 0),
+    total: 0,
+    rupees: 0,
   }
+  
+  // Calculate total and rupees after star reduction
+  tallyCounts.total = tallyCounts.normal + tallyCounts.fixed
+  tallyCounts.rupees = tallyCounts.total * 10
 
   // Filter and calculate fines
   const filteredFines = fines.filter((fine) => {
@@ -464,7 +487,23 @@ export default function StudentDetailPage() {
                   <div className="space-y-4">
                     <div>
                       <CardTitle>Tallies & Rule Violations</CardTitle>
-                      <p className="text-sm text-gray-600 mt-2">Normal: {tallyCounts.normal} | Fixed: {tallyCounts.fixed} | Total: {tallyCounts.total} tallies = ₹{tallyCounts.rupees}</p>
+                      <p className="text-sm text-gray-600 mt-2">
+                        {stars && stars.stars > 0 ? (
+                          <>
+                            Normal: {tallyCounts.normalBefore} - {tallyCounts.starReduction} 🌟 = {tallyCounts.normal} | Fixed: {tallyCounts.fixed} | Total: {tallyCounts.total} tallies = ₹{tallyCounts.rupees}
+                          </>
+                        ) : (
+                          <>
+                            Normal: {tallyCounts.normal} | Fixed: {tallyCounts.fixed} | Total: {tallyCounts.total} tallies = ₹{tallyCounts.rupees}
+                          </>
+                        )}
+                      </p>
+                      {stars && stars.stars > 0 && (
+                        <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-amber-500" />
+                          {stars.stars} Star{stars.stars !== 1 ? 's' : ''} ({stars.stars * 2} tally reduction)
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-4">
                       <select

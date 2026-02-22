@@ -193,3 +193,21 @@ export const studentTallies = pgTable("student_tallies", {
 		name: "student_tallies_tally_type_id_tally_types_id_fk"
 	}),
 ]);
+
+// Student Stars - Awards given to students to reduce normal tallies
+export const studentStars = pgTable("student_stars", {
+	id: serial().primaryKey().notNull(),
+	studentId: integer("student_id").notNull(),
+	stars: integer().default(0), // Number of stars awarded (each star reduces tally by 2)
+	awardedBy: integer("awarded_by").notNull(),
+	awardedByName: text("awarded_by_name").notNull(),
+	reason: text(),
+	awardedAt: timestamp("awarded_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	foreignKey({
+		columns: [table.studentId],
+		foreignColumns: [students.id],
+		name: "student_stars_student_id_students_id_fk"
+	}),
+	unique("student_stars_student_id_unique").on(table.studentId),
+]);
