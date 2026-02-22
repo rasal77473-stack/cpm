@@ -396,6 +396,7 @@ export default function StudentDetailPage() {
             <Star className="w-4 h-4 inline mr-2" />
             Stars
           </button>
+        </div>
 
         {/* Phone History Tab */}
         {activeTab === "phone" && (
