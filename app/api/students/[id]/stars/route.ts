@@ -51,6 +51,8 @@ export async function POST(
     const { action, stars, awardedBy, awardedByName, reason } = body
     const studentId = parseInt(params.id, 10)
 
+    console.log(`[StarAPI] Processing ${action} action for student ${studentId}:`, { stars, awardedBy, awardedByName })
+
     // Verify student exists
     const student = await db
       .select()
@@ -59,6 +61,7 @@ export async function POST(
       .then((results) => results[0])
 
     if (!student) {
+      console.error(`[StarAPI] Student ${studentId} not found`)
       return Response.json(
         { error: "Student not found" },
         { status: 404 }
@@ -73,6 +76,7 @@ export async function POST(
       .then((results) => results[0])
 
     if (!starRecord) {
+      console.log(`[StarAPI] Creating new star record for student ${studentId}`)
       const inserted = await db
         .insert(studentStars)
         .values({
@@ -89,6 +93,8 @@ export async function POST(
 
     if (action === "award") {
       const newStarCount = Math.max(0, (starRecord.stars || 0) + stars)
+      console.log(`[StarAPI] Awarding ${stars} stars to student ${studentId}. New count: ${newStarCount}`)
+      
       const updated = await db
         .update(studentStars)
         .set({
@@ -101,8 +107,10 @@ export async function POST(
         .where(eq(studentStars.studentId, studentId))
         .returning()
 
+      console.log(`[StarAPI] Updated studentStars:`, updated[0])
+
       // Log to star history
-      await db
+      const historyInsert = await db
         .insert(starHistory)
         .values({
           studentId,
@@ -113,11 +121,15 @@ export async function POST(
           reason,
           currentStars: newStarCount,
         })
-        .execute()
+        .returning()
+
+      console.log(`[StarAPI] Inserted to star history:`, historyInsert[0])
 
       return Response.json(updated[0])
     } else if (action === "remove") {
       const newStarCount = Math.max(0, (starRecord.stars || 0) - stars)
+      console.log(`[StarAPI] Removing ${stars} stars from student ${studentId}. New count: ${newStarCount}`)
+      
       const updated = await db
         .update(studentStars)
         .set({
@@ -142,19 +154,20 @@ export async function POST(
           reason,
           currentStars: newStarCount,
         })
-        .execute()
+        .returning()
 
       return Response.json(updated[0])
     } else {
+      console.error(`[StarAPI] Invalid action: ${action}`)
       return Response.json(
         { error: "Invalid action" },
         { status: 400 }
       )
     }
   } catch (error) {
-    console.error("Error updating stars:", error)
+    console.error("[StarAPI] Error updating stars:", error)
     return Response.json(
-      { error: "Failed to update stars" },
+      { error: `Failed to update stars: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
     )
   }
