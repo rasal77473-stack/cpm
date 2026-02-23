@@ -18,6 +18,8 @@ interface Student {
 
 export default function AwardStarPage() {
   const router = useRouter()
+  
+  // State
   const [staffName, setStaffName] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [students, setStudents] = useState<Student[]>([])
@@ -31,22 +33,7 @@ export default function AwardStarPage() {
   const [classFilter, setClassFilter] = useState("all")
   const [classes, setClasses] = useState<string[]>([])
 
-  // TEST: Log to window object so we can test from console
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).awardStarsDebug = {
-        selectedStudents,
-        starsToAdd,
-        staffName,
-        isSubmitting,
-        testClick: () => {
-          console.log("🔴 TEST CLICK FROM CONSOLE - selectedStudents.size:", selectedStudents.size)
-        }
-      }
-      console.log("✅ Debug object attached to window.awardStarsDebug")
-    }
-  }, [selectedStudents, starsToAdd, staffName, isSubmitting])
-
+  // Check authorization on mount
   useEffect(() => {
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
@@ -61,6 +48,7 @@ export default function AwardStarPage() {
     fetchStudents()
   }, [router])
 
+  // Fetch students
   const fetchStudents = async () => {
     try {
       setLoading(true)
@@ -80,6 +68,7 @@ export default function AwardStarPage() {
     }
   }
 
+  // Apply filters
   const applyFilters = (searchQuery: string, classVal: string) => {
     let filtered = students
     
@@ -108,6 +97,7 @@ export default function AwardStarPage() {
     applyFilters(search, value)
   }
 
+  // Toggle student selection
   const toggleStudent = (studentId: number) => {
     const newSelected = new Set(selectedStudents)
     if (newSelected.has(studentId)) {
@@ -118,6 +108,7 @@ export default function AwardStarPage() {
     setSelectedStudents(newSelected)
   }
 
+  // Select all students
   const selectAll = () => {
     if (selectedStudents.size === filteredStudents.length) {
       setSelectedStudents(new Set())
@@ -126,42 +117,43 @@ export default function AwardStarPage() {
     }
   }
 
-  const handleAwardStars = async () => {
-    // TEST: This should log immediately when button is clicked
-    console.log("🔴 BUTTON CLICKED - handleAwardStars called!")
-    console.log("Selected students:", selectedStudents)
+  // Award stars
+  const awardStars = async () => {
+    console.log("✅ Award Stars button clicked!")
+    console.log("Selected students:", Array.from(selectedStudents))
     console.log("Stars to add:", starsToAdd)
     
     if (selectedStudents.size === 0) {
-      console.log("⚠️  No students selected!")
       toast.error("Please select at least one student")
       return
     }
 
+    if (starsToAdd < 1 || starsToAdd > 10) {
+      toast.error("Stars must be between 1 and 10")
+      return
+    }
+
+    setIsSubmitting(true)
+
     try {
-      setIsSubmitting(true)
       const token = localStorage.getItem("token")
       const userId = localStorage.getItem("userId")
 
       if (!token || !userId) {
-        console.log("⚠️  No auth token or userId!")
-        toast.error("Authentication error - Please login again")
-        setIsSubmitting(false)
+        toast.error("Not authenticated. Please login again.")
+        router.replace("/login")
         return
       }
 
       const studentIds = Array.from(selectedStudents)
       let successCount = 0
-      let failureCount = 0
-      const errors: string[] = []
+      let errorList: string[] = []
 
-      console.log(`🌟 Starting to award ${starsToAdd} stars to ${studentIds.length} student(s)`)
+      console.log(`🌟 Awarding ${starsToAdd} stars to ${studentIds.length} student(s)`)
 
       for (const studentId of studentIds) {
         try {
-          console.log(`📤 Sending request for student ${studentId}...`)
-          
-          const res = await fetch(`/api/students/${studentId}/stars`, {
+          const response = await fetch(`/api/students/${studentId}/stars`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -170,68 +162,49 @@ export default function AwardStarPage() {
             body: JSON.stringify({
               action: "award",
               stars: starsToAdd,
-              awardedBy: parseInt(userId || "0"),
+              awardedBy: parseInt(userId),
               awardedByName: staffName,
               reason: note || "Star awarded",
             }),
           })
 
-          const responseText = await res.text()
-          console.log(`📥 Response status: ${res.status}`)
-          console.log(`📥 Response body: ${responseText}`)
+          console.log(`📤 Response from student ${studentId}: ${response.status}`)
 
-          if (res.ok) {
-            try {
-              const data = JSON.parse(responseText)
-              console.log(`✅ Success for student ${studentId}:`, data)
-              successCount++
-            } catch (e) {
-              console.error(`⚠️  Response parsing error for student ${studentId}:`, e)
-              successCount++
-            }
+          if (response.ok) {
+            const data = await response.json()
+            console.log(`✅ Success for student ${studentId}:`, data)
+            successCount++
           } else {
-            try {
-              const errorData = JSON.parse(responseText)
-              console.error(`❌ Error for student ${studentId}:`, errorData)
-              errors.push(`Student ${studentId}: ${errorData.error || 'Unknown error'}`)
-            } catch (e) {
-              console.error(`❌ Error for student ${studentId}: ${responseText}`)
-              errors.push(`Student ${studentId}: ${res.statusText}`)
-            }
-            failureCount++
+            const errData = await response.json()
+            console.error(`❌ Failed for student ${studentId}:`, errData)
+            errorList.push(`Student ${studentId}: ${errData.error || 'Failed to award'}`)
           }
-        } catch (error) {
-          console.error(`💥 Exception for student ${studentId}:`, error)
-          errors.push(`Student ${studentId}: ${String(error)}`)
-          failureCount++
+        } catch (err: any) {
+          console.error(`💥 Exception for student ${studentId}:`, err)
+          errorList.push(`Student ${studentId}: ${err.message}`)
         }
       }
 
-      console.log(`\n📊 Results: ${successCount} success, ${failureCount} failed`)
+      console.log(`📊 Results: ${successCount} success, ${studentIds.length - successCount} failed`)
 
       if (successCount > 0) {
-        toast.success(`⭐ Stars awarded to ${successCount} student(s)!`)
+        toast.success(`✅ Stars awarded to ${successCount} student(s)!`)
         setSelectedStudents(new Set())
         setStarsToAdd(1)
         setNote("")
         setSearch("")
         
-        console.log('🔄 Refreshing page in 2 seconds...')
-        // Refresh the page after a short delay to show updated data
         setTimeout(() => {
           window.location.reload()
-        }, 2000)
+        }, 1500)
       }
 
-      if (failureCount > 0) {
-        const errorMsg = errors.slice(0, 3).join('\n')
-        toast.error(`Failed to award stars to ${failureCount} student(s)\n${errorMsg}`)
-        if (errors.length > 3) {
-          console.error('Additional errors:', errors.slice(3))
-        }
+      if (errorList.length > 0) {
+        const msg = errorList.slice(0, 2).join(" | ")
+        toast.error(`⚠️ ${msg}`)
       }
-    } catch (error) {
-      console.error("💥 Error awarding stars:", error)
+    } catch (error: any) {
+      console.error("💥 Error:", error)
       toast.error("Failed to award stars")
     } finally {
       setIsSubmitting(false)
@@ -252,35 +225,34 @@ export default function AwardStarPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div className="w-full px-4 md:px-6 py-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push("/admin/rewards/stars")}
-                className="rounded-full flex-shrink-0"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-              <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Award Stars</h1>
-                <p className="text-xs sm:text-sm text-gray-600 truncate">{staffName}</p>
-              </div>
-            </div>
-            <Button variant="outline" onClick={handleLogout} className="gap-2 w-auto text-sm">
-              <LogOut className="w-4 h-4" />
+      <header className="bg-white border-b sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="hover:bg-gray-100"
+            >
+              <ChevronLeft className="w-5 h-5" />
             </Button>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Award Stars</h1>
+              <p className="text-xs sm:text-sm text-gray-600 truncate">{staffName}</p>
+            </div>
           </div>
+          <Button variant="outline" onClick={handleLogout} className="gap-2 w-auto text-sm">
+            <LogOut className="w-4 h-4" />
+          </Button>
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 pb-20 sm:pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Student Selection */}
+          {/* Left: Student List */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Search & Filters */}
+            {/* Search and Filter */}
             <Card>
               <CardContent className="pt-6 space-y-4">
                 <div className="relative">
@@ -320,71 +292,75 @@ export default function AwardStarPage() {
                     No students found
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {/* Select All Button */}
-                    <div className="flex items-center gap-3 pb-4 border-b">
+                  <div className="space-y-2">
+                    {/* Select All */}
+                    <label className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-200 cursor-pointer font-medium">
                       <input
                         type="checkbox"
-                        id="select-all"
                         checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0}
                         onChange={selectAll}
-                        className="w-5 h-5 rounded cursor-pointer"
+                        className="w-5 h-5"
                       />
-                      <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
-                        Select All ({filteredStudents.length})
-                      </label>
-                    </div>
+                      Select All ({filteredStudents.length})
+                    </label>
 
-                    {/* Students */}
-                    {filteredStudents.map((student) => (
-                      <div
-                        key={student.id}
-                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-amber-50 transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          id={`student-${student.id}`}
-                          checked={selectedStudents.has(student.id)}
-                          onChange={() => toggleStudent(student.id)}
-                          className="w-5 h-5 rounded cursor-pointer"
-                        />
-                        <label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer">
-                          <div className="font-medium text-gray-900">{student.name}</div>
-                          <div className="text-xs text-gray-500">
-                            {student.admission_number} • {student.class_name || "N/A"}
+                    {/* Student Items */}
+                    <div className="max-h-96 overflow-y-auto space-y-2">
+                      {filteredStudents.map((student) => (
+                        <label
+                          key={student.id}
+                          className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-200 cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedStudents.has(student.id)}
+                            onChange={() => toggleStudent(student.id)}
+                            className="w-5 h-5 mt-0.5"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-gray-900">{student.name}</p>
+                            <p className="text-sm text-gray-600">
+                              {student.admission_number} • {student.class_name || "N/A"}
+                            </p>
                           </div>
                         </label>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Right: Award Details */}
-          <div className="space-y-4">
-            <Card>
+          {/* Right: Award Panel */}
+          <div>
+            <Card className="sticky top-24">
               <CardContent className="pt-6 space-y-4">
+                {/* Stars Count */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Number of Stars</label>
                   <div className="flex items-center gap-2">
                     <Button
+                      type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => setStarsToAdd(Math.max(1, starsToAdd - 1))}
                     >
-                      -
+                      −
                     </Button>
                     <Input
                       type="number"
                       min="1"
                       max="10"
                       value={starsToAdd}
-                      onChange={(e) => setStarsToAdd(parseInt(e.target.value) || 1)}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 1
+                        setStarsToAdd(Math.max(1, Math.min(10, val)))
+                      }}
                       className="text-center flex-1"
                     />
                     <Button
+                      type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => setStarsToAdd(Math.min(10, starsToAdd + 1))}
@@ -394,48 +370,45 @@ export default function AwardStarPage() {
                   </div>
                 </div>
 
+                {/* Reason */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Reason (Optional)</label>
-                  <Input
+                  <textarea
                     placeholder="Why are you awarding these stars?"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    className="h-24 resize-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none h-24"
                   />
                 </div>
 
-                <div className="bg-amber-50 p-4 rounded-lg space-y-2">
+                {/* Summary */}
+                <div className="bg-amber-50 p-4 rounded-lg space-y-2 border border-amber-200">
                   <p className="text-sm font-medium text-gray-900">Summary</p>
                   <p className="text-2xl font-bold text-amber-600">
-                    {selectedStudents.size} Student{selectedStudents.size !== 1 ? "s" : ""}
+                    {selectedStudents.size}
                   </p>
                   <p className="text-sm text-gray-600">
                     {starsToAdd} star{starsToAdd !== 1 ? "s" : ""} each
                   </p>
-                  <p className="text-sm text-gray-600">
-                    Total: {selectedStudents.size * starsToAdd} stars
+                  <p className="text-sm font-medium text-gray-700">
+                    Total: ⭐ {selectedStudents.size * starsToAdd}
                   </p>
                 </div>
 
-                <div className="flex gap-2">
+                {/* Buttons */}
+                <div className="flex gap-2 pt-2">
                   <Button
+                    type="button"
                     variant="outline"
                     className="flex-1"
-                    onClick={() => {
-                      console.log("Cancel clicked")
-                      router.push("/admin/rewards/stars")
-                    }}
+                    onClick={() => router.push("/admin/rewards/stars")}
                   >
                     Cancel
                   </Button>
                   <Button
+                    type="button"
                     className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-                    onClick={() => {
-                      console.log("🟠 Award Stars button onClick fired!")
-                      console.log("selectedStudents.size:", selectedStudents.size)
-                      console.log("starsToAdd:", starsToAdd)
-                      handleAwardStars()
-                    }}
+                    onClick={awardStars}
                     disabled={isSubmitting || selectedStudents.size === 0}
                   >
                     {isSubmitting ? "Awarding..." : "Award Stars"}
