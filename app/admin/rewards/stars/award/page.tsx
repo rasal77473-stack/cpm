@@ -121,12 +121,21 @@ export default function AwardStarPage() {
       const token = localStorage.getItem("token")
       const userId = localStorage.getItem("userId")
 
+      if (!token || !userId) {
+        toast.error("Authentication error - Please login again")
+        setIsSubmitting(false)
+        return
+      }
+
       const studentIds = Array.from(selectedStudents)
       let successCount = 0
       let failureCount = 0
+      const errors: string[] = []
 
       for (const studentId of studentIds) {
         try {
+          console.log(`Awarding ${starsToAdd} star(s) to student ${studentId}`)
+          
           const res = await fetch(`/api/students/${studentId}/stars`, {
             method: "POST",
             headers: {
@@ -143,11 +152,18 @@ export default function AwardStarPage() {
           })
 
           if (res.ok) {
+            const data = await res.json()
+            console.log(`Successfully awarded stars to student ${studentId}:`, data)
             successCount++
           } else {
+            const errorData = await res.json()
+            console.error(`Error awarding stars to student ${studentId}:`, errorData)
+            errors.push(`Student ${studentId}: ${errorData.error || 'Unknown error'}`)
             failureCount++
           }
         } catch (error) {
+          console.error(`Exception while awarding stars to student ${studentId}:`, error)
+          errors.push(`Student ${studentId}: ${String(error)}`)
           failureCount++
         }
       }
@@ -158,10 +174,17 @@ export default function AwardStarPage() {
         setStarsToAdd(1)
         setNote("")
         setSearch("")
+        // Refresh the page after a short delay to show updated data
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
       }
 
       if (failureCount > 0) {
         toast.error(`Failed to award stars to ${failureCount} student(s)`)
+        if (errors.length > 0 && errors.length <= 3) {
+          errors.forEach(err => console.error(err))
+        }
       }
     } catch (error) {
       console.error("Error awarding stars:", error)

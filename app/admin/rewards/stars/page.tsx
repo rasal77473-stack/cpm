@@ -54,6 +54,8 @@ export default function StarsManagementPage() {
   const [classFilter, setClassFilter] = useState("all")
   const [classes, setClasses] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<"stars" | "logs">("stars")
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -89,7 +91,8 @@ export default function StarsManagementPage() {
       setStars(starsData.filter(s => s.stars > 0))
       setLogs(logsData.logs || [])
 
-      const uniqueClasses = [...new Set(starsData.map((s: StudentStar) => s.studentClass).filter(Boolean))]
+      // Get all unique classes from students (includes classes with no stars/logs)
+      const uniqueClasses = [...new Set(studentsData.map((s: Student) => s.class_name).filter(Boolean))]
       setClasses(uniqueClasses as string[])
     } catch (error) {
       console.error("Failed to fetch data:", error)
@@ -153,7 +156,23 @@ export default function StarsManagementPage() {
 
     const matchesClass = classFilter === "all" || log.studentClass === classFilter
 
-    return matchesSearch && matchesClass
+    // Date filtering for logs
+    let matchesDate = true
+    if (fromDate || toDate) {
+      const logDate = new Date(log.timestamp)
+      if (fromDate) {
+        const from = new Date(fromDate)
+        from.setHours(0, 0, 0, 0)
+        if (logDate < from) matchesDate = false
+      }
+      if (toDate) {
+        const to = new Date(toDate)
+        to.setHours(23, 59, 59, 999)
+        if (logDate > to) matchesDate = false
+      }
+    }
+
+    return matchesSearch && matchesClass && matchesDate
   })
 
 
@@ -270,6 +289,29 @@ export default function StarsManagementPage() {
                 ))}
               </select>
             </div>
+            
+            {viewMode === "logs" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+                  <Input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+                  <Input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
