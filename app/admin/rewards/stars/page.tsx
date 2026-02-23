@@ -53,14 +53,7 @@ export default function StarsManagementPage() {
   const [search, setSearch] = useState("")
   const [classFilter, setClassFilter] = useState("all")
   const [classes, setClasses] = useState<string[]>([])
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [students, setStudents] = useState<Student[]>([])
-  const [selectedStudent, setSelectedStudent] = useState<number | null>(null)
-  const [starsToAdd, setStarsToAdd] = useState(1)
-  const [note, setNote] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [viewMode, setViewMode] = useState<"stars" | "logs">("stars")
-  const [studentSearch, setStudentSearch] = useState("")
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -94,7 +87,6 @@ export default function StarsManagementPage() {
       const logsData = await logsRes.json()
 
       setStars(starsData.filter(s => s.stars > 0))
-      setStudents(studentsData)
       setLogs(logsData.logs || [])
 
       const uniqueClasses = [...new Set(starsData.map((s: StudentStar) => s.studentClass).filter(Boolean))]
@@ -107,51 +99,7 @@ export default function StarsManagementPage() {
     }
   }
 
-  const handleAddStar = async () => {
-    if (!selectedStudent) {
-      toast.error("Please select a student")
-      return
-    }
 
-    try {
-      setIsSubmitting(true)
-      const token = localStorage.getItem("token")
-      const userId = localStorage.getItem("userId")
-
-      const res = await fetch(`/api/students/${selectedStudent}/stars`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          action: "award",
-          stars: starsToAdd,
-          awardedBy: parseInt(userId || "0"),
-          awardedByName: staffName,
-          reason: note || "Star awarded",
-        }),
-      })
-
-      if (res.ok) {
-        toast.success(`⭐ ${starsToAdd} star(s) awarded successfully!`)
-        setShowAddModal(false)
-        setSelectedStudent(null)
-        setStarsToAdd(1)
-        setNote("")
-        setStudentSearch("")
-        fetchData()
-      } else {
-        const error = await res.json()
-        toast.error(error.error || "Failed to award star")
-      }
-    } catch (error) {
-      console.error("Error awarding star:", error)
-      toast.error("Failed to award star")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const handleRemoveStar = async (studentId: number, studentName: string) => {
     try {
@@ -208,10 +156,7 @@ export default function StarsManagementPage() {
     return matchesSearch && matchesClass
   })
 
-  const filteredStudentsForModal = students.filter((s) =>
-    s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
-    s.admission_number.toLowerCase().includes(studentSearch.toLowerCase())
-  )
+
 
   if (!isAuthorized) {
     return (
@@ -290,7 +235,7 @@ export default function StarsManagementPage() {
           <div className="flex-1"></div>
           {viewMode === "stars" && (
             <Button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => router.push("/admin/rewards/stars/award")}
               className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -447,145 +392,7 @@ export default function StarsManagementPage() {
         )}
       </main>
 
-      {/* Add Star Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-lg font-semibold">Award Star</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowAddModal(false)
-                  setSelectedStudent(null)
-                  setStarsToAdd(1)
-                  setNote("")
-                  setStudentSearch("")
-                }}
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-            <CardContent className="pt-6 space-y-4">
-              {/* Student Select */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Student</label>
-                {students.length === 0 ? (
-                  <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm text-center">
-                    Loading students...
-                  </div>
-                ) : (
-                  <div>
-                    <Input
-                      placeholder="Search by name or admission..."
-                      value={studentSearch}
-                      onChange={(e) => setStudentSearch(e.target.value)}
-                      className="mb-2"
-                    />
-                    <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto bg-white">
-                      {filteredStudentsForModal.length === 0 ? (
-                        <div className="p-3 text-center text-gray-500 text-sm">
-                          No students found
-                        </div>
-                      ) : (
-                        filteredStudentsForModal.map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => {
-                              setSelectedStudent(s.id)
-                              setStudentSearch("")
-                            }}
-                            className={`w-full text-left px-3 py-2 hover:bg-amber-50 transition-colors border-b last:border-b-0 ${
-                              selectedStudent === s.id ? "bg-amber-100" : ""
-                            }`}
-                          >
-                            <div className="font-medium text-sm">{s.name}</div>
-                            <div className="text-xs text-gray-500">
-                              {s.admission_number} • {s.class_name || "N/A"}
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                    {selectedStudent && (
-                      <div className="mt-2 p-2 bg-amber-50 rounded-lg text-sm">
-                        Selected:{" "}
-                        <span className="font-medium">
-                          {students.find((s) => s.id === selectedStudent)?.name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
 
-              {/* Stars Count */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Number of Stars</label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setStarsToAdd(Math.max(1, starsToAdd - 1))}
-                  >
-                    -
-                  </Button>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={starsToAdd}
-                    onChange={(e) => setStarsToAdd(parseInt(e.target.value) || 1)}
-                    className="text-center flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setStarsToAdd(Math.min(10, starsToAdd + 1))}
-                  >
-                    +
-                  </Button>
-                </div>
-              </div>
-
-              {/* Note */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Note (Optional)</label>
-                <Input
-                  placeholder="Why are you awarding this star?"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setShowAddModal(false)
-                    setSelectedStudent(null)
-                    setStarsToAdd(1)
-                    setNote("")
-                    setStudentSearch("")
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-                  onClick={handleAddStar}
-                  disabled={isSubmitting || !selectedStudent}
-                >
-                  {isSubmitting ? "Awarding..." : "Award Star"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }
