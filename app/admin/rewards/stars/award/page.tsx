@@ -111,7 +111,13 @@ export default function AwardStarPage() {
   }
 
   const handleAwardStars = async () => {
+    // TEST: This should log immediately when button is clicked
+    console.log("🔴 BUTTON CLICKED - handleAwardStars called!")
+    console.log("Selected students:", selectedStudents)
+    console.log("Stars to add:", starsToAdd)
+    
     if (selectedStudents.size === 0) {
+      console.log("⚠️  No students selected!")
       toast.error("Please select at least one student")
       return
     }
@@ -122,6 +128,7 @@ export default function AwardStarPage() {
       const userId = localStorage.getItem("userId")
 
       if (!token || !userId) {
+        console.log("⚠️  No auth token or userId!")
         toast.error("Authentication error - Please login again")
         setIsSubmitting(false)
         return
