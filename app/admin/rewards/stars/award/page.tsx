@@ -132,9 +132,11 @@ export default function AwardStarPage() {
       let failureCount = 0
       const errors: string[] = []
 
+      console.log(`🌟 Starting to award ${starsToAdd} stars to ${studentIds.length} student(s)`)
+
       for (const studentId of studentIds) {
         try {
-          console.log(`Awarding ${starsToAdd} star(s) to student ${studentId}`)
+          console.log(`📤 Sending request for student ${studentId}...`)
           
           const res = await fetch(`/api/students/${studentId}/stars`, {
             method: "POST",
@@ -151,22 +153,38 @@ export default function AwardStarPage() {
             }),
           })
 
+          const responseText = await res.text()
+          console.log(`📥 Response status: ${res.status}`)
+          console.log(`📥 Response body: ${responseText}`)
+
           if (res.ok) {
-            const data = await res.json()
-            console.log(`Successfully awarded stars to student ${studentId}:`, data)
-            successCount++
+            try {
+              const data = JSON.parse(responseText)
+              console.log(`✅ Success for student ${studentId}:`, data)
+              successCount++
+            } catch (e) {
+              console.error(`⚠️  Response parsing error for student ${studentId}:`, e)
+              successCount++
+            }
           } else {
-            const errorData = await res.json()
-            console.error(`Error awarding stars to student ${studentId}:`, errorData)
-            errors.push(`Student ${studentId}: ${errorData.error || 'Unknown error'}`)
+            try {
+              const errorData = JSON.parse(responseText)
+              console.error(`❌ Error for student ${studentId}:`, errorData)
+              errors.push(`Student ${studentId}: ${errorData.error || 'Unknown error'}`)
+            } catch (e) {
+              console.error(`❌ Error for student ${studentId}: ${responseText}`)
+              errors.push(`Student ${studentId}: ${res.statusText}`)
+            }
             failureCount++
           }
         } catch (error) {
-          console.error(`Exception while awarding stars to student ${studentId}:`, error)
+          console.error(`💥 Exception for student ${studentId}:`, error)
           errors.push(`Student ${studentId}: ${String(error)}`)
           failureCount++
         }
       }
+
+      console.log(`\n📊 Results: ${successCount} success, ${failureCount} failed`)
 
       if (successCount > 0) {
         toast.success(`⭐ Stars awarded to ${successCount} student(s)!`)
@@ -174,20 +192,23 @@ export default function AwardStarPage() {
         setStarsToAdd(1)
         setNote("")
         setSearch("")
+        
+        console.log('🔄 Refreshing page in 2 seconds...')
         // Refresh the page after a short delay to show updated data
         setTimeout(() => {
           window.location.reload()
-        }, 1500)
+        }, 2000)
       }
 
       if (failureCount > 0) {
-        toast.error(`Failed to award stars to ${failureCount} student(s)`)
-        if (errors.length > 0 && errors.length <= 3) {
-          errors.forEach(err => console.error(err))
+        const errorMsg = errors.slice(0, 3).join('\n')
+        toast.error(`Failed to award stars to ${failureCount} student(s)\n${errorMsg}`)
+        if (errors.length > 3) {
+          console.error('Additional errors:', errors.slice(3))
         }
       }
     } catch (error) {
-      console.error("Error awarding stars:", error)
+      console.error("💥 Error awarding stars:", error)
       toast.error("Failed to award stars")
     } finally {
       setIsSubmitting(false)
