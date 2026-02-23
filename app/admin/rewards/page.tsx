@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChevronLeft, LogOut, Star, History, Users } from "lucide-react"
+import { ChevronLeft, LogOut, Star } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 
 export default function RewardsPage() {
@@ -65,48 +65,18 @@ export default function RewardsPage() {
       </header>
 
       <main className="w-full px-4 md:px-6 py-6 md:py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Award Star Card */}
-          <Link href="/admin/rewards/award">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 max-w-md">
+          {/* Star Management Card */}
+          <Link href="/admin/rewards/stars">
             <Card className="cursor-pointer hover:shadow-lg transition-shadow h-full">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Star className="w-8 h-8 text-amber-600" />
-                  <CardTitle>Award Star</CardTitle>
+                  <CardTitle>Stars</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600">Award stars to students for good behavior</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Manage Stars Card */}
-          <Link href="/admin/rewards/manage">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow h-full">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <Users className="w-8 h-8 text-blue-600" />
-                  <CardTitle>Manage Stars</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">View and manage student stars</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Star Logs Card */}
-          <Link href="/admin/rewards/logs">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow h-full">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <History className="w-8 h-8 text-green-600" />
-                  <CardTitle>Star Logs</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">View detailed star activity logs</p>
+                <p className="text-sm text-gray-600">Manage student stars, add stars, and view activity logs</p>
               </CardContent>
             </Card>
           </Link>
