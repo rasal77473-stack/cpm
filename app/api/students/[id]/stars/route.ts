@@ -1,5 +1,5 @@
 import { db } from "@/db"
-import { studentStars, students } from "@/db/schema"
+import { studentStars, students, starHistory } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 export async function GET(
@@ -101,6 +101,20 @@ export async function POST(
         .where(eq(studentStars.studentId, studentId))
         .returning()
 
+      // Log to star history
+      await db
+        .insert(starHistory)
+        .values({
+          studentId,
+          action: "award",
+          stars,
+          awardedBy,
+          awardedByName,
+          reason,
+          currentStars: newStarCount,
+        })
+        .execute()
+
       return Response.json(updated[0])
     } else if (action === "remove") {
       const newStarCount = Math.max(0, (starRecord.stars || 0) - stars)
@@ -115,6 +129,20 @@ export async function POST(
         })
         .where(eq(studentStars.studentId, studentId))
         .returning()
+
+      // Log to star history
+      await db
+        .insert(starHistory)
+        .values({
+          studentId,
+          action: "remove",
+          stars,
+          awardedBy,
+          awardedByName,
+          reason,
+          currentStars: newStarCount,
+        })
+        .execute()
 
       return Response.json(updated[0])
     } else {

@@ -211,3 +211,22 @@ export const studentStars = pgTable("student_stars", {
 	}),
 	unique("student_stars_student_id_unique").on(table.studentId),
 ]);
+
+// Star History - Track all star award/removal activities
+export const starHistory = pgTable("star_history", {
+	id: serial().primaryKey().notNull(),
+	studentId: integer("student_id").notNull(),
+	action: text().notNull(), // 'award' or 'remove'
+	stars: integer().notNull(), // Number of stars awarded or removed
+	awardedBy: integer("awarded_by").notNull(),
+	awardedByName: text("awarded_by_name").notNull(),
+	reason: text(),
+	currentStars: integer("current_stars").default(0), // Total stars after this action
+	timestamp: timestamp({ mode: 'string' }).defaultNow(),
+}, (table) => [
+	foreignKey({
+		columns: [table.studentId],
+		foreignColumns: [students.id],
+		name: "star_history_student_id_students_id_fk"
+	}),
+]);
