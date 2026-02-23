@@ -141,12 +141,22 @@ function SpecialPassContent() {
     const totalPasses = passes.length
     const totalStudents = students.length
 
-    // Calculate students with no phone registered
-    const nilCount = students.filter((s: any) => !s.phone_name && !s.phone_number).length
+    // Calculate students with no phone registered (including sentinel values)
+    const nilCount = students.filter((s: any) => 
+      (!s.phone_name && !s.phone_number) || 
+      s.phone_name?.toLowerCase?.() === "nill" || 
+      s.phone_name?.toLowerCase?.() === "nil" || 
+      s.phone_name?.toLowerCase?.() === "none"
+    ).length
     
     // Calculate current status counts derived from map (Real-time status)
     // Exclude nil students from the counts
-    const studentsWithPhone = students.filter((s: any) => s.phone_name || s.phone_number)
+    const studentsWithPhone = students.filter((s: any) => 
+      s.phone_name && 
+      s.phone_name.toLowerCase?.() !== "nill" && 
+      s.phone_name.toLowerCase?.() !== "nil" && 
+      s.phone_name.toLowerCase?.() !== "none"
+    )
     const outCount = studentsWithPhone.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length
     const inCount = studentsWithPhone.length - outCount
 
@@ -213,7 +223,11 @@ function SpecialPassContent() {
       // First, map all students to include their current status
       let studentList = students.map((s: any) => {
         const currentStatus = phoneStatusMap.get(s.id) || "IN"
-        const hasNoPhone = !s.phone_name && !s.phone_number
+        // Check if phone is not registered (including sentinel values like "Nill", "nil", "none")
+        const hasNoPhone = (!s.phone_name && !s.phone_number) || 
+                          s.phone_name?.toLowerCase?.() === "nill" || 
+                          s.phone_name?.toLowerCase?.() === "nil" || 
+                          s.phone_name?.toLowerCase?.() === "none"
         return {
           id: `student-${s.id}`,
           originalId: s.id,
