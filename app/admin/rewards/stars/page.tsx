@@ -60,6 +60,7 @@ export default function StarsManagementPage() {
   const [note, setNote] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [viewMode, setViewMode] = useState<"stars" | "logs">("stars")
+  const [studentSearch, setStudentSearch] = useState("")
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -138,6 +139,7 @@ export default function StarsManagementPage() {
         setSelectedStudent(null)
         setStarsToAdd(1)
         setNote("")
+        setStudentSearch("")
         fetchData()
       } else {
         const error = await res.json()
@@ -205,6 +207,11 @@ export default function StarsManagementPage() {
 
     return matchesSearch && matchesClass
   })
+
+  const filteredStudentsForModal = students.filter((s) =>
+    s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+    s.admission_number.toLowerCase().includes(studentSearch.toLowerCase())
+  )
 
   if (!isAuthorized) {
     return (
@@ -449,7 +456,13 @@ export default function StarsManagementPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false)
+                  setSelectedStudent(null)
+                  setStarsToAdd(1)
+                  setNote("")
+                  setStudentSearch("")
+                }}
               >
                 <X className="w-5 h-5" />
               </Button>
@@ -458,18 +471,53 @@ export default function StarsManagementPage() {
               {/* Student Select */}
               <div>
                 <label className="block text-sm font-medium mb-2">Student</label>
-                <select
-                  value={selectedStudent || ""}
-                  onChange={(e) => setSelectedStudent(parseInt(e.target.value) || null)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                >
-                  <option value="">Select a student...</option>
-                  {students.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.admission_number})
-                    </option>
-                  ))}
-                </select>
+                {students.length === 0 ? (
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm text-center">
+                    Loading students...
+                  </div>
+                ) : (
+                  <div>
+                    <Input
+                      placeholder="Search by name or admission..."
+                      value={studentSearch}
+                      onChange={(e) => setStudentSearch(e.target.value)}
+                      className="mb-2"
+                    />
+                    <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto bg-white">
+                      {filteredStudentsForModal.length === 0 ? (
+                        <div className="p-3 text-center text-gray-500 text-sm">
+                          No students found
+                        </div>
+                      ) : (
+                        filteredStudentsForModal.map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => {
+                              setSelectedStudent(s.id)
+                              setStudentSearch("")
+                            }}
+                            className={`w-full text-left px-3 py-2 hover:bg-amber-50 transition-colors border-b last:border-b-0 ${
+                              selectedStudent === s.id ? "bg-amber-100" : ""
+                            }`}
+                          >
+                            <div className="font-medium text-sm">{s.name}</div>
+                            <div className="text-xs text-gray-500">
+                              {s.admission_number} • {s.class_name || "N/A"}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    {selectedStudent && (
+                      <div className="mt-2 p-2 bg-amber-50 rounded-lg text-sm">
+                        Selected:{" "}
+                        <span className="font-medium">
+                          {students.find((s) => s.id === selectedStudent)?.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Stars Count */}
@@ -516,7 +564,13 @@ export default function StarsManagementPage() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false)
+                    setSelectedStudent(null)
+                    setStarsToAdd(1)
+                    setNote("")
+                    setStudentSearch("")
+                  }}
                 >
                   Cancel
                 </Button>
