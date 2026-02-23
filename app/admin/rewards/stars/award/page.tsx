@@ -31,6 +31,22 @@ export default function AwardStarPage() {
   const [classFilter, setClassFilter] = useState("all")
   const [classes, setClasses] = useState<string[]>([])
 
+  // TEST: Log to window object so we can test from console
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).awardStarsDebug = {
+        selectedStudents,
+        starsToAdd,
+        staffName,
+        isSubmitting,
+        testClick: () => {
+          console.log("🔴 TEST CLICK FROM CONSOLE - selectedStudents.size:", selectedStudents.size)
+        }
+      }
+      console.log("✅ Debug object attached to window.awardStarsDebug")
+    }
+  }, [selectedStudents, starsToAdd, staffName, isSubmitting])
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
@@ -405,13 +421,21 @@ export default function AwardStarPage() {
                   <Button
                     variant="outline"
                     className="flex-1"
-                    onClick={() => router.push("/admin/rewards/stars")}
+                    onClick={() => {
+                      console.log("Cancel clicked")
+                      router.push("/admin/rewards/stars")
+                    }}
                   >
                     Cancel
                   </Button>
                   <Button
                     className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-                    onClick={handleAwardStars}
+                    onClick={() => {
+                      console.log("🟠 Award Stars button onClick fired!")
+                      console.log("selectedStudents.size:", selectedStudents.size)
+                      console.log("starsToAdd:", starsToAdd)
+                      handleAwardStars()
+                    }}
                     disabled={isSubmitting || selectedStudents.size === 0}
                   >
                     {isSubmitting ? "Awarding..." : "Award Stars"}
