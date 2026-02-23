@@ -48,7 +48,7 @@ function SpecialPassContent() {
   const [returningPassId, setReturningPassId] = useState<number | null>(null)
   const [showStudentList, setShowStudentList] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
-  const [activeTab, setActiveTab] = useState<"phone-pass" | "phone-in" | "phone-out" | "all-students">("phone-pass")
+  const [activeTab, setActiveTab] = useState<"phone-pass" | "phone-in" | "phone-out" | "all-students" | "nil">("phone-pass")
 
   // Student List Filter States (for Grant Pass view)
   const [studentSearchQuery, setStudentSearchQuery] = useState("")
@@ -141,9 +141,14 @@ function SpecialPassContent() {
     const totalPasses = passes.length
     const totalStudents = students.length
 
+    // Calculate students with no phone registered
+    const nilCount = students.filter((s: any) => !s.phone_name && !s.phone_number).length
+    
     // Calculate current status counts derived from map (Real-time status)
-    const outCount = Array.from(phoneStatusMap.values()).filter(status => status === "OUT").length
-    const inCount = totalStudents - outCount
+    // Exclude nil students from the counts
+    const studentsWithPhone = students.filter((s: any) => s.phone_name || s.phone_number)
+    const outCount = studentsWithPhone.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length
+    const inCount = studentsWithPhone.length - outCount
 
     // Note: If you want to only count "IN" from map, you might miss students who haven't had a pass yet (default IN).
     // So (Total - Out) is safely "Everyone else is IN".
@@ -152,7 +157,8 @@ function SpecialPassContent() {
       allStudents: totalStudents,
       phonePass: totalPasses,
       phoneIn: inCount,
-      phoneOut: outCount
+      phoneOut: outCount,
+      nilCount: nilCount
     }
   }, [passes, students, phoneStatusMap])
 
@@ -203,10 +209,11 @@ function SpecialPassContent() {
       })
 
     } else {
-      // SOURCE: Students (for All Students, Phone Out, Phone In)
+      // SOURCE: Students (for All Students, Phone Out, Phone In, Nil)
       // First, map all students to include their current status
       let studentList = students.map((s: any) => {
         const currentStatus = phoneStatusMap.get(s.id) || "IN"
+        const hasNoPhone = !s.phone_name && !s.phone_number
         return {
           id: `student-${s.id}`,
           originalId: s.id,
@@ -220,17 +227,24 @@ function SpecialPassContent() {
           status: currentStatus, // Use actual status from map
           issueTime: null,
           returnTime: null,
-          purpose: "Registered Student"
+          purpose: "Registered Student",
+          hasNoPhone: hasNoPhone
         }
       })
 
       // Filter based on Tab
-      if (activeTab === "phone-out") {
-        studentList = studentList.filter((s: any) => s.status === "OUT")
+      if (activeTab === "nil") {
+        // Show only students with no phone
+        studentList = studentList.filter((s: any) => s.hasNoPhone)
+      } else if (activeTab === "phone-out") {
+        // Show only OUT students that HAVE a phone registered
+        studentList = studentList.filter((s: any) => s.status === "OUT" && !s.hasNoPhone)
       } else if (activeTab === "phone-in") {
-        studentList = studentList.filter((s: any) => s.status === "IN")
+        // Show only IN students that HAVE a phone registered
+        studentList = studentList.filter((s: any) => s.status === "IN" && !s.hasNoPhone)
+      } else if (activeTab === "all-students") {
+        // Show all students
       }
-      // "all-students" returns everyone
 
       // Search for Students
       if (debouncedSearchQuery.trim()) {
@@ -391,7 +405,7 @@ function SpecialPassContent() {
   }: {
     label: string,
     count: number,
-    param: "phone-pass" | "phone-in" | "phone-out" | "all-students"
+    param: "phone-pass" | "phone-in" | "phone-out" | "all-students" | "nil"
   }) => {
     const isActive = activeTab === param
     return (
@@ -593,6 +607,9 @@ function SpecialPassContent() {
           </div>
           <div className="snap-start shrink-0">
             <StatCard label="Phone Out" count={stats.phoneOut} param="phone-out" />
+          </div>
+          <div className="snap-start shrink-0" style={{ border: "2px solid rgb(239, 68, 68)", borderRadius: "12px", padding: "8px" }}>
+            <StatCard label="Nil" count={stats.nilCount} param="nil" />
           </div>
           <div className="snap-start shrink-0">
             <StatCard label="All Students" count={stats.allStudents} param="all-students" />
