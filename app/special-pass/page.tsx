@@ -48,7 +48,7 @@ function SpecialPassContent() {
   const [returningPassId, setReturningPassId] = useState<number | null>(null)
   const [showStudentList, setShowStudentList] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
-  const [activeTab, setActiveTab] = useState<"phone-pass" | "phone-in" | "phone-out" | "all-students" | "nil">("phone-pass")
+  const [activeTab, setActiveTab] = useState<"phone-pass" | "phone-in" | "phone-out" | "all-students">("phone-pass")
 
   // Student List Filter States (for Grant Pass view)
   const [studentSearchQuery, setStudentSearchQuery] = useState("")
@@ -141,24 +141,9 @@ function SpecialPassContent() {
     const totalPasses = passes.length
     const totalStudents = students.length
 
-    // Calculate students with no phone registered (including sentinel values)
-    const nilCount = students.filter((s: any) => 
-      (!s.phone_name && !s.phone_number) || 
-      s.phone_name?.toLowerCase?.() === "nill" || 
-      s.phone_name?.toLowerCase?.() === "nil" || 
-      s.phone_name?.toLowerCase?.() === "none"
-    ).length
-    
     // Calculate current status counts derived from map (Real-time status)
-    // Exclude nil students from the counts
-    const studentsWithPhone = students.filter((s: any) => 
-      s.phone_name && 
-      s.phone_name.toLowerCase?.() !== "nill" && 
-      s.phone_name.toLowerCase?.() !== "nil" && 
-      s.phone_name.toLowerCase?.() !== "none"
-    )
-    const outCount = studentsWithPhone.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length
-    const inCount = studentsWithPhone.length - outCount
+    const outCount = students.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length
+    const inCount = students.length - outCount
 
     // Note: If you want to only count "IN" from map, you might miss students who haven't had a pass yet (default IN).
     // So (Total - Out) is safely "Everyone else is IN".
@@ -167,8 +152,7 @@ function SpecialPassContent() {
       allStudents: totalStudents,
       phonePass: totalPasses,
       phoneIn: inCount,
-      phoneOut: outCount,
-      nilCount: nilCount
+      phoneOut: outCount
     }
   }, [passes, students, phoneStatusMap])
 
@@ -179,17 +163,8 @@ function SpecialPassContent() {
     // 1. Determine Source
     if (activeTab === "phone-pass") {
       // SOURCE: Passes History
-      // "phone-pass" = All History - ONLY show students with phones
-      list = passes
-        .filter((p: any) => {
-          // Exclude passes for students without phones (NIL/nil/nill/none)
-          const hasNoPhone = (!p.phoneName) || 
-                            p.phoneName?.toLowerCase?.() === "nill" || 
-                            p.phoneName?.toLowerCase?.() === "nil" || 
-                            p.phoneName?.toLowerCase?.() === "none"
-          return !hasNoPhone
-        })
-        .map((p: any) => ({ ...p, type: "pass", originalId: p.id }))
+      // "phone-pass" = All History
+      list = passes.map((p: any) => ({ ...p, type: "pass", originalId: p.id }))
 
       // Apply Date Filter (Only for Passes)
       if (startDate || endDate) {
@@ -228,12 +203,13 @@ function SpecialPassContent() {
       })
 
     } else {
-      // SOURCE: Students (for All Students, Phone Out, Phone In, Nil)
+      // SOURCE: Students (for All Students, Phone Out, Phone In)
       // First, map all students to include their current status
       let studentList = students.map((s: any) => {
         const currentStatus = phoneStatusMap.get(s.id) || "IN"
-        // Check if phone is not registered (including sentinel values like "Nill", "nil", "none")
-        const hasNoPhone = (!s.phone_name && !s.phone_number) || 
+        // Check if phone is not registered (including sentinel values like "none")
+        // Only check phone_name since that's the primary field for registered phones
+        const hasNoPhone = !s.phone_name || 
                           s.phone_name?.toLowerCase?.() === "nill" || 
                           s.phone_name?.toLowerCase?.() === "nil" || 
                           s.phone_name?.toLowerCase?.() === "none"
@@ -256,10 +232,7 @@ function SpecialPassContent() {
       })
 
       // Filter based on Tab
-      if (activeTab === "nil") {
-        // Show only students with no phone
-        studentList = studentList.filter((s: any) => s.hasNoPhone)
-      } else if (activeTab === "phone-out") {
+      if (activeTab === "phone-out") {
         // Show only OUT students that HAVE a phone registered
         studentList = studentList.filter((s: any) => s.status === "OUT" && !s.hasNoPhone)
       } else if (activeTab === "phone-in") {
@@ -428,7 +401,7 @@ function SpecialPassContent() {
   }: {
     label: string,
     count: number,
-    param: "phone-pass" | "phone-in" | "phone-out" | "all-students" | "nil"
+    param: "phone-pass" | "phone-in" | "phone-out" | "all-students"
   }) => {
     const isActive = activeTab === param
     return (
@@ -632,7 +605,7 @@ function SpecialPassContent() {
             <StatCard label="Phone Out" count={stats.phoneOut} param="phone-out" />
           </div>
           <div className="snap-start shrink-0" style={{ border: "2px solid rgb(239, 68, 68)", borderRadius: "12px", padding: "8px" }}>
-            <StatCard label="Nil" count={stats.nilCount} param="nil" />
+
           </div>
           <div className="snap-start shrink-0">
             <StatCard label="All Students" count={stats.allStudents} param="all-students" />
