@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     // Single optimized query using LEFT JOIN to get all students with their stars
     const studentsWithStars = await db
       .select({
-        id: studentStars.id,
+        starId: studentStars.id,
         studentId: students.id,
         studentName: students.name,
         admissionNumber: students.admissionNumber,
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
     // Transform the result to handle null star records
     const transformed = studentsWithStars.map((row) => ({
-      id: row.id || 0,
+      id: row.starId || 0,
       studentId: row.studentId,
       studentName: row.studentName,
       admissionNumber: row.admissionNumber,
@@ -37,9 +37,11 @@ export async function GET(request: Request) {
       awardedAt: row.awardedAt || new Date().toISOString(),
     }))
 
+    console.log(`[WithStars API] Returning ${transformed.length} students, ${transformed.filter(s => s.stars > 0).length} with stars`)
+
     return NextResponse.json(transformed, {
       headers: {
-        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+        "Cache-Control": "public, s-maxage=0, must-revalidate",
       },
     })
   } catch (error) {

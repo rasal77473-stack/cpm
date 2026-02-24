@@ -88,7 +88,17 @@ export default function StarsManagementPage() {
       const studentsData: Student[] = await studentsRes.json()
       const logsData = await logsRes.json()
 
-      setStars(starsData.filter(s => s.stars > 0))
+      console.log("[Stars Page] Fetched data:", {
+        totalStarsData: starsData.length,
+        starsWithCounts: starsData.filter(s => s.stars > 0).length,
+        totalStudents: studentsData.length,
+        totalLogs: logsData?.logs?.length || 0,
+      })
+
+      const filteredStars = starsData.filter(s => s.stars > 0)
+      console.log("[Stars Page] Filtered stars (>0):", filteredStars.length, filteredStars.slice(0, 3))
+
+      setStars(filteredStars)
       setLogs(logsData.logs || [])
 
       // Get all unique classes from students (includes classes with no stars/logs)
