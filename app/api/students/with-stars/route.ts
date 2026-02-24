@@ -13,7 +13,7 @@ export async function GET(request: Request) {
         id: students.id,
         name: students.name,
         admissionNumber: students.admissionNumber,
-        className: students.class_name,
+        className: students.className,
       })
       .from(students)
 

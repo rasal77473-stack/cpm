@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         id: studentFines.id,
         studentId: studentFines.studentId,
         studentName: students.name,
-        studentClass: students.class_name,
+        studentClass: students.className,
         admissionNumber: students.admissionNumber,
         fineId: studentFines.fineId,
         fineName: fines.name,

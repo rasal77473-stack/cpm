@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
                 fineName: fines.name,
                 studentName: students.name,
                 admissionNumber: students.admissionNumber,
-                className: students.class_name,
+                className: students.className,
             })
             .from(studentFines)
             .leftJoin(fines, eq(studentFines.fineId, fines.id))
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
                     fineName: fines.name,
                     studentName: students.name,
                     admissionNumber: students.admissionNumber,
-                    className: students.class_name,
+                    className: students.className,
                 })
                 .from(studentFines)
                 .leftJoin(fines, eq(studentFines.fineId, fines.id))

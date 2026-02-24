@@ -36,6 +36,7 @@ interface StarLog {
   admissionNumber: string
   studentClass: string | null
   action: "award" | "remove"
+  stars: number
   awardedBy: number
   awardedByName: string
   timestamp: string

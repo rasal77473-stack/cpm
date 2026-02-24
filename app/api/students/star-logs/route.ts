@@ -11,7 +11,7 @@ export async function GET(req: Request) {
         studentId: starHistory.studentId,
         studentName: students.name,
         admissionNumber: students.admissionNumber,
-        studentClass: students.class_name,
+        studentClass: students.className,
         action: starHistory.action,
         awardedBy: starHistory.awardedBy,
         awardedByName: starHistory.awardedByName,
