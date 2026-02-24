@@ -137,9 +137,9 @@ export default function AwardStarPage() {
 
     try {
       const token = localStorage.getItem("token")
-      const userId = localStorage.getItem("userId")
+      const staffId = localStorage.getItem("staffId")
 
-      if (!token || !userId) {
+      if (!token || !staffId) {
         toast.error("Not authenticated. Please login again.")
         router.replace("/login")
         return
@@ -162,7 +162,7 @@ export default function AwardStarPage() {
             body: JSON.stringify({
               action: "award",
               stars: starsToAdd,
-              awardedBy: parseInt(userId),
+              awardedBy: parseInt(staffId),
               awardedByName: staffName,
               reason: note || "Star awarded",
             }),

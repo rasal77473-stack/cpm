@@ -80,7 +80,7 @@ export default function AwardStarPage() {
         body: JSON.stringify({
           action: "award",
           stars: 1,
-          awardedBy: parseInt(localStorage.getItem("userId") || "0"),
+          awardedBy: parseInt(localStorage.getItem("staffId") || "0"),
           awardedByName: staffName,
           reason: "Awarded for good behavior",
         }),

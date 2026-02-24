@@ -215,7 +215,7 @@ export default function StudentDetailPage() {
         body: JSON.stringify({
           action: "award",
           stars: 1,
-          awardedBy: parseInt(localStorage.getItem("userId") || "0"),
+          awardedBy: parseInt(localStorage.getItem("staffId") || "0"),
           awardedByName: staffName,
           reason: "Awarded for good behavior - Student Lookup",
         }),
@@ -252,7 +252,7 @@ export default function StudentDetailPage() {
         body: JSON.stringify({
           action: "remove",
           stars: 1,
-          awardedBy: parseInt(localStorage.getItem("userId") || "0"),
+          awardedBy: parseInt(localStorage.getItem("staffId") || "0"),
           awardedByName: staffName,
           reason: "Star removed",
         }),

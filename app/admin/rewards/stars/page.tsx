@@ -107,7 +107,7 @@ export default function StarsManagementPage() {
   const handleRemoveStar = async (studentId: number, studentName: string) => {
     try {
       const token = localStorage.getItem("token")
-      const userId = localStorage.getItem("userId")
+      const staffId = localStorage.getItem("staffId")
 
       const res = await fetch(`/api/students/${studentId}/stars`, {
         method: "POST",
@@ -118,7 +118,7 @@ export default function StarsManagementPage() {
         body: JSON.stringify({
           action: "remove",
           stars: 1,
-          awardedBy: parseInt(userId || "0"),
+          awardedBy: parseInt(staffId || "0"),
           awardedByName: staffName,
           reason: "Star removed",
         }),
