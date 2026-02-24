@@ -16,7 +16,6 @@ export async function GET(request: Request) {
         className: students.class_name,
       })
       .from(students)
-      .execute()
 
     console.log(`[WithStars API] Found ${allStudents.length} total students`)
 
@@ -32,7 +31,6 @@ export async function GET(request: Request) {
         awardedAt: studentStars.awardedAt,
       })
       .from(studentStars)
-      .execute()
 
     console.log(`[WithStars API] Found ${allStars.length} star records`)
     if (allStars.length > 0) {
