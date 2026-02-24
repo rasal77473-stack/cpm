@@ -21,7 +21,7 @@ export async function GET(request: Request) {
           studentId: student.id,
           studentName: student.name,
           admissionNumber: student.admissionNumber,
-          studentClass: student.className || student.class || null,
+          studentClass: student.className || student.class_name || null,
           stars: starRecord?.stars || 0,
           awardedBy: starRecord?.awardedBy || 0,
           awardedByName: starRecord?.awardedByName || "System",
