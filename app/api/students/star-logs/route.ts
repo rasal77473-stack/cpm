@@ -13,6 +13,7 @@ export async function GET(req: Request) {
         admissionNumber: students.admissionNumber,
         studentClass: students.className,
         action: starHistory.action,
+        stars: starHistory.stars,
         awardedBy: starHistory.awardedBy,
         awardedByName: starHistory.awardedByName,
         timestamp: starHistory.timestamp,
@@ -22,7 +23,6 @@ export async function GET(req: Request) {
       .from(starHistory)
       .innerJoin(students, eq(starHistory.studentId, students.id))
       .orderBy(starHistory.timestamp)
-      .execute()
 
     // Build summary by aggregating the logs
     const summaryMap = new Map()
@@ -58,7 +58,6 @@ export async function GET(req: Request) {
         currentStars: studentStars.stars,
       })
       .from(studentStars)
-      .execute()
 
     // Update summary with current stars
     const starMap = new Map()
@@ -76,9 +75,11 @@ export async function GET(req: Request) {
       summary 
     })
   } catch (error) {
-    console.error("Failed to fetch star logs:", error)
+    console.error("[StarLogs API] Failed to fetch star logs:", error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error("[StarLogs API] Error details:", { errorMessage, stack: error instanceof Error ? error.stack : 'N/A' })
     return Response.json(
-      { error: "Failed to fetch star logs" },
+      { error: "Failed to fetch star logs", details: errorMessage },
       { status: 500 }
     )
   }

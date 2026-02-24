@@ -66,9 +66,11 @@ export async function GET(request: Request) {
       },
     })
   } catch (error) {
-    console.error("Error fetching students with stars:", error)
+    console.error("[WithStars API] Error fetching students with stars:", error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error("[WithStars API] Error details:", { errorMessage, stack: error instanceof Error ? error.stack : 'N/A' })
     return NextResponse.json(
-      { error: "Failed to fetch students with stars" },
+      { error: "Failed to fetch students with stars", details: errorMessage },
       { status: 500 }
     )
   }
