@@ -5,39 +5,62 @@ import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
   try {
-    // Single optimized query using LEFT JOIN to get all students with their stars
-    const studentsWithStars = await db
+    console.log("[WithStars API] Starting query...")
+    
+    // First, get all students (to ensure we have them)
+    const allStudents = await db
       .select({
-        starId: studentStars.id,
-        studentId: students.id,
-        studentName: students.name,
+        id: students.id,
+        name: students.name,
         admissionNumber: students.admissionNumber,
-        studentClass: students.class_name,
+        className: students.class_name,
+      })
+      .from(students)
+      .execute()
+
+    console.log(`[WithStars API] Found ${allStudents.length} total students`)
+
+    // Then get all student stars records
+    const allStars = await db
+      .select({
+        id: studentStars.id,
+        studentId: studentStars.studentId,
         stars: studentStars.stars,
         awardedBy: studentStars.awardedBy,
         awardedByName: studentStars.awardedByName,
         reason: studentStars.reason,
         awardedAt: studentStars.awardedAt,
       })
-      .from(students)
-      .leftJoin(studentStars, eq(students.id, studentStars.studentId))
+      .from(studentStars)
       .execute()
 
-    // Transform the result to handle null star records
-    const transformed = studentsWithStars.map((row) => ({
-      id: row.starId || 0,
-      studentId: row.studentId,
-      studentName: row.studentName,
-      admissionNumber: row.admissionNumber,
-      studentClass: row.studentClass || null,
-      stars: row.stars || 0,
-      awardedBy: row.awardedBy || 0,
-      awardedByName: row.awardedByName || "System",
-      reason: row.reason || null,
-      awardedAt: row.awardedAt || new Date().toISOString(),
-    }))
+    console.log(`[WithStars API] Found ${allStars.length} star records`)
+    if (allStars.length > 0) {
+      console.log("[WithStars API] Sample star records:", allStars.slice(0, 3))
+    }
 
-    console.log(`[WithStars API] Returning ${transformed.length} students, ${transformed.filter(s => s.stars > 0).length} with stars`)
+    // Now merge them in JavaScript
+    const transformed = allStudents.map((student) => {
+      const starRecord = allStars.find((s) => s.studentId === student.id)
+      return {
+        id: starRecord?.id || 0,
+        studentId: student.id,
+        studentName: student.name,
+        admissionNumber: student.admissionNumber,
+        studentClass: student.className || null,
+        stars: starRecord?.stars || 0,
+        awardedBy: starRecord?.awardedBy || 0,
+        awardedByName: starRecord?.awardedByName || "System",
+        reason: starRecord?.reason || null,
+        awardedAt: starRecord?.awardedAt || new Date().toISOString(),
+      }
+    })
+
+    const withStars = transformed.filter(s => s.stars > 0)
+    console.log(`[WithStars API] Returning ${transformed.length} students, ${withStars.length} with stars`)
+    if (withStars.length > 0) {
+      console.log("[WithStars API] Students with stars:", withStars)
+    }
 
     return NextResponse.json(transformed, {
       headers: {
