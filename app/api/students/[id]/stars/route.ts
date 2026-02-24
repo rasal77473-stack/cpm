@@ -16,10 +16,11 @@ function verifyAuth(request: Request): boolean {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const studentId = parseInt(params.id, 10)
+    const { id } = await params
+    const studentId = parseInt(id, 10)
 
     // Get student stars record, create one if doesn't exist
     let starRecord = await db
@@ -56,12 +57,13 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const { action, stars, awardedBy, awardedByName, reason } = body
-    const studentId = parseInt(params.id, 10)
+    const studentId = parseInt(id, 10)
 
     console.log(`[StarAPI] Processing ${action} action for student ${studentId}:`, { stars, awardedBy, awardedByName })
 
