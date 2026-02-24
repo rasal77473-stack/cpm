@@ -1,37 +1,47 @@
 import { db } from "@/db"
 import { students, studentStars } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, isNull } from "drizzle-orm"
 import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
   try {
-    // Fetch all students with stars
-    const allStudents = await db.select().from(students)
-    
-    const studentsWithStars = await Promise.all(
-      allStudents.map(async (student) => {
-        const starRecord = await db
-          .select()
-          .from(studentStars)
-          .where(eq(studentStars.studentId, student.id))
-          .then((results) => results[0])
-
-        return {
-          id: starRecord?.id || 0,
-          studentId: student.id,
-          studentName: student.name,
-          admissionNumber: student.admissionNumber,
-          studentClass: student.className || student.class_name || null,
-          stars: starRecord?.stars || 0,
-          awardedBy: starRecord?.awardedBy || 0,
-          awardedByName: starRecord?.awardedByName || "System",
-          reason: starRecord?.reason || null,
-          awardedAt: starRecord?.awardedAt || new Date().toISOString(),
-        }
+    // Single optimized query using LEFT JOIN to get all students with their stars
+    const studentsWithStars = await db
+      .select({
+        id: studentStars.id,
+        studentId: students.id,
+        studentName: students.name,
+        admissionNumber: students.admissionNumber,
+        studentClass: students.class_name,
+        stars: studentStars.stars,
+        awardedBy: studentStars.awardedBy,
+        awardedByName: studentStars.awardedByName,
+        reason: studentStars.reason,
+        awardedAt: studentStars.awardedAt,
       })
-    )
+      .from(students)
+      .leftJoin(studentStars, eq(students.id, studentStars.studentId))
+      .execute()
 
-    return NextResponse.json(studentsWithStars)
+    // Transform the result to handle null star records
+    const transformed = studentsWithStars.map((row) => ({
+      id: row.id || 0,
+      studentId: row.studentId,
+      studentName: row.studentName,
+      admissionNumber: row.admissionNumber,
+      studentClass: row.studentClass || null,
+      stars: row.stars || 0,
+      awardedBy: row.awardedBy || 0,
+      awardedByName: row.awardedByName || "System",
+      reason: row.reason || null,
+      awardedAt: row.awardedAt || new Date().toISOString(),
+    }))
+
+    return NextResponse.json(transformed, {
+      headers: {
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+      },
+    })
   } catch (error) {
     console.error("Error fetching students with stars:", error)
     return NextResponse.json(
