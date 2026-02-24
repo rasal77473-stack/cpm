@@ -604,9 +604,6 @@ function SpecialPassContent() {
           <div className="snap-start shrink-0">
             <StatCard label="Phone Out" count={stats.phoneOut} param="phone-out" />
           </div>
-          <div className="snap-start shrink-0" style={{ border: "2px solid rgb(239, 68, 68)", borderRadius: "12px", padding: "8px" }}>
-
-          </div>
           <div className="snap-start shrink-0">
             <StatCard label="All Students" count={stats.allStudents} param="all-students" />
           </div>
