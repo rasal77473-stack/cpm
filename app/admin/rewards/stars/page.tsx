@@ -420,9 +420,12 @@ export default function StarsManagementPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-2xl font-bold text-amber-600">
-                            {log.currentStars}
+                            {log.action === "award" ? "+" : "-"}{log.stars}
                             <Star className="w-5 h-5 inline ml-1 fill-amber-500" />
                           </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Total: {log.currentStars} ⭐
+                          </p>
                         </div>
                       </div>
                     </div>
