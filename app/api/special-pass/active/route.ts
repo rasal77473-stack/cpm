@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         lockerNumber: students.locker_number,
         className: students.class_name,
         rollNo: students.roll_no,
-        phoneNumber: students.phone_name,
+        phoneName: students.phoneName,
         mentorName: specialPassGrants.mentorName,
         purpose: specialPassGrants.purpose,
         issueTime: specialPassGrants.issueTime,

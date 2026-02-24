@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { userActivityLogs, specialPassGrants, students, phoneHistory } from "@/db/schema"
+import { userActivityLogs, specialPassGrants, students, phoneHistory, phoneStatus } from "@/db/schema"
 import { eq, and, inArray } from "drizzle-orm"
 
 export async function POST(request: NextRequest) {
@@ -66,6 +66,35 @@ export async function POST(request: NextRequest) {
         expectedReturnTime: expectedReturnTime || null,
       })
       .returning()
+
+    // Initialize or update phone status to OUT (phone is now with student/staff via pass)
+    const [existingStatus] = await db
+      .select()
+      .from(phoneStatus)
+      .where(eq(phoneStatus.studentId, Number(studentId)))
+      .limit(1)
+
+    if (existingStatus) {
+      // Update existing status to OUT
+      await db.update(phoneStatus)
+        .set({
+          status: "OUT",
+          lastUpdated: new Date().toISOString(),
+          updatedBy: mentorName,
+          notes: `PHONE PASS: ${purpose}`,
+        })
+        .where(eq(phoneStatus.studentId, Number(studentId)))
+    } else {
+      // Create new phone status record
+      await db.insert(phoneStatus)
+        .values({
+          studentId: Number(studentId),
+          status: "OUT",
+          updatedBy: mentorName,
+          notes: `PHONE PASS: ${purpose}`,
+          lastUpdated: new Date().toISOString(),
+        })
+    }
 
     // Record to phone history - mark as OUT (phone is with staff)
     await db.insert(phoneHistory).values({

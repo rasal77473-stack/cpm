@@ -179,8 +179,17 @@ function SpecialPassContent() {
     // 1. Determine Source
     if (activeTab === "phone-pass") {
       // SOURCE: Passes History
-      // "phone-pass" = All History
-      list = passes.map((p: any) => ({ ...p, type: "pass", originalId: p.id }))
+      // "phone-pass" = All History - ONLY show students with phones
+      list = passes
+        .filter((p: any) => {
+          // Exclude passes for students without phones (NIL/nil/nill/none)
+          const hasNoPhone = (!p.phoneName) || 
+                            p.phoneName?.toLowerCase?.() === "nill" || 
+                            p.phoneName?.toLowerCase?.() === "nil" || 
+                            p.phoneName?.toLowerCase?.() === "none"
+          return !hasNoPhone
+        })
+        .map((p: any) => ({ ...p, type: "pass", originalId: p.id }))
 
       // Apply Date Filter (Only for Passes)
       if (startDate || endDate) {
