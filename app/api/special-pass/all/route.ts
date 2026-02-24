@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
         studentId: specialPassGrants.studentId,
         studentName: students.name,
         admissionNumber: students.admissionNumber,
-        className: students.class_name,
+        className: students.className,
         lockerNumber: students.lockerNumber,
         rollNo: students.rollNo,
         phoneName: students.phoneName,

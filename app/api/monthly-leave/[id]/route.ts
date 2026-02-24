@@ -31,7 +31,7 @@ export async function GET(
             .select({
                 studentId: leaveExclusions.studentId,
                 studentName: students.name,
-                admissionNumber: students.admission_number,
+                admissionNumber: students.admissionNumber,
             })
             .from(leaveExclusions)
             .leftJoin(students, eq(leaveExclusions.studentId, students.id))
