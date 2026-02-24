@@ -88,21 +88,26 @@ export default function StarsManagementPage() {
       const studentsData: Student[] = await studentsRes.json()
       const logsData = await logsRes.json()
 
-      console.log("[Stars Page] Fetched data:", {
-        totalStarsData: starsData.length,
-        starsWithCounts: starsData.filter(s => s.stars > 0).length,
-        totalStudents: studentsData.length,
-        totalLogs: logsData?.logs?.length || 0,
+      console.log("[Stars Page] Raw starsData:", {
+        length: starsData.length,
+        sample: starsData.slice(0, 5),
+        withStars: starsData.filter(s => s.stars > 0),
+      })
+      console.log("[Stars Page] Raw studentsData:", {
+        length: studentsData.length,
+        sample: studentsData.slice(0, 3),
+        classes: [...new Set(studentsData.map((s: Student) => s.class_name).filter(Boolean))],
       })
 
       const filteredStars = starsData.filter(s => s.stars > 0)
-      console.log("[Stars Page] Filtered stars (>0):", filteredStars.length, filteredStars.slice(0, 3))
+      console.log("[Stars Page] Filtered stars (>0):", filteredStars.length, filteredStars)
 
       setStars(filteredStars)
       setLogs(logsData.logs || [])
 
       // Get all unique classes from students (includes classes with no stars/logs)
       const uniqueClasses = [...new Set(studentsData.map((s: Student) => s.class_name).filter(Boolean))]
+      console.log("[Stars Page] Unique classes:", uniqueClasses)
       setClasses(uniqueClasses as string[])
     } catch (error) {
       console.error("Failed to fetch data:", error)
@@ -236,7 +241,7 @@ export default function StarsManagementPage() {
               </div>
               <div className="text-center">
                 <p className="text-gray-600 text-sm">Students with Stars</p>
-                <p className="text-3xl font-bold text-blue-600 mt-2">{filteredStars.length}</p>
+                <p className="text-3xl font-bold text-blue-600 mt-2">{stars.length}</p>
               </div>
               <div className="text-center">
                 <p className="text-gray-600 text-sm">Recent Activities</p>
