@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const allUsers = await db.select().from(users);
     // Parse permissions JSON for each user
-    const parsedUsers = allUsers.map(user => ({
+    const parsedUsers = allUsers.map((user: any) => ({
       ...user,
       permissions: typeof user.permissions === 'string' ? JSON.parse(user.permissions) : user.permissions
     }));
@@ -34,8 +34,7 @@ export async function POST(req: Request) {
       password,
       name,
       role: role || "mentor",
-      // Convert permissions array to JSON string for storage
-      permissions: JSON.stringify(permissions || ["view_only"]),
+      permissions: Array.isArray(permissions) ? permissions : ["view_only"],
       specialPass: special_pass || "NO",
     };
 
@@ -45,11 +44,7 @@ export async function POST(req: Request) {
 
     console.log("POST /api/users - User created:", newUser);
 
-    // Parse permissions back to array for response
-    return NextResponse.json({
-      ...newUser[0],
-      permissions: JSON.parse(newUser[0].permissions)
-    }, { status: 201 });
+    return NextResponse.json(newUser[0], { status: 201 });
   } catch (error) {
     console.error("POST /api/users - Create user error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -72,8 +67,7 @@ export async function PUT(req: Request) {
         password,
         name,
         role,
-        // Convert permissions array to JSON string for storage
-        permissions: JSON.stringify(permissions),
+        permissions: Array.isArray(permissions) ? permissions : ["view_only"],
         specialPass: special_pass
       })
       .where(eq(users.id, id))
@@ -83,11 +77,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Parse permissions back to array for response
-    return NextResponse.json({
-      ...updatedUser[0],
-      permissions: JSON.parse(updatedUser[0].permissions)
-    });
+    return NextResponse.json(updatedUser[0]);
   } catch (error) {
     console.error("PUT /api/users - Update error:", error);
     return NextResponse.json({ error: "Failed to update user" }, { status: 500 });

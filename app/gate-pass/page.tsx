@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   Search,
   Plus,
-  ArrowUpRight,
   Loader2,
   Menu,
   X,
@@ -21,7 +20,7 @@ import {
   ArrowRightCircle,
   Users,
   Settings,
-  Ticket
+  Calendar
 } from "lucide-react"
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
@@ -33,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Link from "next/link"
+import { format } from "date-fns"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -43,6 +43,9 @@ function GatePassContent() {
   const [showMenu, setShowMenu] = useState(false)
   const [activeTab, setActiveTab] = useState<"gate-pass" | "student-in" | "student-out" | "all-students">("gate-pass")
   const [gatePassFilterClass, setGatePassFilterClass] = useState<string>("all")
+
+  const [startDate, setStartDate] = useState<string>("")
+  const [endDate, setEndDate] = useState<string>("")
 
   const [studentSearchQuery, setStudentSearchQuery] = useState("")
   const [selectedClass, setSelectedClass] = useState("all")
@@ -66,26 +69,23 @@ function GatePassContent() {
   })
   const students = Array.isArray(studentsData) ? studentsData : []
 
-  // Fetch gate passes (from special-pass/all since we use same table)
-  // INSTANT: Real-time polling at 3.5s for instant updates without flickering
+  // Fetch gate passes
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/gate-pass/all", fetcher, {
-    refreshInterval: 3500, // INSTANT: 3.5s for real-time updates
-    revalidateOnFocus: false, // CHANGED: true → false
-    dedupingInterval: 5000, // CHANGED: 1000ms → 5000ms
+    refreshInterval: 3500,
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
   })
-  // Filter ONLY gate passes - strictly exclude all phone passes
+
   const gatePasses = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
-    // Show ONLY gate passes (those that start with "GATE:")
     if (!p.purpose) return false
     return p.purpose.startsWith("GATE:")
   }) : []
 
-  // Fetch phone/gate pass statuses (same tracking)
-  // INSTANT: Real-time polling at 3.5s for instant updates without flickering
+  // Fetch phone/gate pass statuses
   const { data: phoneStatusData = [] } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 3500, // INSTANT: 3.5s for real-time updates
-    revalidateOnFocus: false, // CHANGED: true → false
-    dedupingInterval: 5000, // CHANGED: 500ms → 5000ms
+    refreshInterval: 3500,
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
   })
 
   const gatePassStatusMap = useMemo(() => {
@@ -128,11 +128,25 @@ function GatePassContent() {
         list = list.filter((item: any) => item.className === gatePassFilterClass)
       }
 
+      if (startDate) {
+        list = list.filter((item: any) => {
+          if (!item.issueTime) return false;
+          return new Date(item.issueTime) >= new Date(startDate);
+        })
+      }
+
+      if (endDate) {
+        list = list.filter((item: any) => {
+          if (!item.issueTime) return false;
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          return new Date(item.issueTime) <= end;
+        })
+      }
+
       return list.sort((a, b) => {
-        // First: sort by completion status (active passes first)
         if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1
         if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1
-        // Then: sort by recency (most recent first)
         return new Date(b.issueTime || 0).getTime() - new Date(a.issueTime || 0).getTime()
       })
     } else {
@@ -149,6 +163,7 @@ function GatePassContent() {
           phoneNumber: s.phone_number,
           status: currentStatus,
           issueTime: null,
+          purpose: null
         }
       })
 
@@ -168,7 +183,7 @@ function GatePassContent() {
 
       return studentList.sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
     }
-  }, [gatePasses, students, activeTab, debouncedSearchQuery, gatePassFilterClass, gatePassStatusMap])
+  }, [gatePasses, students, activeTab, debouncedSearchQuery, gatePassFilterClass, gatePassStatusMap, startDate, endDate])
 
   const classes = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.class_name).filter(Boolean))).sort()], [students])
   const lockers = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.locker_number).filter(Boolean))).sort((a: any, b: any) => Number(a) - Number(b))], [students])
@@ -203,9 +218,8 @@ function GatePassContent() {
   }, [router])
 
   const handleSubmitOut = async (gatePassId: number) => {
-    // Set loading state to prevent double-clicks
     setReturningGatePassId(gatePassId)
-    
+
     const pass = gatePasses.find((p: any) => p.id === gatePassId)
     if (!pass) {
       setReturningGatePassId(null)
@@ -213,7 +227,6 @@ function GatePassContent() {
       return
     }
 
-    // Optimistic update for phone status
     mutate("/api/phone-status", (current: any[] = []) => {
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
@@ -226,12 +239,10 @@ function GatePassContent() {
     try {
       const res = await fetch(`/api/special-pass/out/${gatePassId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
-      
-      // Revalidate to ensure server consistency
+
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
     } catch (e) {
-      // Rollback on error
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
       toast.error("Failed to update status")
@@ -244,12 +255,10 @@ function GatePassContent() {
     const pass = gatePasses.find((p: any) => p.id === gatePassId)
     if (!pass) return
 
-    // 1. Optimistic Update for PASS STATUS (The list item)
     mutate("/api/special-pass/all", (current: any[] = []) => {
       return current.map(p => p.id === gatePassId ? { ...p, status: "COMPLETED", submissionTime: new Date().toISOString() } : p)
     }, false)
 
-    // 2. Optimistic Update for PHONE STATUS (The counts)
     mutate("/api/phone-status", (current: any[] = []) => {
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
@@ -264,11 +273,9 @@ function GatePassContent() {
       const res = await fetch(`/api/special-pass/return/${gatePassId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
 
-      // Revalidate to ensure server consistency
       mutate("/api/special-pass/all")
       mutate("/api/phone-status")
     } catch (e) {
-      // Rollback on error
       mutate("/api/special-pass/all")
       mutate("/api/phone-status")
       toast.error("Failed to complete gate pass")
@@ -278,11 +285,13 @@ function GatePassContent() {
   }
 
   const StatCard = ({
-    label,
+    title,
+    subtitle,
     count,
     param
   }: {
-    label: string,
+    title: string,
+    subtitle: string,
     count: number,
     param: "gate-pass" | "student-in" | "student-out" | "all-students"
   }) => {
@@ -290,72 +299,81 @@ function GatePassContent() {
     return (
       <div
         onClick={() => setActiveTab(param)}
-        className={`rounded-xl p-3 min-w-[80px] flex flex-col items-start justify-center shadow-sm border cursor-pointer transition-all active:scale-95
+        className={`rounded-3xl p-4 min-w-[100px] flex-1 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 border
           ${isActive
-            ? "bg-green-600 border-green-600"
-            : "bg-green-50 border-green-100 hover:border-green-300"
+            ? "bg-[#0ca643] border-[#0ca643] shadow-[0_4px_20px_rgba(12,166,67,0.3)]"
+            : "bg-green-50/50 border-green-100 hover:bg-green-100/50"
           }`}
       >
-        <span className={`text-lg font-bold ${isActive ? "text-white" : "text-green-900"}`}>{count}</span>
-        <span className={`text-xs font-medium whitespace-nowrap ${isActive ? "text-green-100" : "text-green-700/70"}`}>{label}</span>
+        <span className={`text-2xl font-bold ${isActive ? "text-white" : "text-slate-900"}`}>
+          {count}
+        </span>
+        <span className={`text-[11px] font-semibold mt-1 tracking-wide ${isActive ? "text-green-50" : "text-green-600"}`}>
+          {title}
+        </span>
+        {subtitle && (
+          <span className={`text-[10px] uppercase font-bold tracking-wider mt-0.5 ${isActive ? "text-green-100/80" : "text-green-500/70"}`}>
+            {subtitle}
+          </span>
+        )}
       </div>
     )
   }
 
   if (showStudentList) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b px-4 py-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => setShowStudentList(false)} className="-ml-2">
-              <ChevronLeft className="h-6 w-6" />
+      <div className="min-h-screen bg-[#fafafa]">
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setShowStudentList(false)} className="rounded-xl hover:bg-slate-100 text-slate-700">
+              <ChevronLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-bold">Select Student</h1>
+            <h1 className="text-xl font-bold text-slate-900">Select Student</h1>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {filteredStudents.length} / {students.length} total
+          <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+            {filteredStudents.length} / {students.length}
           </div>
         </header>
 
-        <main className="p-4 space-y-4">
+        <main className="p-4 space-y-4 max-w-lg mx-auto">
           <div className="space-y-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search student..."
-                className="pl-9 bg-muted/50 border-0"
+                className="pl-10 h-12 bg-white border-slate-200 rounded-2xl shadow-sm text-sm focus:ring-slate-200"
                 value={studentSearchQuery}
                 onChange={(e) => setStudentSearchQuery(e.target.value)}
               />
             </div>
             <div className="flex gap-2">
               <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="bg-muted/50 border-0">
+                <SelectTrigger className="bg-white border-slate-200 rounded-2xl h-11 text-sm font-medium text-slate-700 shadow-sm flex-1">
                   <SelectValue placeholder="Class" />
                 </SelectTrigger>
-                <SelectContent>
-                  {classes.map(c => <SelectItem key={c} value={c}>{c === "all" ? "All Class" : c}</SelectItem>)}
+                <SelectContent className="rounded-2xl border-slate-200">
+                  {classes.map(c => <SelectItem key={c} value={c} className="rounded-xl">{c === "all" ? "All Classes" : c}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={selectedLocker} onValueChange={setSelectedLocker}>
-                <SelectTrigger className="bg-muted/50 border-0">
+                <SelectTrigger className="bg-white border-slate-200 rounded-2xl h-11 text-sm font-medium text-slate-700 shadow-sm flex-1">
                   <SelectValue placeholder="Locker" />
                 </SelectTrigger>
-                <SelectContent>
-                  {lockers.map(l => <SelectItem key={l} value={l}>{l === "all" ? "All Locker" : `Locker ${l}`}</SelectItem>)}
+                <SelectContent className="rounded-2xl border-slate-200">
+                  {lockers.map(l => <SelectItem key={l} value={l} className="rounded-xl">{l === "all" ? "All Lockers" : `Locker ${l}`}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-2.5">
             {studentLoading ? (
-              <div className="text-center py-12 flex flex-col items-center gap-2 text-muted-foreground">
+              <div className="text-center py-12 flex flex-col items-center gap-3 text-slate-400">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <p>Loading students...</p>
+                <p className="font-medium text-sm">Loading students...</p>
               </div>
             ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
+              <div className="text-center py-12 text-slate-400 font-medium text-sm bg-white rounded-3xl border border-slate-100">
                 {students.length === 0 ? "No students available" : "No students found matching filters"}
               </div>
             ) : (
@@ -363,16 +381,19 @@ function GatePassContent() {
                 <div
                   key={s.id}
                   onClick={() => router.push(`/admin/gate-pass/grant/${s.id}`)}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-card border hover:border-primary/50 cursor-pointer transition-all active:scale-[0.98]"
+                  className="flex items-center gap-4 p-3.5 rounded-[20px] bg-white border border-slate-100 hover:border-green-200 hover:shadow-md cursor-pointer transition-all active:scale-[0.98]"
                 >
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-green-100 text-green-600 font-bold">
+                  <Avatar className="h-11 w-11 rounded-full border border-green-100 shadow-sm">
+                    <AvatarFallback className="bg-green-50 text-green-700 font-bold text-lg">
                       {s.name?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-semibold">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">{s.admission_number} • {s.class_name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-900 text-sm truncate">{s.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{s.admission_number}</span>
+                      <span className="text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{s.class_name || "No Class"}</span>
+                    </div>
                   </div>
                 </div>
               ))
@@ -384,28 +405,28 @@ function GatePassContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-8">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-white pb-20 md:pb-8 font-sans">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3 sm:py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")} className="-ml-2 hover:bg-gray-50 text-gray-800 rounded-xl">
             <ChevronLeft className="h-6 w-6" />
           </Button>
-          <h1 className="text-xl font-bold">Gate Pass</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Gate Pass</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {canGrantPass && (
             <Button
-              className="bg-green-600 hover:bg-green-700 text-white gap-1 rounded-lg px-4"
+              className="bg-[#0ca643] hover:bg-green-700 text-white gap-1 rounded-2xl px-5 h-10 font-bold text-sm shadow-sm transition-transform active:scale-95"
               onClick={() => setShowStudentList(true)}
             >
-              Add <Plus className="h-4 w-4" />
+              Add <Plus className="h-4 w-4 stroke-[3]" />
             </Button>
           )}
           <Button
             variant="outline"
             size="icon"
             onClick={() => setShowMenu(!showMenu)}
-            className="relative"
+            className="rounded-2xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 h-10 w-10 shadow-sm transition-transform active:scale-95"
           >
             {showMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
@@ -414,173 +435,215 @@ function GatePassContent() {
 
       {/* Menu Dropdown */}
       {showMenu && (
-        <div className="sticky top-16 z-40 bg-background border-b">
-          <div className="px-4 py-4 space-y-2">
-            <Link href="/admin/manage-students" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <GraduationCap className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Students</span>
-              </div>
-            </Link>
-            <Link href="/gate-pass-menu" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 cursor-pointer">
-                <DoorOpen className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Gate Pass</span>
-              </div>
-            </Link>
-            <Link href="/history" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <History className="h-5 w-5 text-green-600" />
-                <span className="font-medium">History</span>
-              </div>
-            </Link>
-            <Link href="/admin/monthly-leave" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <ArrowRightCircle className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Monthly Leave</span>
-              </div>
-            </Link>
-            <Link href="/admin/users" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <Users className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Users</span>
-              </div>
-            </Link>
-            <Link href="/admin/settings" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <Settings className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Settings</span>
-              </div>
-            </Link>
-          </div>
+        <div className="fixed inset-x-0 top-[64px] z-40 bg-white border-b border-gray-100 shadow-xl shadow-gray-200/20 px-4 py-4 space-y-2 animate-in slide-in-from-top-2">
+          <Link href="/admin/manage-students" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <GraduationCap className="h-5 w-5" />
+              <span className="font-bold text-sm">Students</span>
+            </div>
+          </Link>
+          <Link href="/gate-pass" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-green-50 cursor-pointer text-green-700">
+              <DoorOpen className="h-5 w-5" />
+              <span className="font-bold text-sm">Gate Pass</span>
+            </div>
+          </Link>
+          <Link href="/history" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <History className="h-5 w-5" />
+              <span className="font-bold text-sm">History</span>
+            </div>
+          </Link>
+          <Link href="/admin/monthly-leave" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <ArrowRightCircle className="h-5 w-5" />
+              <span className="font-bold text-sm">Monthly Leave</span>
+            </div>
+          </Link>
+          <Link href="/admin/users" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <Users className="h-5 w-5" />
+              <span className="font-bold text-sm">Users</span>
+            </div>
+          </Link>
+          <Link href="/admin/settings" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <Settings className="h-5 w-5" />
+              <span className="font-bold text-sm">Settings</span>
+            </div>
+          </Link>
         </div>
       )}
 
-      <main className="px-4 py-4 space-y-6">
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Search"
-              className="pl-11 h-12 rounded-xl bg-white border-gray-200 shadow-sm text-base"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+      {/* Main Container */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-7">
 
-          {/* Gate Pass Filter */}
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            placeholder="Search"
+            className="pl-12 h-14 rounded-3xl bg-white border border-gray-200 shadow-sm text-base focus:ring-2 focus:ring-green-100 transition-shadow"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Stats Flow */}
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide snap-x">
+          <div className="snap-start shrink-0 flex-1 min-w-[100px]">
+            <StatCard title="Gate Pass" subtitle="" count={stats.gatePass} param="gate-pass" />
+          </div>
+          <div className="snap-start shrink-0 flex-1 min-w-[100px]">
+            <StatCard title="Student In" subtitle="" count={stats.studentIn} param="student-in" />
+          </div>
+          <div className="snap-start shrink-0 flex-1 min-w-[100px]">
+            <StatCard title="Student Out" subtitle="" count={stats.studentOut} param="student-out" />
+          </div>
+          <div className="snap-start shrink-0 flex-1 min-w-[100px]">
+            <StatCard title="All Students" subtitle="" count={stats.allStudents} param="all-students" />
+          </div>
+        </div>
+
+        <div className="h-px bg-gray-200 w-full rounded-full"></div>
+
+        <div className="space-y-4">
+          {/* Section Title */}
+          <h2 className="text-base font-semibold text-slate-500">
+            Listed {filteredList.length}
+            {activeTab === "gate-pass" ? " Passes" : " Students"}
+          </h2>
+
+          {/* Filters */}
           {activeTab === "gate-pass" && (
-            <select
-              value={gatePassFilterClass}
-              onChange={(e) => setGatePassFilterClass(e.target.value)}
-              className="w-full h-12 px-3 py-2 rounded-xl border border-purple-400 bg-white text-purple-600 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="all">All Classes</option>
-              {gatePassClasses.filter((c: string) => c !== "all").map((c: string) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 ml-1 mb-1 block">Start Date</label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    className="h-12 w-full rounded-2xl border-blue-400 text-blue-600 bg-white pr-10 focus:ring-blue-100 appearance-none font-medium"
+                  />
+                  <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-600 pointer-events-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 ml-1 mb-1 block">End Date</label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={e => setEndDate(e.target.value)}
+                    className="h-12 w-full rounded-2xl border-green-400 text-green-600 bg-white pr-10 focus:ring-green-100 appearance-none font-medium"
+                  />
+                  <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600 pointer-events-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 ml-1 mb-1 block">Class</label>
+                <Select value={gatePassFilterClass} onValueChange={setGatePassFilterClass}>
+                  <SelectTrigger className="h-12 w-full rounded-2xl border-purple-400 text-purple-600 bg-white focus:ring-purple-100 font-medium border">
+                    <SelectValue placeholder="All Classes" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-purple-200">
+                    <SelectItem value="all" className="rounded-xl">All Classes</SelectItem>
+                    {gatePassClasses.filter((c: string) => c !== "all").map((c: string) => (
+                      <SelectItem key={c} value={c} className="rounded-xl">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           )}
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x">
-          <div className="snap-start shrink-0">
-            <StatCard label="Gate Pass" count={stats.gatePass} param="gate-pass" />
-          </div>
-          <div className="snap-start shrink-0">
-            <StatCard label="Student In" count={stats.studentIn} param="student-in" />
-          </div>
-          <div className="snap-start shrink-0">
-            <StatCard label="Student Out" count={stats.studentOut} param="student-out" />
-          </div>
-          <div className="snap-start shrink-0">
-            <StatCard label="All Students" count={stats.allStudents} param="all-students" />
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Listed {filteredList.length}
-            {activeTab === "gate-pass" ? " Gate Passes" : " Students"}
-          </h2>
-        </div>
-
-        <div className="space-y-4">
+        {/* List */}
+        <div className="space-y-4 pt-2">
           {passesLoading || studentLoading ? (
-            <div className="text-center py-10 opacity-50"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>
+            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-green-500 animate-spin" /></div>
+          ) : filteredList.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 font-medium">No records found.</div>
           ) : filteredList.map((item: any) => {
             const isStudent = item.type === "student"
             const currentStatus = item.status || "IN"
             const isOut = currentStatus === "OUT"
             const isCompleted = currentStatus === "COMPLETED"
-            const isNotIssued = isStudent && !item.issueTime // Student with no gate pass issued
+            const isNotIssued = isStudent && !item.issueTime
+
+            // Date formatting
+            let displayTime = "-"
+            if (item.issueTime) {
+              try {
+                displayTime = format(new Date(item.issueTime), "dd MMM • hh:mm a")
+              } catch (e) { }
+            }
+
+            // Remarks
+            let remarksText = "-"
+            if (item.purpose) {
+              remarksText = item.purpose.replace("GATE:", "").trim()
+            } else if (isStudent && isNotIssued) {
+              remarksText = ""
+            }
 
             return (
-              <div key={item.id} className="bg-green-50/50 rounded-[20px] p-5 shadow-sm border border-green-100">
-                <div className="flex gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-bold text-green-600 text-base truncate pr-2">{item.studentName}</h3>
-                      <Badge variant="outline" className={`
-                        rounded-md px-2 py-0.5 text-xs font-normal bg-white
-                        ${isNotIssued ? "text-orange-600 border-orange-400" : (!isCompleted && isOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300"))}
-                      `}>
-                        {isNotIssued
-                          ? "not issued"
-                          : (isStudent
-                            ? (isOut ? "out" : "in")
-                            : (isCompleted ? "returned" : (isOut ? "out" : "active"))
-                          )
-                        }
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-2">
-                      <div>
-                        <p className="text-xs text-gray-400">Student ID</p>
-                        <p className="font-semibold text-gray-900">{item.admissionNumber}</p>
-                      </div>
-
-                      {isStudent && (
-                        <>
-                          <div>
-                            <p className="text-xs text-gray-400">Class</p>
-                            <p className="font-medium text-gray-900">{item.className || "-"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Locker</p>
-                            <p className="font-medium text-gray-900">{item.lockerNumber || "-"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Phone</p>
-                            <p className="font-medium text-gray-900">{item.phoneNumber || "-"}</p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {!isStudent && (
-                      <div className="flex gap-3 mt-4 justify-end items-center">
-                        {!isCompleted && (
-                          <div className="flex items-center gap-3">
-                            <Badge className={`rounded-full px-4 py-1 text-xs font-semibold border-2 ${isOut ? "bg-red-50 text-red-600 border-red-400" : "bg-green-50 text-green-600 border-green-400"}`}>
-                              {isOut ? "OUT" : "IN"}
-                            </Badge>
-
-                            <Button
-                              className="h-9 px-6 rounded-full text-xs font-semibold bg-green-500 hover:bg-green-600 text-white border-none transition-all"
-                              onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
-                              disabled={returningGatePassId === item.originalId}
-                            >
-                              {isOut ? "Submit In" : "Submit Out"}
-                              {!isOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+              <div key={item.id} className="bg-[#f8fcf9] rounded-[24px] p-5 sm:p-6 border border-green-100 shadow-sm relative overflow-hidden">
+                {/* Top Status Badge */}
+                <div className="flex justify-between items-start mb-6">
+                  <h3 className="font-bold text-[#0ca643] text-lg uppercase tracking-tight pr-4">{item.studentName}</h3>
+                  <div className={`px-3 py-0.5 rounded-full border text-xs font-semibold lowercase
+                       ${isNotIssued ? 'border-orange-500 text-orange-500' :
+                      (!isCompleted && isOut ? 'border-red-500 text-red-500' :
+                        (isCompleted ? 'border-gray-300 text-gray-500' : 'border-gray-400 text-gray-600'))}`}>
+                    {isNotIssued ? "not issued" : (isStudent ? (isOut ? "out" : "in") : (isCompleted ? "returned" : (isOut ? "out" : "active")))}
                   </div>
                 </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-y-5 gap-x-4">
+                  <div>
+                    <p className="text-xs font-medium text-slate-400 mb-1">Student ID</p>
+                    <p className="font-bold text-slate-800 text-[15px]">{item.admissionNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-400 mb-1">Phone</p>
+                    <p className="font-bold text-slate-800 text-[15px] uppercase">{item.phoneNumber || "-"}</p>
+                  </div>
+
+                  {!isNotIssued && (
+                    <>
+                      <div className="col-span-2">
+                        <p className="text-xs font-medium text-slate-400 mb-1">Out Time</p>
+                        <p className="font-bold text-slate-800 text-[15px]">{displayTime}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs font-medium text-slate-400 mb-1">Remarks</p>
+                        <p className="font-bold text-slate-800 text-[15px] uppercase">{remarksText || "-"}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                {!isStudent && !isCompleted && (
+                  <div className="flex justify-end items-center gap-3 mt-6 pt-2">
+                    <div className="flex gap-3">
+                      <div className={`px-6 py-2.5 rounded-full border-2 font-bold text-sm uppercase tracking-wide
+                             ${isOut ? 'border-red-400 text-red-500' : 'border-green-400 text-green-600'}`}>
+                        {isOut ? "OUT" : "IN"}
+                      </div>
+                      <Button
+                        onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
+                        disabled={returningGatePassId === item.originalId}
+                        className="px-6 py-2.5 h-auto rounded-full bg-[#0ca643] hover:bg-green-700 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
+                      >
+                        {isOut ? "Submit In" : "Submit Out"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}

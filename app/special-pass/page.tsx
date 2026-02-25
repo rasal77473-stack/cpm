@@ -5,14 +5,12 @@ import { useRouter } from "next/navigation"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
   ChevronLeft,
   Search,
   Plus,
-  ArrowUpRight,
   Loader2,
   Menu,
   X,
@@ -21,7 +19,9 @@ import {
   History,
   ArrowRightCircle,
   Users,
-  Settings
+  Settings,
+  Calendar,
+  DoorOpen
 } from "lucide-react"
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
@@ -33,40 +33,32 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Link from "next/link"
+import { format } from "date-fns"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 function SpecialPassContent() {
   const router = useRouter()
-  // Search & Filter States
   const [searchQuery, setSearchQuery] = useState("")
   const [startDate, setStartDate] = useState<string>("")
   const [endDate, setEndDate] = useState<string>("")
   const [passFilterClass, setPassFilterClass] = useState<string>("all")
 
-  // App States
   const [returningPassId, setReturningPassId] = useState<number | null>(null)
   const [showStudentList, setShowStudentList] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [activeTab, setActiveTab] = useState<"phone-pass" | "phone-in" | "phone-out" | "all-students">("phone-pass")
 
-  // Student List Filter States (for Grant Pass view)
   const [studentSearchQuery, setStudentSearchQuery] = useState("")
   const [selectedClass, setSelectedClass] = useState("all")
   const [selectedLocker, setSelectedLocker] = useState("all")
 
-  // Debounced search queries for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const debouncedStudentSearchQuery = useDebounce(studentSearchQuery, 300)
 
-  // Permissions
   const [canGrantPass, setCanGrantPass] = useState(false)
   const [canViewLogs, setCanViewLogs] = useState(false)
   const [canManageStatus, setCanManageStatus] = useState(false)
-
-  // --------------------------------------------------------------------------
-  // Data Fetching
-  // --------------------------------------------------------------------------
 
   // Fetch all students
   const { data: studentsData = [], isLoading: studentLoading } = useSWR("/api/students", fetcher, {
@@ -77,32 +69,24 @@ function SpecialPassContent() {
   const students = Array.isArray(studentsData) ? studentsData : []
 
   // Fetch all special passes
-  // INSTANT: Real-time polling at 3.5s for instant updates without flickering
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 3500, // INSTANT: 3.5s for real-time updates without constant re-renders
-    revalidateOnFocus: true, // Revalidate when user switches tab
+    refreshInterval: 3500,
+    revalidateOnFocus: true,
     dedupingInterval: 500,
   })
-  // Filter ONLY phone passes - strictly exclude all gate passes
+
   const passes = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
-    // Show ONLY phone passes (those that start with "PHONE:")
     if (!p.purpose) return false
     return p.purpose.startsWith("PHONE:")
   }) : []
 
   // Fetch phone statuses
-  // INSTANT: Real-time polling at 3.5s for instant status changes without flickering
   const { data: phoneStatusData = [] } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 3500, // INSTANT: 3.5s for real-time updates without constant re-renders
+    refreshInterval: 3500,
     revalidateOnFocus: true,
     dedupingInterval: 500,
   })
 
-  // --------------------------------------------------------------------------
-  // Derived Data & Memos
-  // --------------------------------------------------------------------------
-
-  // Phone Status Map
   const phoneStatusMap = useMemo(() => {
     const map = new Map()
     if (Array.isArray(phoneStatusData)) {
@@ -111,12 +95,10 @@ function SpecialPassContent() {
     return map
   }, [phoneStatusData])
 
-  // Detect duplicate active passes per student (violation of 1-pass-per-student rule)
   const duplicatePassesPerStudent = useMemo(() => {
     const duplicates = new Map<number, any[]>()
-    
+
     passes.forEach((pass: any) => {
-      // Only check non-completed passes
       if (pass.status !== "COMPLETED") {
         const studentId = pass.studentId
         if (!duplicates.has(studentId)) {
@@ -125,8 +107,7 @@ function SpecialPassContent() {
         duplicates.get(studentId)!.push(pass)
       }
     })
-    
-    // Return only students with multiple active passes
+
     const result: Map<number, any[]> = new Map()
     duplicates.forEach((passArray, studentId) => {
       if (passArray.length > 1) {
@@ -136,17 +117,12 @@ function SpecialPassContent() {
     return result
   }, [passes])
 
-  // Stats for the top cards
   const stats = useMemo(() => {
     const totalPasses = passes.length
     const totalStudents = students.length
 
-    // Calculate current status counts derived from map (Real-time status)
     const outCount = students.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length
     const inCount = students.length - outCount
-
-    // Note: If you want to only count "IN" from map, you might miss students who haven't had a pass yet (default IN).
-    // So (Total - Out) is safely "Everyone else is IN".
 
     return {
       allStudents: totalStudents,
@@ -156,17 +132,12 @@ function SpecialPassContent() {
     }
   }, [passes, students, phoneStatusMap])
 
-  // Filtered List (Passes or Students based on ActiveTab)
   const filteredList = useMemo(() => {
     let list: any[] = []
 
-    // 1. Determine Source
     if (activeTab === "phone-pass") {
-      // SOURCE: Passes History
-      // "phone-pass" = All History
       list = passes.map((p: any) => ({ ...p, type: "pass", originalId: p.id }))
 
-      // Apply Date Filter (Only for Passes)
       if (startDate || endDate) {
         list = list.filter((p: any) => {
           if (!p.issueTime) return false
@@ -178,12 +149,10 @@ function SpecialPassContent() {
         })
       }
 
-      // Apply Class Filter (Only for Passes)
       if (passFilterClass !== "all") {
         list = list.filter((p: any) => p.className === passFilterClass)
       }
 
-      // Search for Passes
       if (debouncedSearchQuery.trim()) {
         const q = debouncedSearchQuery.toLowerCase()
         list = list.filter((item: any) =>
@@ -193,26 +162,19 @@ function SpecialPassContent() {
         )
       }
 
-      // Sort Passes (Active first, then completed; recent first within each group)
       return list.sort((a, b) => {
-        // First: sort by completion status (active passes first)
         if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1
         if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1
-        // Then: sort by recency (most recent first)
         return new Date(b.issueTime || 0).getTime() - new Date(a.issueTime || 0).getTime()
       })
 
     } else {
-      // SOURCE: Students (for All Students, Phone Out, Phone In)
-      // First, map all students to include their current status
       let studentList = students.map((s: any) => {
         const currentStatus = phoneStatusMap.get(s.id) || "IN"
-        // Check if phone is not registered (including sentinel values like "none")
-        // Only check phone_name since that's the primary field for registered phones
-        const hasNoPhone = !s.phone_name || 
-                          s.phone_name?.toLowerCase?.() === "nill" || 
-                          s.phone_name?.toLowerCase?.() === "nil" || 
-                          s.phone_name?.toLowerCase?.() === "none"
+        const hasNoPhone = !s.phone_name ||
+          s.phone_name?.toLowerCase?.() === "nill" ||
+          s.phone_name?.toLowerCase?.() === "nil" ||
+          s.phone_name?.toLowerCase?.() === "none"
         return {
           id: `student-${s.id}`,
           originalId: s.id,
@@ -223,7 +185,7 @@ function SpecialPassContent() {
           lockerNumber: s.locker_number,
           rollNo: s.roll_no,
           phoneNumber: s.phone_name || s.phone_number || "Not Registered",
-          status: currentStatus, // Use actual status from map
+          status: currentStatus,
           issueTime: null,
           returnTime: null,
           purpose: "Registered Student",
@@ -231,18 +193,12 @@ function SpecialPassContent() {
         }
       })
 
-      // Filter based on Tab
       if (activeTab === "phone-out") {
-        // Show only OUT students that HAVE a phone registered
         studentList = studentList.filter((s: any) => s.status === "OUT" && !s.hasNoPhone)
       } else if (activeTab === "phone-in") {
-        // Show only IN students that HAVE a phone registered
         studentList = studentList.filter((s: any) => s.status === "IN" && !s.hasNoPhone)
-      } else if (activeTab === "all-students") {
-        // Show all students
       }
 
-      // Search for Students
       if (debouncedSearchQuery.trim()) {
         const q = debouncedSearchQuery.toLowerCase()
         studentList = studentList.filter((item: any) =>
@@ -251,19 +207,14 @@ function SpecialPassContent() {
         )
       }
 
-      // Sort Students (Alphabetical)
       return studentList.sort((a: any, b: any) => (a.studentName || "").localeCompare(b.studentName || ""))
     }
   }, [passes, students, activeTab, debouncedSearchQuery, startDate, endDate, passFilterClass, phoneStatusMap])
 
-  // Unique Classes/Lockers for Grant Pass View
   const classes = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.class_name).filter(Boolean))).sort()], [students])
   const lockers = useMemo(() => ["all", ...Array.from(new Set(students.map((s: any) => s.locker_number).filter(Boolean))).sort((a: any, b: any) => Number(a) - Number(b))], [students])
-
-  // Unique Classes for Pass Filtering
   const passClasses = useMemo(() => ["all", ...Array.from(new Set(passes.map((p: any) => p.className).filter(Boolean))).sort()], [passes])
 
-  // Filtered Students for GRANT PASS view
   const filteredStudents = useMemo(() => {
     return students
       .filter((s: any) => {
@@ -276,10 +227,6 @@ function SpecialPassContent() {
       })
       .sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""))
   }, [students, debouncedStudentSearchQuery, selectedClass, selectedLocker])
-
-  // --------------------------------------------------------------------------
-  // Effects
-  // --------------------------------------------------------------------------
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -296,13 +243,12 @@ function SpecialPassContent() {
     setCanManageStatus(role === "admin" || perms.includes("manage_phone_status") || perms.includes("issue_phone_pass"))
   }, [router])
 
-  // Warn about duplicate active passes per student
   useEffect(() => {
     if (duplicatePassesPerStudent.size > 0) {
       const duplicateCounts = Array.from(duplicatePassesPerStudent.entries())
         .map(([_, passes]) => passes[0].studentName)
         .join(", ")
-      
+
       toast.error(
         `⚠️ Rule Violation: ${duplicatePassesPerStudent.size} student(s) have multiple active passes: ${duplicateCounts}. Only 1 pass per student allowed!`,
         { duration: 8000 }
@@ -310,14 +256,9 @@ function SpecialPassContent() {
     }
   }, [duplicatePassesPerStudent])
 
-  // --------------------------------------------------------------------------
-  // Handlers
-  // --------------------------------------------------------------------------
-
   const handleSubmitOut = async (passId: number) => {
-    // Set loading state to prevent double-clicks
     setReturningPassId(passId)
-    
+
     const pass = passes.find((p: any) => p.id === passId)
     if (!pass) {
       setReturningPassId(null)
@@ -325,7 +266,6 @@ function SpecialPassContent() {
       return
     }
 
-    // Optimistic update for phone status
     mutate("/api/phone-status", (current: any[] = []) => {
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
@@ -338,12 +278,10 @@ function SpecialPassContent() {
     try {
       const res = await fetch(`/api/special-pass/out/${passId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
-      
-      // Revalidate to ensure server consistency
+
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
     } catch (e) {
-      // Rollback on error
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
       toast.error("Failed to update status")
@@ -356,13 +294,10 @@ function SpecialPassContent() {
     const pass = passes.find((p: any) => p.id === passId)
     if (!pass) return
 
-    // 1. Optimistic Update for PASS STATUS (The list item)
     mutate("/api/special-pass/all", (current: any[] = []) => {
       return current.map(p => p.id === passId ? { ...p, status: "COMPLETED", submissionTime: new Date().toISOString() } : p)
     }, false)
 
-    // 2. Optimistic Update for PHONE STATUS (The counts)
-    // We assume if they return the pass, the phone is "IN"
     mutate("/api/phone-status", (current: any[] = []) => {
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
@@ -377,11 +312,9 @@ function SpecialPassContent() {
       const res = await fetch(`/api/special-pass/return/${passId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
 
-      // Revalidate to ensure server consistency
       mutate("/api/special-pass/all")
       mutate("/api/phone-status")
     } catch (e) {
-      // Rollback on error
       mutate("/api/special-pass/all")
       mutate("/api/phone-status")
       toast.error("Failed to complete pass")
@@ -390,16 +323,14 @@ function SpecialPassContent() {
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Components
-  // --------------------------------------------------------------------------
-
   const StatCard = ({
-    label,
+    title,
+    subtitle,
     count,
     param
   }: {
-    label: string,
+    title: string,
+    subtitle: string,
     count: number,
     param: "phone-pass" | "phone-in" | "phone-out" | "all-students"
   }) => {
@@ -407,79 +338,81 @@ function SpecialPassContent() {
     return (
       <div
         onClick={() => setActiveTab(param)}
-        className={`rounded-xl p-3 min-w-[80px] flex flex-col items-start justify-center shadow-sm border cursor-pointer transition-all active:scale-95
+        className={`rounded-2xl p-3 min-w-[90px] flex-1 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.98] border
           ${isActive
-            ? "bg-green-600 border-green-600"
-            : "bg-green-50 border-green-100 hover:border-green-300"
+            ? "bg-[#0ca643] border-[#0ca643] shadow-md shadow-green-600/20"
+            : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]"
           }`}
       >
-        <span className={`text-lg font-bold ${isActive ? "text-white" : "text-green-900"}`}>{count}</span>
-        <span className={`text-xs font-medium whitespace-nowrap ${isActive ? "text-green-100" : "text-green-700/70"}`}>{label}</span>
+        <span className={`text-xl font-bold ${isActive ? "text-white" : "text-slate-800"}`}>
+          {count}
+        </span>
+        <span className={`text-[11px] font-semibold mt-0.5 tracking-wide ${isActive ? "text-green-50" : "text-slate-500"}`}>
+          {title}
+        </span>
+        {subtitle && (
+          <span className={`text-[10px] uppercase font-bold tracking-wider mt-0.5 ${isActive ? "text-green-100/80" : "text-slate-400"}`}>
+            {subtitle}
+          </span>
+        )}
       </div>
     )
   }
 
-  // --------------------------------------------------------------------------
-  // Main Render
-  // --------------------------------------------------------------------------
-
-  // 1. Student Selection View (Grant Pass)
   if (showStudentList) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b px-4 py-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => setShowStudentList(false)} className="-ml-2">
-              <ChevronLeft className="h-6 w-6" />
+      <div className="min-h-screen bg-[#fafafa]">
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setShowStudentList(false)} className="rounded-xl hover:bg-slate-100 text-slate-700">
+              <ChevronLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-bold">Select Student</h1>
+            <h1 className="text-xl font-bold text-slate-900">Select Student</h1>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {filteredStudents.length} / {students.length} total
+          <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+            {filteredStudents.length} / {students.length}
           </div>
         </header>
 
-        <main className="p-4 space-y-4">
-          {/* Search & Filter */}
+        <main className="p-4 space-y-4 max-w-lg mx-auto">
           <div className="space-y-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search student..."
-                className="pl-9 bg-muted/50 border-0"
+                className="pl-10 h-12 bg-white border-slate-200 rounded-2xl shadow-sm text-sm focus:ring-slate-200"
                 value={studentSearchQuery}
                 onChange={(e) => setStudentSearchQuery(e.target.value)}
               />
             </div>
             <div className="flex gap-2">
               <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="bg-muted/50 border-0">
+                <SelectTrigger className="bg-white border-slate-200 rounded-2xl h-11 text-sm font-medium text-slate-700 shadow-sm flex-1">
                   <SelectValue placeholder="Class" />
                 </SelectTrigger>
-                <SelectContent>
-                  {classes.map(c => <SelectItem key={c} value={c}>{c === "all" ? "All Class" : c}</SelectItem>)}
+                <SelectContent className="rounded-2xl border-slate-200">
+                  {classes.map(c => <SelectItem key={c} value={c} className="rounded-xl">{c === "all" ? "All Classes" : c}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={selectedLocker} onValueChange={setSelectedLocker}>
-                <SelectTrigger className="bg-muted/50 border-0">
+                <SelectTrigger className="bg-white border-slate-200 rounded-2xl h-11 text-sm font-medium text-slate-700 shadow-sm flex-1">
                   <SelectValue placeholder="Locker" />
                 </SelectTrigger>
-                <SelectContent>
-                  {lockers.map(l => <SelectItem key={l} value={l}>{l === "all" ? "All Locker" : `Locker ${l}`}</SelectItem>)}
+                <SelectContent className="rounded-2xl border-slate-200">
+                  {lockers.map(l => <SelectItem key={l} value={l} className="rounded-xl">{l === "all" ? "All Lockers" : `Locker ${l}`}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* List */}
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-2.5">
             {studentLoading ? (
-              <div className="text-center py-12 flex flex-col items-center gap-2 text-muted-foreground">
+              <div className="text-center py-12 flex flex-col items-center gap-3 text-slate-400">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <p>Loading students...</p>
+                <p className="font-medium text-sm">Loading students...</p>
               </div>
             ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
+              <div className="text-center py-12 text-slate-400 font-medium text-sm bg-white rounded-3xl border border-slate-100">
                 {students.length === 0 ? "No students available" : "No students found matching filters"}
               </div>
             ) : (
@@ -487,16 +420,19 @@ function SpecialPassContent() {
                 <div
                   key={s.id}
                   onClick={() => router.push(`/admin/special-pass/grant/${s.id}`)}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-card border hover:border-primary/50 cursor-pointer transition-all active:scale-[0.98]"
+                  className="flex items-center gap-4 p-3.5 rounded-[20px] bg-white border border-slate-100 hover:border-green-200 hover:shadow-md cursor-pointer transition-all active:scale-[0.98]"
                 >
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                  <Avatar className="h-11 w-11 rounded-full border border-green-100 shadow-sm">
+                    <AvatarFallback className="bg-green-50 text-green-700 font-bold text-lg">
                       {s.name?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-semibold">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">{s.admission_number} • {s.class_name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-900 text-sm truncate">{s.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{s.admission_number}</span>
+                      <span className="text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{s.class_name || "No Class"}</span>
+                    </div>
                   </div>
                 </div>
               ))
@@ -507,326 +443,270 @@ function SpecialPassContent() {
     )
   }
 
-  // 2. Main Dashboard View
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-8">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-white pb-20 md:pb-8 font-sans">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3 sm:py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/phone-pass-menu")} className="-ml-2 hover:bg-gray-50 text-gray-800 rounded-xl">
             <ChevronLeft className="h-6 w-6" />
           </Button>
-          <h1 className="text-xl font-bold">Gate Pass</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Phone Pass</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {canGrantPass && (
             <Button
-              className="bg-green-600 hover:bg-green-700 text-white gap-1 rounded-lg px-4"
+              className="bg-[#0ca643] hover:bg-green-700 text-white gap-1 rounded-2xl px-5 h-10 font-bold text-sm shadow-sm transition-transform active:scale-95"
               onClick={() => setShowStudentList(true)}
             >
-              Add <Plus className="h-4 w-4" />
+              Add <Plus className="h-4 w-4 stroke-[3]" />
             </Button>
           )}
           <Button
             variant="outline"
             size="icon"
             onClick={() => setShowMenu(!showMenu)}
-            className="relative"
+            className="rounded-2xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 h-10 w-10 shadow-sm transition-transform active:scale-95"
           >
             {showMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </header>
 
-      {/* Phone Pass Menu Dropdown */}
       {showMenu && (
-        <div className="sticky top-16 z-40 bg-background border-b">
-          <div className="px-4 py-4 space-y-2">
-            <Link href="/admin/manage-students" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <GraduationCap className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Students</span>
-              </div>
-            </Link>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 cursor-pointer">
-              <Ticket className="h-5 w-5 text-green-600" />
-              <span className="font-medium">Phone Pass</span>
+        <div className="fixed inset-x-0 top-[64px] z-40 bg-white border-b border-gray-100 shadow-xl shadow-gray-200/20 px-4 py-4 space-y-2 animate-in slide-in-from-top-2">
+          <Link href="/admin/manage-students" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <GraduationCap className="h-5 w-5" />
+              <span className="font-bold text-sm">Students</span>
             </div>
-            <Link href="/history" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <History className="h-5 w-5 text-green-600" />
-                <span className="font-medium">History</span>
-              </div>
-            </Link>
-            <Link href="/admin/monthly-leave" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <ArrowRightCircle className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Monthly Leave</span>
-              </div>
-            </Link>
-            <Link href="/admin/users" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <Users className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Users</span>
-              </div>
-            </Link>
-            <Link href="/admin/settings" onClick={() => setShowMenu(false)}>
-              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
-                <Settings className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Settings</span>
-              </div>
-            </Link>
-          </div>
+          </Link>
+          <Link href="/special-pass" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-green-50 cursor-pointer text-green-700">
+              <Ticket className="h-5 w-5" />
+              <span className="font-bold text-sm">Phone Pass</span>
+            </div>
+          </Link>
+          <Link href="/history" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <History className="h-5 w-5" />
+              <span className="font-bold text-sm">History</span>
+            </div>
+          </Link>
+          <Link href="/admin/monthly-leave" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <ArrowRightCircle className="h-5 w-5" />
+              <span className="font-bold text-sm">Monthly Leave</span>
+            </div>
+          </Link>
+          <Link href="/admin/users" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <Users className="h-5 w-5" />
+              <span className="font-bold text-sm">Users</span>
+            </div>
+          </Link>
+          <Link href="/admin/settings" onClick={() => setShowMenu(false)}>
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl hover:bg-green-50 cursor-pointer transition-colors text-gray-700 hover:text-green-800">
+              <Settings className="h-5 w-5" />
+              <span className="font-bold text-sm">Settings</span>
+            </div>
+          </Link>
         </div>
       )}
 
-      <main className="px-4 py-4 space-y-6">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-7">
 
-        {/* Search */}
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Search"
-            className="pl-11 h-12 rounded-xl bg-white border-gray-200 shadow-sm text-base"
+            placeholder="Search passes..."
+            className="pl-10 h-11 rounded-xl bg-white border border-slate-200 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] text-sm focus:ring-2 focus:ring-slate-100 transition-shadow transition-colors placeholder:text-slate-400"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        {/* Status Counts Cards (Tabs) */}
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x">
-          <div className="snap-start shrink-0">
-            <StatCard label="Phone Pass" count={stats.phonePass} param="phone-pass" />
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide snap-x">
+          <div className="snap-start shrink-0 flex-1 min-w-[100px]">
+            <StatCard title="Phone Pass" subtitle="" count={stats.phonePass} param="phone-pass" />
           </div>
-          <div className="snap-start shrink-0">
-            <StatCard label="Phone In" count={stats.phoneIn} param="phone-in" />
+          <div className="snap-start shrink-0 flex-1 min-w-[100px]">
+            <StatCard title="Phone In" subtitle="" count={stats.phoneIn} param="phone-in" />
           </div>
-          <div className="snap-start shrink-0">
-            <StatCard label="Phone Out" count={stats.phoneOut} param="phone-out" />
+          <div className="snap-start shrink-0 flex-1 min-w-[100px]">
+            <StatCard title="Phone Out" subtitle="" count={stats.phoneOut} param="phone-out" />
           </div>
-          <div className="snap-start shrink-0">
-            <StatCard label="All Students" count={stats.allStudents} param="all-students" />
+          <div className="snap-start shrink-0 flex-1 min-w-[100px]">
+            <StatCard title="All Students" subtitle="" count={stats.allStudents} param="all-students" />
           </div>
         </div>
 
-        {/* List Header & Date Filters */}
-        <div className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Listed {filteredList.length}
-            {activeTab === "phone-pass" ? " Passes" : " Students"}
-          </h2>
+        <div className="h-px bg-gray-200 w-full rounded-full"></div>
 
-          {/* Only show Date filters for History (Phone Pass) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-800">
+              {filteredList.length}
+              {activeTab === "phone-pass" ? " Passes Found" : " Students Found"}
+            </h2>
+          </div>
+
           {activeTab === "phone-pass" && (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 space-y-1">
-                <label className="text-xs text-muted-foreground pl-1">Start Date</label>
-                <div className="relative">
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="h-11 rounded-xl border-blue-400 text-blue-600 bg-white w-full"
-                  />
-                </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 mb-1 block">Start Date</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="h-10 w-full rounded-xl border-slate-200 text-slate-700 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] focus:ring-slate-100 font-medium text-sm block"
+                />
               </div>
-              <div className="flex-1 space-y-1">
-                <label className="text-xs text-muted-foreground pl-1">End Date</label>
-                <div className="relative">
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="h-11 rounded-xl border-green-400 text-green-600 bg-white w-full"
-                  />
-                </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 mb-1 block">End Date</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="h-10 w-full rounded-xl border-slate-200 text-slate-700 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] focus:ring-slate-100 font-medium text-sm block"
+                />
               </div>
-              <div className="flex-1 space-y-1">
-                <label className="text-xs text-muted-foreground pl-1">Class</label>
-                <select
-                  value={passFilterClass}
-                  onChange={(e) => setPassFilterClass(e.target.value)}
-                  className="h-11 w-full px-3 py-2 rounded-xl border border-purple-400 bg-white text-purple-600 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="all">All Classes</option>
-                  {passClasses.filter((c: string) => c !== "all").map((c: string) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+              <div className="col-span-2 sm:col-span-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 mb-1 block">Class</label>
+                <Select value={passFilterClass} onValueChange={setPassFilterClass}>
+                  <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 text-slate-700 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] focus:ring-slate-100 font-medium text-sm">
+                    <SelectValue placeholder="All Classes" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value="all" className="rounded-md">All Classes</SelectItem>
+                    {passClasses.filter((c: string) => c !== "all").map((c: string) => (
+                      <SelectItem key={c} value={c} className="rounded-md">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
         </div>
 
-        {/* List Content */}
-        <div className="space-y-4">
+        <div className="space-y-4 pt-2">
           {passesLoading || studentLoading ? (
-            <div className="text-center py-10 opacity-50"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>
+            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-green-500 animate-spin" /></div>
+          ) : filteredList.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 font-medium">No records found.</div>
           ) : filteredList.map((item: any) => {
             const isStudent = item.type === "student"
             const currentStatus = item.status || "IN"
-            const isOut = currentStatus === "OUT" // Valid for both pass object and student object (if status mapped)
+            const isOut = currentStatus === "OUT"
             const isActive = currentStatus === "ACTIVE"
-            const isCompleted = currentStatus === "COMPLETED" // Only COMPLETED status means completed, not IN
-            const isNotIssued = isStudent && !item.issueTime // Student with no pass issued
+            const isCompleted = currentStatus === "COMPLETED"
+            const isNotIssued = isStudent && !item.issueTime
+
+            let displayTime = "-"
+            if (item.issueTime) {
+              try {
+                displayTime = format(new Date(item.issueTime), "dd MMM • hh:mm a")
+              } catch (e) { }
+            }
+
+            let remarksText = "-"
+            if (item.purpose) {
+              remarksText = item.purpose.replace("PHONE:", "").trim()
+            } else if (isStudent && isNotIssued) {
+              remarksText = ""
+            }
 
             return (
-              <div key={item.id} className="bg-green-50/50 rounded-[20px] p-5 shadow-sm border border-green-100">
-                <div className="flex gap-4">
-                  {/* Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-bold text-green-600 text-base truncate pr-2">{item.studentName}</h3>
-                      {/* Status Badge */}
-                      <Badge variant="outline" className={`
-                        rounded-md px-2 py-0.5 text-xs font-normal bg-white
-                        ${isNotIssued ? "text-orange-600 border-orange-400" : (!isCompleted && isOut ? "text-red-500 border-red-500" : (isCompleted ? "text-green-600 border-green-200" : "text-gray-500 border-gray-300"))}
-                      `}>
-                        {isNotIssued
-                          ? "not issued"
-                          : (isStudent
-                            ? (isOut ? "out" : "in")
-                            : (isCompleted ? "returned" : (isOut ? "out" : isActive ? "active" : "gate pass"))
-                          )
-                        }
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-2">
-                      {/* Row 1 */}
-                      <div>
-                        <p className="text-xs text-gray-400">Student ID</p>
-                        <p className="font-semibold text-gray-900">{item.admissionNumber}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-gray-400">Phone</p>
-                        <p className="text-gray-700 truncate">{item.phoneName || item.phoneNumber || "-"}</p>
-                      </div>
-
-                      {/* Student Fields */}
-                      {isStudent && (
-                        <>
-                          <div>
-                            <p className="text-xs text-gray-400">Class</p>
-                            <p className="font-medium text-gray-900">{item.className || "-"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Locker</p>
-                            <p className="font-medium text-gray-900">{item.lockerNumber || "-"}</p>
-                          </div>
-                          {item.rollNo && (
-                            <div>
-                              <p className="text-xs text-gray-400">Roll No</p>
-                              <p className="font-medium text-gray-900">{item.rollNo}</p>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* Pass Fields - Timestamps */}
-                      {!isStudent && item.issueTime && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-gray-400">Out Time</p>
-                          <p className="font-medium text-gray-900">
-                            {new Date(item.issueTime).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} •
-                            {new Date(item.issueTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                          </p>
-                        </div>
-                      )}
-
-                      {!isStudent && item.returnTime && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-gray-400">Return Time</p>
-                          <p className="font-medium text-gray-900">
-                            {new Date(item.returnTime).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} •
-                            {new Date(item.returnTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                          </p>
-                        </div>
-                      )}
-
-                      {!isStudent && item.expectedReturnDate && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-gray-400">Expected Return</p>
-                          <p className="font-medium text-gray-900">
-                            {item.expectedReturnDate} • {item.expectedReturnTime || "TBD"}
-                          </p>
-                        </div>
-                      )}
-
-                      {!isStudent && item.purpose && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-gray-400">Remarks</p>
-                          <p className="font-medium text-gray-900 truncate">{item.purpose}</p>
-                        </div>
-                      )}
-
-                      {!isStudent && isCompleted && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-gray-400">Status</p>
-                          <p className="text-green-600 font-bold">Returned</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Action Buttons - Only for Passes */}
-                    {!isStudent && (
-                      <div className="flex gap-3 mt-4 justify-end items-center">
-                        {!isCompleted && (
-                          <div className="flex items-center gap-3">
-            {/* Status Badge - Red rounded for OUT, Green for IN */}
-                            <Badge className={`rounded-full px-4 py-1 text-xs font-semibold border-2 ${isOut ? "bg-red-50 text-red-600 border-red-400" : "bg-green-50 text-green-600 border-green-400"}`}>
-                              {isOut ? "OUT" : "IN"}
-                            </Badge>
-
-                            {/* Action Button - Green rounded toggle button */}
-                            <Button
-                              className="h-9 px-6 rounded-full text-xs font-semibold bg-green-500 hover:bg-green-600 text-white border-none transition-all"
-                              onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
-                              disabled={returningPassId === item.originalId}
-                            >
-                              {isOut ? "Submit In" : "Submit Out"}
-                              {!isOut && <ArrowUpRight className="h-4 w-4 ml-1 inline" />}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Action for Students: Quick Grant Pass */}
-                    {/* Action for Students: Quick Grant Pass OR Submit In */}
-                    {isStudent && canGrantPass && (
-                      <div className="flex gap-3 mt-4 justify-end">
-                        {isOut ? (
-                          <Button
-                            variant="outline"
-                            className="h-8 px-3 rounded-md text-xs font-medium border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 bg-white"
-                            onClick={() => {
-                              // Find the active pass for this student
-                              const activePass = passes.find((p: any) => p.studentId === item.originalId && (!p.returnTime || p.status === 'OUT' || p.status === 'ACTIVE'));
-                              if (activePass) {
-                                handleSubmitIn(activePass.id);
-                              } else {
-                                toast.error("Active pass record not found");
-                              }
-                            }}
-                            disabled={returningPassId === item.originalId}
-                          >
-                            Submit In
-                          </Button>
-                        ) : (
-                          <Button
-                            className="h-9 px-4 bg-blue-500 hover:bg-blue-600 text-white"
-                            onClick={() => router.push(`/admin/special-pass/grant/${item.originalId}`)}
-                          >
-                            Issue Pass
-                          </Button>
-                        )}
-                      </div>
-                    )}
-
+              <div key={item.id} className="bg-[#f8fcf9] rounded-[24px] p-5 sm:p-6 border border-green-100 shadow-sm relative overflow-hidden">
+                <div className="flex justify-between items-start mb-6">
+                  <h3 className="font-bold text-[#0ca643] text-lg uppercase tracking-tight pr-4">{item.studentName}</h3>
+                  <div className={`px-3 py-0.5 rounded-full border text-xs font-semibold lowercase
+                       ${isNotIssued ? 'border-orange-500 text-orange-500' :
+                      (!isCompleted && isOut ? 'border-red-500 text-red-500' :
+                        (isCompleted ? 'border-gray-300 text-gray-500' : 'border-gray-400 text-gray-600'))}`}>
+                    {isNotIssued ? "not issued" : (isStudent ? (isOut ? "out" : "in") : (isCompleted ? "returned" : (isOut ? "out" : "active")))}
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-y-5 gap-x-4">
+                  <div>
+                    <p className="text-xs font-medium text-slate-400 mb-1">Student ID</p>
+                    <p className="font-bold text-slate-800 text-[15px]">{item.admissionNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-400 mb-1">Phone</p>
+                    <p className="font-bold text-slate-800 text-[15px] uppercase">{item.phoneName || item.phoneNumber || "-"}</p>
+                  </div>
+
+                  {isStudent && (
+                    <>
+                      <div className="col-span-2">
+                        <p className="text-xs font-medium text-slate-400 mb-1">Class / Locker No</p>
+                        <p className="font-bold text-slate-800 text-[15px] uppercase">{item.className || "None"} • L:{item.lockerNumber || "None"}</p>
+                      </div>
+                    </>
+                  )}
+
+                  {!isStudent && item.issueTime && (
+                    <div className="col-span-2">
+                      <p className="text-xs font-medium text-slate-400 mb-1">Out Time</p>
+                      <p className="font-bold text-slate-800 text-[15px]">{displayTime}</p>
+                    </div>
+                  )}
+
+                  {!isStudent && item.purpose && (
+                    <div className="col-span-2">
+                      <p className="text-xs font-medium text-slate-400 mb-1">Remarks</p>
+                      <p className="font-bold text-slate-800 text-[15px] uppercase">{remarksText}</p>
+                    </div>
+                  )}
+                </div>
+
+                {!isStudent && !isCompleted && (
+                  <div className="flex justify-end items-center gap-3 mt-6 pt-2">
+                    <div className="flex gap-3">
+                      <div className={`px-6 py-2.5 rounded-full border-2 font-bold text-sm uppercase tracking-wide
+                             ${isOut ? 'border-red-400 text-red-500' : 'border-green-400 text-green-600'}`}>
+                        {isOut ? "OUT" : "IN"}
+                      </div>
+                      <Button
+                        onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
+                        disabled={returningPassId === item.originalId}
+                        className="px-6 py-2.5 h-auto rounded-full bg-[#0ca643] hover:bg-green-700 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
+                      >
+                        {isOut ? "Submit In" : "Submit Out"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {isStudent && canGrantPass && (
+                  <div className="flex gap-3 mt-6 pt-2 justify-end">
+                    {isOut ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const activePass = passes.find((p: any) => p.studentId === item.originalId && (!p.returnTime || p.status === 'OUT' || p.status === 'ACTIVE'));
+                          if (activePass) {
+                            handleSubmitIn(activePass.id);
+                          } else {
+                            toast.error("Active pass record not found");
+                          }
+                        }}
+                        disabled={returningPassId === item.originalId}
+                        className="px-6 py-2.5 h-auto rounded-full bg-white border-2 border-green-400 text-green-600 hover:bg-green-50 font-bold text-sm shadow-none transition-transform active:scale-95"
+                      >
+                        Submit In
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => router.push(`/admin/special-pass/grant/${item.originalId}`)}
+                        className="px-6 py-2.5 h-auto rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
+                      >
+                        Issue Pass
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -839,8 +719,8 @@ function SpecialPassContent() {
 export default function SpecialPassPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0ca643]" />
       </div>
     }>
       <SpecialPassContent />

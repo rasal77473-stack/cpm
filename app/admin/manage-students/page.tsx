@@ -3,10 +3,9 @@
 import { useEffect, useState, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { LogOut, ChevronLeft, Plus, Upload, X, Trash2, Edit2 } from "lucide-react"
+import { LogOut, ChevronLeft, Plus, Upload, Trash2, Edit2, Search, Users, GraduationCap, X, FileSpreadsheet } from "lucide-react"
 import * as XLSX from "xlsx"
 import { handleLogout } from "@/lib/auth-utils"
 
@@ -79,7 +78,6 @@ export default function ManageStudents() {
     setIsAuthorized(true)
     setStaffName(name || "Staff")
 
-
     fetchStudents()
   }, [router])
 
@@ -99,10 +97,10 @@ export default function ManageStudents() {
 
   if (loading || !isAuthorized) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
         <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground animate-pulse">Checking permissions...</p>
+          <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-800 rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm font-medium text-slate-500 animate-pulse tracking-wide">Checking permissions...</p>
         </div>
       </div>
     )
@@ -166,39 +164,26 @@ export default function ManageStudents() {
       const method = isEditing ? "PUT" : "POST"
       const body = isEditing ? { ...newStudent, id: editingId } : newStudent
 
-      console.log(`📤 Sending ${method} request to ${url}:`, body)
-
       const response = await fetch(url, {
         method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
 
-      console.log(`📥 Response status: ${response.status} ${response.statusText}`)
-
       if (!response.ok) {
         let errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student`
-        let errorDetails = ""
-
         try {
           const errorData = await response.json()
-          console.error("❌ Error response data:", errorData)
           if (errorData.error) {
             errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student: ${errorData.error}`
-            errorDetails = errorData.error
           }
         } catch (e) {
-          const statusText = response.statusText || "Unknown error"
-          errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student: ${statusText}`
-          errorDetails = statusText
+          errorMessage = `Failed to ${isEditing ? 'update' : 'add'} student: ${response.statusText}`
         }
-
-        console.error(`❌ API Error [${response.status}]:`, errorDetails)
         throw new Error(errorMessage)
       }
 
       const savedStudent = await response.json()
-      console.log("✅ Student saved successfully:", savedStudent)
 
       // Update with real data from server
       const finalStudents = isEditing
@@ -219,11 +204,8 @@ export default function ManageStudents() {
       })
       setIsEditing(false)
       setEditingId(null)
-      alert(`Student ${isEditing ? 'updated' : 'added'} successfully!`)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : `Failed to ${isEditing ? 'update' : 'add'} student`
-      console.error("❌ Error adding/updating student:", errorMessage, error)
-      console.error("Full error object:", error)
       setStudents(oldStudents)
       setFilteredStudents(oldStudents)
       alert(errorMessage)
@@ -314,7 +296,6 @@ export default function ManageStudents() {
               if (failed) break;
 
               const batch = optimisticStudents.slice(i, i + BATCH_SIZE);
-              console.log(`Sending batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} students)...`);
 
               const response = await fetch("/api/students/bulk", {
                 method: "POST",
@@ -329,15 +310,12 @@ export default function ManageStudents() {
 
               const result = await response.json();
               completed += result.count;
-              console.log(`✓ Batch ${Math.floor(i / BATCH_SIZE) + 1} completed: ${result.count} students inserted`);
             }
 
             fetchStudents(); // Refresh to get real IDs
-            alert(`Successfully imported ${completed} students!`);
           } catch (err) {
             failed = true;
             const errorMessage = err instanceof Error ? err.message : "Failed to import students. Please try again.";
-            console.error("Bulk import error:", errorMessage, err);
             alert(errorMessage);
             fetchStudents(); // Rollback on error
           }
@@ -378,10 +356,8 @@ export default function ManageStudents() {
           }
           throw new Error(errorMessage)
         }
-        alert("Student deleted successfully!")
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to delete student"
-        console.error("Error deleting student:", errorMessage, error)
         setStudents(oldStudents)
         setFilteredStudents(oldStudents)
         alert(errorMessage)
@@ -412,10 +388,8 @@ export default function ManageStudents() {
           }
           throw new Error(errorMessage)
         }
-        alert("All students deleted successfully!")
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to delete all students"
-        console.error("Error deleting all students:", errorMessage, error)
         setStudents(oldStudents)
         setFilteredStudents(oldStudents)
         alert(errorMessage)
@@ -424,11 +398,17 @@ export default function ManageStudents() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen relative bg-[#fafafa] overflow-x-hidden font-sans pb-24 text-slate-800">
+
+      {/* Subtle Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-5%] left-[-10%] w-[500px] h-[500px] rounded-full bg-slate-100/50 blur-[100px]" />
+      </div>
+
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button
               variant="ghost"
               size="icon"
@@ -441,54 +421,72 @@ export default function ManageStudents() {
                   router.push("/dashboard")
                 }
               }}
-              className="rounded-full"
+              className="rounded-xl shrink-0 hover:bg-slate-100"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-5 h-5 text-slate-700" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Manage Students</h1>
-              <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">
+                Manage Students
+              </h1>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 truncate mt-0.5">
+                Logged in as: {staffName}
+              </p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="gap-2">
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </Button>
+
+          <div className="w-full sm:w-auto flex justify-end">
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="rounded-xl gap-2 font-semibold text-slate-700 bg-white border-slate-200 hover:bg-slate-50 hover:text-slate-900 shadow-sm w-full sm:w-auto"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Search and Action Buttons */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Student Management</CardTitle>
-            <CardDescription>Manage all students in the system</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Search and Filter */}
-              <div className="flex flex-col md:flex-row gap-2">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+
+        {/* Controls Section */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
+          <div className="mb-5 border-b border-slate-100 pb-4">
+            <h2 className="text-lg font-bold text-slate-900">Student Management</h2>
+            <p className="text-sm text-slate-500 font-medium mt-0.5">Manage all students in the system</p>
+          </div>
+
+          <div className="space-y-4">
+            {/* Search & Select Bars */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div className="md:col-span-6 relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
                   placeholder="Search by name, admission, locker, or roll..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="flex-1"
+                  className="pl-10 h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-slate-200 shadow-none text-sm transition-colors"
                 />
+              </div>
+              <div className="md:col-span-3">
                 <select
                   value={selectedClass}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSearch(searchQuery, e.target.value, selectedLocker)}
-                  className="w-full md:w-48 h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  onChange={(e) => handleSearch(searchQuery, e.target.value, selectedLocker)}
+                  className="w-full h-11 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 focus:bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-200 transition-colors text-slate-700 font-medium"
                 >
                   <option value="all">All Classes</option>
                   {classes.filter((c: string) => c !== "all").map((c: string) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
+              </div>
+              <div className="md:col-span-3 relative flex gap-2">
                 <select
                   value={selectedLocker}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSearch(searchQuery, selectedClass, e.target.value)}
-                  className="w-full md:w-48 h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  onChange={(e) => handleSearch(searchQuery, selectedClass, e.target.value)}
+                  className="w-full h-11 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 focus:bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-200 transition-colors text-slate-700 font-medium"
                 >
                   <option value="all">All Lockers</option>
                   {lockers.filter((l: string) => l !== "all").map((l: string) => (
@@ -497,125 +495,168 @@ export default function ManageStudents() {
                 </select>
                 {(searchQuery || selectedClass !== "all" || selectedLocker !== "all") && (
                   <Button
-                    variant="outline"
+                    variant="secondary"
+                    size="icon"
                     onClick={() => handleSearch("", "all", "all")}
+                    className="shrink-0 h-11 w-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600"
                   >
-                    Clear
+                    <X className="w-4 h-4" />
                   </Button>
                 )}
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  onClick={() => setShowAddModal(true)}
-                  className="w-full sm:flex-1 gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Add Single Student</span>
-                  <span className="sm:hidden">Add Student</span>
-                </Button>
-                <Button
-                  onClick={() => setShowBulkModal(true)}
-                  variant="outline"
-                  className="w-full sm:flex-1 gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span className="hidden sm:inline">Bulk Import (Excel)</span>
-                  <span className="sm:hidden">Import Excel</span>
-                </Button>
-                <Button
-                  onClick={handleDeleteAllStudents}
-                  variant="destructive"
-                  className="w-full sm:flex-1 gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Delete All Students</span>
-                  <span className="sm:hidden">Delete All</span>
-                </Button>
-              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Students List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Students ({filteredStudents.length})</CardTitle>
-            <CardDescription>Total: {students.length} students</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading students...</div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {students.length === 0 ? "No students added yet" : "No students match your search"}
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2 pt-1 border-t border-slate-100 mt-2">
+              <Button
+                onClick={() => setShowAddModal(true)}
+                className="w-full h-11 rounded-xl bg-[#1e1e1e] hover:bg-black text-white font-semibold shadow-none transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Student
+              </Button>
+              <Button
+                onClick={() => setShowBulkModal(true)}
+                variant="outline"
+                className="w-full h-11 rounded-xl font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-none transition-colors"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import Excel
+              </Button>
+              <Button
+                onClick={handleDeleteAllStudents}
+                className="w-full h-11 rounded-xl font-semibold bg-[#e10000] hover:bg-[#c80000] text-white shadow-none transition-colors"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete All
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Student Data Section */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)] min-h-[400px]">
+          <div className="mb-5 pb-4 border-b border-slate-100">
+            <h2 className="text-lg font-bold text-slate-900">Students ({filteredStudents.length})</h2>
+            <p className="text-sm text-slate-500 font-medium mt-0.5">Total: {students.length} students</p>
+          </div>
+
+          <div className="w-full">
+            {filteredStudents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <GraduationCap className="w-12 h-12 text-slate-200 mb-3" />
+                <p className="text-base font-medium text-slate-400">
+                  {students.length === 0 ? "No students added yet." : "No matching students found."}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium">Name</th>
-                      <th className="text-left py-3 px-4 font-medium">Admission No.</th>
-                      <th className="text-left py-3 px-4 font-medium">Locker No.</th>
-                      <th className="text-left py-3 px-4 font-medium">Class</th>
-                      <th className="text-left py-3 px-4 font-medium">Roll No.</th>
-                      <th className="text-left py-3 px-4 font-medium">Phone Name</th>
-                      <th className="text-left py-3 px-4 font-medium">Special Pass</th>
-                      <th className="text-left py-3 px-4 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.map((student) => {
-                      const hasNoPhone = !student.phone_name || student.phone_name.toLowerCase() === "nill" || student.phone_name.toLowerCase() === "nil" || student.phone_name.toLowerCase() === "none"
+                {/* Minimalist Mobile List Layout for smaller screens, responsive table for desktop */}
+                <div className="hidden sm:block">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        <th className="py-3 pr-4 font-semibold text-slate-900 text-sm">Name</th>
+                        <th className="py-3 px-4 font-semibold text-slate-900 text-sm">Admission No.</th>
+                        <th className="py-3 px-4 font-semibold text-slate-900 text-sm">Class / Roll</th>
+                        <th className="py-3 px-4 font-semibold text-slate-900 text-sm">Locker</th>
+                        <th className="py-3 px-4 font-semibold text-slate-900 text-sm">Phone/Pass</th>
+                        <th className="py-3 pl-4 font-semibold text-slate-900 text-sm text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredStudents.map((student) => {
+                        const hasNoPhone = !student.phone_name || student.phone_name.toLowerCase() === "nill" || student.phone_name.toLowerCase() === "nil" || student.phone_name.toLowerCase() === "none"
 
-                      return (
-                        <tr key={student.id} className={`border-b hover:bg-muted/50 transition-colors ${hasNoPhone ? "bg-yellow-50/50 dark:bg-yellow-900/10" : ""}`}>
-                          <td className="py-3 px-4 font-medium">{student.name}</td>
-                          <td className="py-3 px-4">{student.admission_number}</td>
-                          <td className="py-3 px-4">{student.locker_number}</td>
-                          <td className="py-3 px-4">{student.class_name || "-"}</td>
-                          <td className="py-3 px-4">{student.roll_no || "-"}</td>
-                          <td className={`py-3 px-4 font-medium ${hasNoPhone ? "text-yellow-600 dark:text-yellow-400" : ""}`}>
-                            {student.phone_name || "Nill"}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${student.special_pass === "YES" ? "bg-yellow-100 text-yellow-700 border border-yellow-200" : "bg-gray-100 text-gray-600"}`}>
-                              {student.special_pass || "NO"}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditClick(student)}
-                                className="gap-1"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                                Edit
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteStudent(student.id)}
-                                className="gap-1"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                Delete
-                              </Button>
+                        return (
+                          <tr key={student.id} className={`group hover:bg-slate-50 transition-colors ${hasNoPhone ? 'bg-[#fffae5]/30' : ''}`}>
+                            <td className="py-3 pr-4">
+                              <p className="font-bold text-slate-800 text-sm">{student.name}</p>
+                            </td>
+                            <td className="py-3 px-4">
+                              <p className="text-sm font-medium text-slate-600">{student.admission_number}</p>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                                  {student.class_name || "-"}
+                                </span>
+                                <span className="text-xs font-semibold text-slate-500">
+                                  R: {student.roll_no || "-"}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="text-sm font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded border border-slate-200/50">
+                                {student.locker_number}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex flex-col gap-1 items-start">
+                                <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${hasNoPhone ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                  {student.phone_name || "Nill"}
+                                </span>
+                                {student.special_pass === "YES" && (
+                                  <span className="text-[10px] font-bold bg-green-100 text-green-700 border border-green-200 px-1.5 py-0.5 rounded uppercase">Special Pass</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 pl-4 text-right">
+                              <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-lg" onClick={() => handleEditClick(student)}>
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg" onClick={() => handleDeleteStudent(student.id)}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Clean List Layout */}
+                <div className="sm:hidden flex flex-col">
+                  <div className="flex text-xs font-bold text-slate-900 border-b border-slate-100 pb-2 mb-2 px-1">
+                    <div className="flex-1">Name</div>
+                    <div className="w-24 text-right">Admission No.</div>
+                  </div>
+                  <div className="space-y-1">
+                    {filteredStudents.map((student) => (
+                      <div key={student.id} className="relative group p-2.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 pr-3">
+                            <p className="font-bold text-slate-900 text-sm leading-snug">{student.name}</p>
+                            <div className="mt-1 flex gap-1.5 flex-wrap">
+                              {student.class_name && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-semibold">{student.class_name}</span>}
+                              <span className="text-[10px] text-slate-400 font-medium">L: {student.locker_number}</span>
+                              {!student.phone_name || student.phone_name.toLowerCase() === "nill" ? (
+                                <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-semibold border border-amber-100/50">No Phone</span>
+                              ) : null}
+                              {student.special_pass === "YES" && (
+                                <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded font-semibold border border-green-100/50">Pass</span>
+                              )}
                             </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                          </div>
+                          <div className="flex flex-col items-end pt-0.5">
+                            <p className="text-sm font-medium text-slate-700">{student.admission_number}</p>
+                            <div className="flex gap-1 mt-2">
+                              <button onClick={() => handleEditClick(student)} className="p-1 text-slate-400 hover:text-slate-800 bg-slate-50 hover:bg-slate-200 rounded-md transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => handleDeleteStudent(student.id)} className="p-1 text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-md transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </main>
 
       {/* Add/Edit Student Modal */}
@@ -635,80 +676,90 @@ export default function ManageStudents() {
           })
         }
       }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{isEditing ? 'Edit Student' : 'Add New Student'}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="sm:max-w-md rounded-3xl border-slate-200 p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold text-slate-900">{isEditing ? 'Edit Student' : 'Add New Student'}</DialogTitle>
+            <DialogDescription className="text-slate-500 font-medium">
               {isEditing ? 'Update the student details below' : 'Enter the student details below'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Name</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Name *</label>
               <Input
-                placeholder="Enter student name"
+                placeholder="Student name"
                 value={newStudent.name}
                 onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Admission Number</label>
-              <Input
-                placeholder="Enter admission number"
-                value={newStudent.admission_number}
-                onChange={(e) => setNewStudent({ ...newStudent, admission_number: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Admission No *</label>
+                <Input
+                  placeholder="Admission number"
+                  value={newStudent.admission_number}
+                  onChange={(e) => setNewStudent({ ...newStudent, admission_number: e.target.value })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Locker No *</label>
+                <Input
+                  placeholder="Locker number"
+                  value={newStudent.locker_number}
+                  onChange={(e) => setNewStudent({ ...newStudent, locker_number: e.target.value })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Locker Number</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Phone Name</label>
               <Input
-                placeholder="Enter locker number"
-                value={newStudent.locker_number}
-                onChange={(e) => setNewStudent({ ...newStudent, locker_number: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Phone Name</label>
-              <Input
-                placeholder="Enter phone name"
+                placeholder="Phone model or 'Nill'"
                 value={newStudent.phone_name}
                 onChange={(e) => setNewStudent({ ...newStudent, phone_name: e.target.value })}
+                className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Class</label>
-              <Input
-                placeholder="Enter class"
-                value={newStudent.class_name}
-                onChange={(e) => setNewStudent({ ...newStudent, class_name: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Class</label>
+                <Input
+                  placeholder="e.g. 10A"
+                  value={newStudent.class_name}
+                  onChange={(e) => setNewStudent({ ...newStudent, class_name: e.target.value })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Roll No</label>
+                <Input
+                  placeholder="Roll number"
+                  value={newStudent.roll_no}
+                  onChange={(e) => setNewStudent({ ...newStudent, roll_no: e.target.value })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Roll No</label>
-              <Input
-                placeholder="Enter roll number"
-                value={newStudent.roll_no}
-                onChange={(e) => setNewStudent({ ...newStudent, roll_no: e.target.value })}
-              />
-            </div>
-            <div className="flex items-center space-x-2 py-2">
+            <div className="flex items-center space-x-3 p-3 bg-slate-50 border border-slate-200 rounded-xl mt-2">
               <input
                 type="checkbox"
                 id="special_pass"
                 checked={newStudent.special_pass === "YES"}
                 onChange={(e) => setNewStudent({ ...newStudent, special_pass: e.target.checked ? "YES" : "NO" })}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="w-5 h-5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
               />
-              <label htmlFor="special_pass" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Grant Special Phone Pass (Admin Only)
+              <label htmlFor="special_pass" className="text-sm font-bold text-slate-700 cursor-pointer">
+                Special Phone Pass <span className="text-xs font-medium text-slate-400 block">(Admin override)</span>
               </label>
             </div>
-            <div className="flex gap-2 pt-4">
-              <Button onClick={handleAddStudent} className="flex-1">
-                {isEditing ? 'Update Student' : 'Add Student'}
-              </Button>
-              <Button onClick={() => setShowAddModal(false)} variant="outline" className="flex-1">
+            <div className="flex gap-3 pt-4 border-t border-slate-100 mt-6">
+              <Button onClick={() => setShowAddModal(false)} variant="outline" className="flex-1 h-11 rounded-xl font-bold bg-white hover:bg-slate-50 border-slate-200 shadow-none transition-colors">
                 Cancel
+              </Button>
+              <Button onClick={handleAddStudent} className="flex-1 h-11 rounded-xl font-bold bg-[#1e1e1e] hover:bg-black text-white shadow-none transition-colors">
+                {isEditing ? 'Save Changes' : 'Add Student'}
               </Button>
             </div>
           </div>
@@ -717,41 +768,45 @@ export default function ManageStudents() {
 
       {/* Bulk Import Modal */}
       <Dialog open={showBulkModal} onOpenChange={setShowBulkModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Bulk Import Students</DialogTitle>
-            <DialogDescription>Import students from an Excel file</DialogDescription>
+        <DialogContent className="sm:max-w-md rounded-3xl border-slate-200 p-6">
+          <DialogHeader className="mb-4">
+            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 border border-blue-100/50">
+              <FileSpreadsheet className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-slate-900">Import Students</DialogTitle>
+            <DialogDescription className="text-slate-500 font-medium">Build your database quickly using Excel.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-4 border-2 border-dashed rounded-lg bg-muted/50">
-              <p className="text-sm text-muted-foreground mb-3">
-                Upload an Excel file with the following columns:
+            <div className="p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
+              <p className="text-sm font-bold text-slate-700 mb-2">
+                Required Columns:
               </p>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>admission_number</li>
-                <li>name</li>
-                <li>locker_number</li>
-                <li>phone_name (optional)</li>
-                <li>class (optional)</li>
-                <li>roll_no (optional)</li>
-              </ul>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                <span className="text-xs font-semibold bg-white border border-slate-200 text-slate-600 px-2 py-1 rounded-md">admission_number</span>
+                <span className="text-xs font-semibold bg-white border border-slate-200 text-slate-600 px-2 py-1 rounded-md">name</span>
+                <span className="text-xs font-semibold bg-white border border-slate-200 text-slate-600 px-2 py-1 rounded-md">locker_number</span>
+              </div>
+              <p className="text-xs font-medium text-slate-500">
+                Optional: phone_name, class, roll_no
+              </p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Select Excel File</label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleBulkImport}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground">Supports .xlsx, .xls, and .csv files</p>
+              <label className="text-sm font-bold text-slate-900">Select File</label>
+              <div className="relative">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleBulkImport}
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer border border-slate-200 rounded-xl bg-white p-1"
+                />
+              </div>
             </div>
 
-            <div className="flex gap-2 pt-4">
-              <Button onClick={() => setShowBulkModal(false)} variant="outline" className="flex-1">
-                Close
+            <div className="pt-4 border-t border-slate-100 mt-4">
+              <Button onClick={() => setShowBulkModal(false)} variant="outline" className="w-full h-11 rounded-xl font-bold bg-white hover:bg-slate-50 border-slate-200 shadow-none transition-colors">
+                Cancel
               </Button>
             </div>
           </div>
