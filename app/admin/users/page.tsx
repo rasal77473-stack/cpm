@@ -12,51 +12,80 @@ import { toast } from "sonner";
 import { History, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-const PERMISSIONS = [
-  { id: "view_only", label: "View Only" },
-  { id: "in_out_control", label: "In/Out Control" },
-  { id: "manage_students", label: "Manage Students" },
-  
-  // Phone Pass Permissions
-  { id: "issue_phone_pass", label: "Issue Phone Pass" },
-  { id: "access_phone_pass", label: "Phone Pass Page Access" },
-  { id: "view_phone_logs", label: "View Phone Logs" },
-  { id: "manage_phone_status", label: "Manage Phone Status Lists" },
-  
-  // Gate Pass Permissions
-  { id: "issue_gate_pass", label: "Issue Gate Pass" },
-  { id: "access_gate_pass", label: "Gate Pass Page Access" },
-  { id: "view_gate_logs", label: "View Gate Logs" },
-  { id: "manage_gate_status", label: "Manage Gate Status Lists" },
-  
-  // Admin Permissions
-  { id: "manage_users", label: "User Management" },
-  { id: "manage_monthly_leave", label: "Manage Monthly Leave" },
+const PERMISSION_CATEGORIES = [
+  {
+    name: "General",
+    permissions: [
+      { id: "view_only", label: "View Only" },
+      { id: "in_out_control", label: "In/Out Control" },
+      { id: "manage_students", label: "Manage Students" },
+    ],
+  },
+  {
+    name: "Phone Pass",
+    permissions: [
+      { id: "issue_phone_pass", label: "Issue Phone Pass" },
+      { id: "access_phone_pass", label: "Phone Pass Page Access" },
+      { id: "view_phone_logs", label: "View Phone Logs" },
+      { id: "view_phone_history", label: "View Phone History" },
+      { id: "manage_phone_status", label: "Manage Phone Status Lists" },
+    ],
+  },
+  {
+    name: "Gate Pass",
+    permissions: [
+      { id: "issue_gate_pass", label: "Issue Gate Pass" },
+      { id: "access_gate_pass", label: "Gate Pass Page Access" },
+      { id: "view_gate_logs", label: "View Gate Logs" },
+      { id: "manage_gate_status", label: "Manage Gate Status Lists" },
+    ],
+  },
+  {
+    name: "Punishments & Tallies",
+    permissions: [
+      { id: "manage_punishments", label: "Manage Punishments" },
+      { id: "manage_tallies", label: "Manage Tallies" },
+      { id: "view_tally_reports", label: "View Tally Reports" },
+    ],
+  },
+  {
+    name: "Rewards & Stars",
+    permissions: [
+      { id: "manage_rewards", label: "Manage Rewards" },
+      { id: "manage_stars", label: "Manage Stars" },
+    ],
+  },
+  {
+    name: "Fines",
+    permissions: [
+      { id: "manage_fines", label: "Manage Fines" },
+      { id: "manage_fine_types", label: "Manage Fine Types" },
+    ],
+  },
+  {
+    name: "Special Pass",
+    permissions: [
+      { id: "manage_special_pass", label: "Manage Special Pass" },
+    ],
+  },
+  {
+    name: "Admin",
+    permissions: [
+      { id: "view_admin_panel", label: "View Admin Panel" },
+      { id: "manage_users", label: "User Management" },
+      { id: "manage_monthly_leave", label: "Manage Monthly Leave" },
+      { id: "manage_reports", label: "View Reports" },
+      { id: "manage_settings", label: "Manage Settings" },
+    ],
+  },
 ];
 
-const PERMISSION_LABELS: Record<string, string> = {
-  view_only: "View Only",
-  in_out_control: "In/Out Control",
-  manage_students: "Manage Students",
-  
-  // Phone Pass
-  issue_phone_pass: "Issue Phone Pass",
-  access_phone_pass: "Phone Pass Page Access",
-  view_phone_logs: "View Phone Logs",
-  manage_phone_status: "Manage Phone Status Lists",
-  
-  // Gate Pass
-  issue_gate_pass: "Issue Gate Pass",
-  access_gate_pass: "Gate Pass Page Access",
-  view_gate_logs: "View Gate Logs",
-  manage_gate_status: "Manage Gate Status Lists",
-  
-  // Admin
-  manage_users: "User Management",
-  manage_monthly_leave: "Manage Monthly Leave",
-  manage_special_pass: "Manage Special Pass",
-  view_admin_panel: "View Admin Panel",
-};
+// Flat list for backward compatibility
+const PERMISSIONS = PERMISSION_CATEGORIES.flatMap(cat => cat.permissions);
+
+const PERMISSION_LABELS: Record<string, string> = Object.fromEntries(
+  PERMISSIONS.map(p => [p.id, p.label])
+);
 
 export default function UserManagement() {
   const [users, setUsers] = useState<any[]>([]);
@@ -186,7 +215,7 @@ export default function UserManagement() {
         permissions = ["view_only"];
       }
     }
-    
+
     setFormData({
       username: user.username,
       password: user.password,
@@ -264,18 +293,63 @@ export default function UserManagement() {
                 <Label htmlFor="special_pass" className="text-yellow-600 font-bold">Grant Special Pass (Admin Access)</Label>
               </div>
               <div className="space-y-3">
-                <Label>Permissions</Label>
-                <div className="grid grid-cols-1 gap-2">
-                  {PERMISSIONS.map(perm => (
-                    <div key={perm.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={perm.id}
-                        checked={formData.permissions.includes(perm.id)}
-                        onCheckedChange={() => togglePermission(perm.id)}
-                      />
-                      <Label htmlFor={perm.id}>{perm.label}</Label>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <Label>Permissions</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => {
+                      const allIds = PERMISSIONS.map(p => p.id);
+                      const allSelected = allIds.every(id => formData.permissions.includes(id));
+                      setFormData(prev => ({
+                        ...prev,
+                        permissions: allSelected ? [] : allIds,
+                      }));
+                    }}
+                  >
+                    {PERMISSIONS.map(p => p.id).every(id => formData.permissions.includes(id)) ? "Deselect All" : "Select All"}
+                  </Button>
+                </div>
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                  {PERMISSION_CATEGORIES.map(category => {
+                    const catPermIds = category.permissions.map(p => p.id);
+                    const allCatSelected = catPermIds.every(id => formData.permissions.includes(id));
+                    return (
+                      <div key={category.name} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-muted-foreground">{category.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs h-6 px-2"
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                permissions: allCatSelected
+                                  ? prev.permissions.filter(p => !catPermIds.includes(p))
+                                  : [...new Set([...prev.permissions, ...catPermIds])],
+                              }));
+                            }}
+                          >
+                            {allCatSelected ? "Deselect" : "Select All"}
+                          </Button>
+                        </div>
+                        {category.permissions.map(perm => (
+                          <div key={perm.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={perm.id}
+                              checked={formData.permissions.includes(perm.id)}
+                              onCheckedChange={() => togglePermission(perm.id)}
+                            />
+                            <Label htmlFor={perm.id}>{perm.label}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               <div className="flex gap-2">

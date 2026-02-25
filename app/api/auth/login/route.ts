@@ -21,7 +21,16 @@ export async function POST(request: NextRequest) {
         staffName: "Super Admin",
         role: "admin",
         special_pass: "YES",
-        permissions: ["manage_students", "manage_special_pass", "manage_users", "in_out_control", "ban_unban"],
+        permissions: [
+          "view_only", "in_out_control", "manage_students",
+          "issue_phone_pass", "access_phone_pass", "view_phone_logs", "view_phone_history", "manage_phone_status",
+          "issue_gate_pass", "access_gate_pass", "view_gate_logs", "manage_gate_status",
+          "manage_punishments", "manage_tallies", "view_tally_reports",
+          "manage_rewards", "manage_stars",
+          "manage_fines", "manage_fine_types",
+          "manage_special_pass",
+          "view_admin_panel", "manage_users", "manage_monthly_leave", "manage_reports", "manage_settings",
+        ],
         message: "Login successful",
       })
 
@@ -44,12 +53,17 @@ export async function POST(request: NextRequest) {
 
     const token = Buffer.from(`${user.id}:${Date.now()}`).toString("base64")
 
-    // Parse permissions JSON string to array
+    // Parse permissions - handle both text array (from postgres) and JSON string formats
     let userPermissions: string[] = ["view_only"];
-    try {
-      userPermissions = JSON.parse(user.permissions);
-    } catch {
-      userPermissions = ["view_only"];
+    if (Array.isArray(user.permissions)) {
+      userPermissions = user.permissions;
+    } else if (typeof user.permissions === "string") {
+      try {
+        const parsed = JSON.parse(user.permissions);
+        userPermissions = Array.isArray(parsed) ? parsed : ["view_only"];
+      } catch {
+        userPermissions = ["view_only"];
+      }
     }
 
     // Safety check for ID 0
