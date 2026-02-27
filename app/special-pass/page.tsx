@@ -74,6 +74,11 @@ function SpecialPassContent() {
   const [canViewLogs, setCanViewLogs] = useState(false)
   const [canManageStatus, setCanManageStatus] = useState(false)
 
+  // Prefetch grant page bundle so it loads instantly on click
+  useEffect(() => {
+    router.prefetch("/admin/special-pass/grant/0")
+  }, [router])
+
   // Fetch all students
   const { data: studentsData = [], isLoading: studentLoading } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
