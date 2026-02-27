@@ -29,16 +29,10 @@ export async function POST(
       return NextResponse.json({ error: "Special pass not found" }, { status: 404 })
     }
 
-    // Return response IMMEDIATELY
-    const response = NextResponse.json({
-      success: true,
-      message: "Special pass returned successfully",
-      data: updated,
-    })
-
-    // Fire-and-forget: sync everything in background
+    // Wait for everything to sync to prevent SWR race conditions
     const studentId = updated.studentId
-    Promise.all([
+
+    await Promise.all([
       // Update student special_pass to NO
       db.update(students).set({ specialPass: "NO" }).where(eq(students.id, studentId)),
       // Upsert phone status to IN
@@ -76,9 +70,15 @@ export async function POST(
           details: `Special pass returned for student ${studentId}. Pass ID: ${grantId}`,
         })
         : Promise.resolve()
-    ]).catch(() => { })
+    ]).catch((err) => {
+      console.error("Secondary return error:", err)
+    })
 
-    return response
+    return NextResponse.json({
+      success: true,
+      message: "Special pass returned successfully",
+      data: updated,
+    })
   } catch (error) {
     return NextResponse.json({ error: "Failed to return special pass" }, { status: 500 })
   }

@@ -22,16 +22,10 @@ export async function POST(
       return NextResponse.json({ error: "Special pass not found" }, { status: 404 })
     }
 
-    // Return response IMMEDIATELY - do phone status sync in background
-    const response = NextResponse.json({
-      success: true,
-      message: "Special pass marked as OUT successfully",
-      data: { id: updated.id, status: updated.status, timestamp: new Date().toISOString() }
-    })
-
-    // Fire-and-forget: sync phone status + log activity in parallel
+    // Wait for phone status sync to prevent race conditions on the frontend
     const studentId = updated.studentId
-    Promise.all([
+
+    await Promise.all([
       // Upsert phone status
       db.select().from(phoneStatus).where(eq(phoneStatus.studentId, studentId)).limit(1)
         .then(([existing]: any[]) => {
@@ -60,9 +54,15 @@ export async function POST(
           details: `Student left with special pass. Student ID: ${studentId}. Pass ID: ${grantId}`
         })
         : Promise.resolve()
-    ]).catch(() => { })
+    ]).catch((err) => {
+      console.error("Secondary error:", err)
+    })
 
-    return response
+    return NextResponse.json({
+      success: true,
+      message: "Special pass marked as OUT successfully",
+      data: { id: updated.id, status: updated.status, timestamp: new Date().toISOString() }
+    })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to process OUT request"
     return NextResponse.json({ error: errorMessage }, { status: 500 })
