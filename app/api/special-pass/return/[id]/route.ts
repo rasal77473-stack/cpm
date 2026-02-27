@@ -36,12 +36,6 @@ export async function POST(
       data: updated,
     })
 
-    // Invalidate caches FIRST so any subsequent requests get fresh data
-    const { invalidatePassesCache } = require("../../all/route")
-    const { invalidatePhoneStatusCache } = require("../../../phone-status/route")
-    invalidatePassesCache()
-    invalidatePhoneStatusCache()
-
     // Fire-and-forget: sync everything in background
     const studentId = updated.studentId
     Promise.all([
