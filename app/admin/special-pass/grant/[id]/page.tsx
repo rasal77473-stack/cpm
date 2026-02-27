@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { mutate } from "swr"
 
 export default function GrantSpecialPassPage() {
   const router = useRouter()
@@ -145,11 +146,46 @@ export default function GrantSpecialPassPage() {
       expectedReturnTime,
     }
 
-    // INSTANT: Show success and redirect immediately
+    // INSTANT: Show success
     toast.success("Phone pass granted!")
+
+    // Optimistic UI update using global SWR cache before redirecting
+    // We create a fake "optimistic" pass that will be immediately visible on the list page
+    const fakePassId = -Date.now()
+    const optimisticPass = {
+      id: fakePassId,
+      studentId: student.id,
+      studentName: student.name,
+      admissionNumber: student.admission_number,
+      className: student.class_name,
+      lockerNumber: student.locker_number,
+      rollNo: student.roll_no,
+      phoneName: student.phone_name,
+      mentorName: mentorName || "Staff",
+      purpose: `PHONE: ${purpose.trim()}`,
+      issueTime: new Date().toISOString(),
+      returnTime: null,
+      submissionTime: null,
+      status: "ACTIVE"
+    }
+
+    mutate("/api/special-pass/all", (current: any[] = []) => {
+      // Put the new fake pass at the top of the list
+      return [optimisticPass, ...current]
+    }, { revalidate: false }) // Don't trigger a background fetch yet
+
+    // Also optimistically update the student's phone status to OUT
+    mutate("/api/phone-status", (current: any[] = []) => {
+      const existing = current.find(s => s.studentId === student.id)
+      return existing
+        ? current.map(s => s.studentId === student.id ? { ...s, status: "ACTIVE" } : s)
+        : [...current, { studentId: student.id, status: "ACTIVE" }]
+    }, { revalidate: false })
+
+    // Redirect to list page instantly
     router.push("/special-pass")
 
-    // Fire API in background - errors will show as toast on the next page
+    // Fire API in background and sync the real IDs silently afterwards
     fetch("/api/special-pass/grant", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -158,9 +194,18 @@ export default function GrantSpecialPassPage() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         toast.error(data?.error || data?.details || "Grant failed - please try again")
+
+        // Revert UI on failure
+        mutate("/api/special-pass/all", (current: any[] = []) => current.filter(p => p.id !== fakePassId), { revalidate: false })
+      } else {
+        // Fetch the real pass IDs in background
+        mutate("/api/special-pass/all")
+        mutate("/api/phone-status")
       }
     }).catch(() => {
       toast.error("Network error - please check and try again")
+      // Revert UI on failure
+      mutate("/api/special-pass/all", (current: any[] = []) => current.filter(p => p.id !== fakePassId), { revalidate: false })
     })
   }
 
