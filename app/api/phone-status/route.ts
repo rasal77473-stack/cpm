@@ -3,17 +3,39 @@ import { phoneStatus, phoneHistory } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 
+// In-memory cache for phone statuses
+let statusCache: any[] | null = null
+let statusCacheTime = 0
+const STATUS_CACHE_TTL = 5000 // 5 seconds
+
 // GET - Retrieve all phone statuses
 export async function GET() {
   try {
+    const now = Date.now()
+
+    // Serve from cache if fresh
+    if (statusCache && (now - statusCacheTime) < STATUS_CACHE_TTL) {
+      return NextResponse.json(statusCache, {
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+          'X-Cache': 'HIT'
+        }
+      });
+    }
+
     const statuses = await db
       .select()
       .from(phoneStatus)
       .orderBy(desc(phoneStatus.lastUpdated));
 
+    // Cache it
+    statusCache = statuses
+    statusCacheTime = now
+
     return NextResponse.json(statuses, {
       headers: {
-        'Cache-Control': 'public, s-maxage=1, stale-while-revalidate=3'
+        'Cache-Control': 'no-store, max-age=0',
+        'X-Cache': 'MISS'
       }
     });
   } catch (error) {
@@ -66,6 +88,10 @@ export async function POST(req: Request) {
       updatedBy: updatedBy || "system",
       notes: notes || null,
     });
+
+    // Invalidate cache
+    statusCache = null
+    statusCacheTime = 0
 
     return NextResponse.json(newRecord[0], { status: 201 });
   } catch (error) {

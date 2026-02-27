@@ -6,7 +6,7 @@ interface CacheEntry<T> {
     timestamp: number
 }
 
-const CACHE_TTL = 60 * 1000 // 60 seconds TTL
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes TTL
 const cache = new Map<string, CacheEntry<any>>()
 
 export function getCached<T>(key: string): T | null {
