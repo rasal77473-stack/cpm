@@ -87,6 +87,10 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
 
+    // Invalidate the cache FIRST so the redirect immediately sees the new pass
+    const { invalidatePassesCache } = require("../all/route")
+    invalidatePassesCache()
+
     // Fire-and-forget: all secondary operations in parallel background
     Promise.all([
       // Phone status upsert
