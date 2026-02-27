@@ -25,6 +25,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Fetch student to check phone status
+    const [student] = await db
+      .select()
+      .from(students)
+      .where(eq(students.id, Number(studentId)))
+      .limit(1)
+
+    if (!student) {
+      return NextResponse.json({ error: "Student not found." }, { status: 404 })
+    }
+
+    const hasNoPhone = !student.phone_name ||
+      student.phone_name.toLowerCase() === "nill" ||
+      student.phone_name.toLowerCase() === "nil" ||
+      student.phone_name.toLowerCase() === "none"
+
+    if (hasNoPhone) {
+      return NextResponse.json(
+        { error: "Cannot issue a phone pass to a student without a registered phone." },
+        { status: 400 }
+      )
+    }
+
     // Check if student already has an active PHONE pass (not GATE)
     // Only 1 PHONE pass per student at a time - strictly enforce
     const existingPhonePasses = await db
