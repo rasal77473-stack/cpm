@@ -327,15 +327,15 @@ function SpecialPassContent() {
     }
   }, [duplicatePassesPerStudent])
 
-  const handleSubmitOut = async (passId: number) => {
-    setReturningPassId(passId)
-
+  const handleSubmitOut = (passId: number) => {
     const pass = passes.find((p: any) => p.id === passId)
     if (!pass) {
-      setReturningPassId(null)
       toast.error("Pass not found")
       return
     }
+
+    // INSTANT FEEDBACK
+    toast.success("Marked as OUT")
 
     // Ultra-smooth Optimistic UI Update
     mutate("/api/special-pass/all", (current: any[] = []) => {
@@ -349,34 +349,31 @@ function SpecialPassContent() {
         : [...current, { studentId: pass.studentId, status: "OUT" }]
     }, false)
 
-
-    try {
-      const res = await fetch(`/api/special-pass/out/${passId}`, { method: "POST" })
-      if (!res.ok) throw new Error("Failed")
-
-      toast.success("Marked as OUT")
-
-      // Background sync without killing the optimistic state
-      mutate("/api/phone-status")
-      mutate("/api/special-pass/all")
-    } catch (e) {
-      // Revert on failure
-      mutate("/api/phone-status")
-      mutate("/api/special-pass/all")
-      toast.error("Failed to update status")
-    } finally {
-      setReturningPassId(null)
-    }
+    // Fire API in background
+    fetch(`/api/special-pass/out/${passId}`, { method: "POST" })
+      .then(async res => {
+        if (!res.ok) throw new Error("Failed")
+        // Background sync data silently
+        mutate("/api/phone-status")
+        mutate("/api/special-pass/all")
+      })
+      .catch(() => {
+        // Revert on failure
+        mutate("/api/phone-status")
+        mutate("/api/special-pass/all")
+        toast.error("Failed to update status")
+      })
   }
 
-  const handleSubmitIn = async (passId: number) => {
-    setReturningPassId(passId)
+  const handleSubmitIn = (passId: number) => {
     const pass = passes.find((p: any) => p.id === passId)
     if (!pass) {
-      setReturningPassId(null)
       toast.error("Pass not found")
       return
     }
+
+    // INSTANT FEEDBACK
+    toast.success("Pass Completed")
 
     // Ultra-smooth Optimistic UI Update
     mutate("/api/special-pass/all", (current: any[] = []) => {
@@ -390,23 +387,20 @@ function SpecialPassContent() {
         : [...current, { studentId: pass.studentId, status: "IN" }]
     }, false)
 
-    try {
-      const res = await fetch(`/api/special-pass/return/${passId}`, { method: "POST" })
-      if (!res.ok) throw new Error("Failed")
-
-      toast.success("Pass Completed")
-
-      // Background sync without killing the optimistic state
-      mutate("/api/special-pass/all")
-      mutate("/api/phone-status")
-    } catch (e) {
-      // Revert on failure
-      mutate("/api/special-pass/all")
-      mutate("/api/phone-status")
-      toast.error("Failed to return pass")
-    } finally {
-      setReturningPassId(null)
-    }
+    // Fire API in background
+    fetch(`/api/special-pass/return/${passId}`, { method: "POST" })
+      .then(async res => {
+        if (!res.ok) throw new Error("Failed")
+        // Background sync data silently
+        mutate("/api/special-pass/all")
+        mutate("/api/phone-status")
+      })
+      .catch(() => {
+        // Revert on failure
+        mutate("/api/special-pass/all")
+        mutate("/api/phone-status")
+        toast.error("Failed to return pass")
+      })
   }
 
   const handleActivatePhone = async (studentId: number, phoneName: string) => {

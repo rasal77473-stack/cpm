@@ -102,3 +102,9 @@ export async function POST(req: Request) {
     );
   }
 }
+
+// Export cache invalidator for use after mutations
+export function invalidatePhoneStatusCache() {
+  statusCache = null
+  statusCacheTime = 0
+}

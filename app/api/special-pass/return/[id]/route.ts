@@ -36,6 +36,12 @@ export async function POST(
       data: updated,
     })
 
+    // Invalidate caches FIRST so any subsequent requests get fresh data
+    const { invalidatePassesCache } = require("../../all/route")
+    const { invalidatePhoneStatusCache } = require("../../../phone-status/route")
+    invalidatePassesCache()
+    invalidatePhoneStatusCache()
+
     // Fire-and-forget: sync everything in background
     const studentId = updated.studentId
     Promise.all([
@@ -43,7 +49,7 @@ export async function POST(
       db.update(students).set({ specialPass: "NO" }).where(eq(students.id, studentId)),
       // Upsert phone status to IN
       db.select().from(phoneStatus).where(eq(phoneStatus.studentId, studentId)).limit(1)
-        .then(([existing]) => {
+        .then(([existing]: any[]) => {
           if (existing) {
             return db.update(phoneStatus).set({
               status: "IN",
