@@ -8,17 +8,18 @@ import "../styles/globals.css"
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+}
+
 export const metadata: Metadata = {
   title: "Caliph Phone Management",
   description: "Student phone deposit and withdrawal tracking system",
   generator: "v0.app",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: "cover",
-  },
   icons: {
     icon: [
       {

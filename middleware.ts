@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Protected routes pattern
-const protectedRoutes = ['/dashboard', '/admin', '/special-pass', '/history']
+const protectedRoutes = ['/dashboard', '/admin', '/special-pass', '/history', '/phone-pass-menu', '/gate-pass-menu', '/gate-pass', '/student-lookup']
 
 export function middleware(request: NextRequest) {
     const token = request.cookies.get('auth_token')?.value
@@ -23,6 +23,11 @@ export function middleware(request: NextRequest) {
         } else {
             return NextResponse.redirect(new URL('/login', request.url))
         }
+    }
+
+    // 3. If on login page but already logged in -> Redirect to Dashboard
+    if (pathname === '/login' && token) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     return NextResponse.next()

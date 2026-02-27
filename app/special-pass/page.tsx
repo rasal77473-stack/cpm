@@ -84,9 +84,9 @@ function SpecialPassContent() {
 
   // Fetch all special passes
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
-    refreshInterval: 3500,
+    refreshInterval: 10000,
     revalidateOnFocus: true,
-    dedupingInterval: 500,
+    dedupingInterval: 2000,
   })
 
   const passes = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
@@ -96,9 +96,9 @@ function SpecialPassContent() {
 
   // Fetch phone statuses
   const { data: phoneStatusData = [] } = useSWR("/api/phone-status", fetcher, {
-    refreshInterval: 3500,
+    refreshInterval: 10000,
     revalidateOnFocus: true,
-    dedupingInterval: 500,
+    dedupingInterval: 2000,
   })
 
   const phoneStatusMap = useMemo(() => {

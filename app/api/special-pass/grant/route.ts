@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       )
 
     // Filter for PHONE passes only
-    const activePhonePasses = existingPhonePasses.filter(p => p.purpose?.startsWith("PHONE:"))
+    const activePhonePasses = existingPhonePasses.filter((p: any) => p.purpose?.startsWith("PHONE:"))
 
     if (activePhonePasses.length > 0) {
       return NextResponse.json(

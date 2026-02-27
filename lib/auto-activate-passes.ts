@@ -14,7 +14,7 @@ export async function autoActivateMonthlyLeavePasses() {
   try {
     const now = new Date()
     console.log(`\n🔄 Auto-Activate Monthly Leave Passes - ${now.toISOString()}`)
-    
+
     // Get all PENDING leaves (regardless of date first to debug)
     const allPendingLeaves = await db
       .select()
@@ -22,14 +22,14 @@ export async function autoActivateMonthlyLeavePasses() {
       .where(eq(monthlyLeaves.status, "PENDING"))
 
     console.log(`📅 Total PENDING leaves in DB: ${allPendingLeaves.length}`)
-    
+
     // Check which ones should activate
-    const activatingLeaves = allPendingLeaves.filter((leave) => {
+    const activatingLeaves = allPendingLeaves.filter((leave: any) => {
       // Parse the leave start date and time - use UTC to match database
       const leaveStart = new Date(leave.startDate)
       const [startHour, startMin] = leave.startTime.split(":").map(Number)
       leaveStart.setUTCHours(startHour, startMin, 0, 0)
-      
+
       const shouldActivate = leaveStart <= now
       console.log(`   Leave ${leave.id}: startDate=${leaveStart.toISOString()}, now=${now.toISOString()}, shouldActivate=${shouldActivate}`)
       return shouldActivate
@@ -40,14 +40,14 @@ export async function autoActivateMonthlyLeavePasses() {
     // Create and activate passes for these leaves
     for (const leave of activatingLeaves) {
       console.log(`\n⏱️  Processing leave ${leave.id}: ${leave.startDate} to ${leave.endDate}`)
-      
+
       // Get excluded students for this leave
       const exclusions = await db
         .select({ studentId: leaveExclusions.studentId })
         .from(leaveExclusions)
         .where(eq(leaveExclusions.leaveId, leave.id))
 
-      const excludedIds = exclusions.map((e) => e.studentId)
+      const excludedIds = exclusions.map((e: any) => e.studentId)
 
       // Get all eligible students (not excluded)
       let eligibleStudents
@@ -69,7 +69,7 @@ export async function autoActivateMonthlyLeavePasses() {
       // Get date strings from database dates (treating as UTC)
       const startDateObj = new Date(leave.startDate)
       const startDateStr = startDateObj.toISOString().split('T')[0]
-      
+
       const endDateObj = new Date(leave.endDate)
       const endDateStr = endDateObj.toISOString().split('T')[0]
 
@@ -87,12 +87,12 @@ export async function autoActivateMonthlyLeavePasses() {
         .select({ studentId: specialPassGrants.studentId })
         .from(specialPassGrants)
         .where(inArray(specialPassGrants.status, ["ACTIVE", "OUT", "PENDING"]))
-      
-      const activePassStudentIds = new Set(studentsWithActivePasses.map((p) => p.studentId))
-      
+
+      const activePassStudentIds = new Set(studentsWithActivePasses.map((p: any) => p.studentId))
+
       // Filter students who don't already have active passes
       const studentsToGrantPasses = eligibleStudents.filter(
-        (student) => !activePassStudentIds.has(student.id)
+        (student: any) => !activePassStudentIds.has(student.id)
       )
 
       const skippedCount = eligibleStudents.length - studentsToGrantPasses.length
@@ -102,7 +102,7 @@ export async function autoActivateMonthlyLeavePasses() {
 
       // Create passes for eligible students (both phone and gate)
       const passRecords: any[] = []
-      studentsToGrantPasses.forEach((student) => {
+      studentsToGrantPasses.forEach((student: any) => {
         // Phone pass - set to ACTIVE
         passRecords.push({
           studentId: student.id,
@@ -150,12 +150,12 @@ export async function autoActivateMonthlyLeavePasses() {
     console.log(`\n📅 Total IN_PROGRESS leaves in DB: ${allInProgressLeaves.length}`)
 
     // Check which ones should complete
-    const completingLeaves = allInProgressLeaves.filter((leave) => {
+    const completingLeaves = allInProgressLeaves.filter((leave: any) => {
       // Parse the leave end date and time - use UTC to match database
       const leaveEnd = new Date(leave.endDate)
       const [endHour, endMin] = leave.endTime.split(":").map(Number)
       leaveEnd.setUTCHours(endHour, endMin, 0, 0)
-      
+
       const shouldComplete = leaveEnd <= now
       console.log(`   Leave ${leave.id}: endDate=${leaveEnd.toISOString()}, now=${now.toISOString()}, shouldComplete=${shouldComplete}`)
       return shouldComplete
@@ -166,15 +166,15 @@ export async function autoActivateMonthlyLeavePasses() {
     // Complete passes for these leaves
     for (const leave of completingLeaves) {
       console.log(`\n⏱️  Completing leave ${leave.id}`)
-      
+
       // Convert startDate to Date object (it comes as string from DB)
       const leaveStartDate = new Date(leave.startDate)
       const leaveStartTime = leaveStartDate.getTime()
-      
+
       // Create date boundaries and convert to ISO strings
       const lowerBound = new Date(leaveStartTime - 60000).toISOString()
       const upperBound = new Date(leaveStartTime + 60000).toISOString()
-      
+
       // Get the corresponding ACTIVE passes for this leave
       const activePasses = await db
         .select()
