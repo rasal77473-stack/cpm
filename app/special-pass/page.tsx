@@ -169,7 +169,7 @@ function SpecialPassContent() {
     })
 
     return {
-      allStudents: totalStudents,
+      allStudents: students.length,
       phonePass: validPasses.length,
       phoneIn: inCount,
       phoneOut: outCount,
