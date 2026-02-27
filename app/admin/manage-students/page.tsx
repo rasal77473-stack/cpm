@@ -95,7 +95,7 @@ export default function ManageStudents() {
     }
   }
 
-  if (loading || !isAuthorized) {
+  if (!isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
         <div className="text-center space-y-4">
@@ -545,7 +545,12 @@ export default function ManageStudents() {
           </div>
 
           <div className="w-full">
-            {filteredStudents.length === 0 ? (
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-600 rounded-full animate-spin mb-3"></div>
+                <p className="text-sm font-medium text-slate-400">Loading students...</p>
+              </div>
+            ) : filteredStudents.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <GraduationCap className="w-12 h-12 text-slate-200 mb-3" />
                 <p className="text-base font-medium text-slate-400">
