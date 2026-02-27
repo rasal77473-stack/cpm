@@ -11,28 +11,11 @@ export async function POST(
     const { id } = await params
     const grantId = parseInt(id)
 
-    // Validate pass ID
     if (!grantId || isNaN(grantId)) {
-      return NextResponse.json(
-        { error: "Invalid pass ID" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Invalid pass ID" }, { status: 400 })
     }
 
-    // Find the grant
-    const [grant] = await db
-      .select()
-      .from(specialPassGrants)
-      .where(eq(specialPassGrants.id, grantId))
-
-    if (!grant) {
-      return NextResponse.json(
-        { error: "Special pass not found" },
-        { status: 404 }
-      )
-    }
-
-    // Mark pass as completed with submission time
+    // Update pass status to COMPLETED immediately (skip SELECT)
     const [updated] = await db
       .update(specialPassGrants)
       .set({
@@ -42,77 +25,61 @@ export async function POST(
       .where(eq(specialPassGrants.id, grantId))
       .returning()
 
-    // Update student's special_pass status and sync phone status in background (fire and forget)
-    if (grant) {
-      const studentId = grant.studentId
-
-      try {
-        // Update student's special_pass status to "NO"
-        await db
-          .update(students)
-          .set({ specialPass: "NO" })
-          .where(eq(students.id, studentId))
-
-        // Sync main phone status to IN (synchronous)
-        const [existingStatus] = await db
-          .select()
-          .from(phoneStatus)
-          .where(eq(phoneStatus.studentId, studentId))
-          .limit(1)
-
-        if (existingStatus) {
-          await db.update(phoneStatus)
-            .set({
-              status: "IN",
-              lastUpdated: new Date().toISOString(), // Use format compatible with schema
-              updatedBy: grant.mentorName,
-              notes: grant.purpose
-            })
-            .where(eq(phoneStatus.studentId, studentId))
-        } else {
-          await db.insert(phoneStatus)
-            .values({
-              studentId,
-              status: "IN",
-              updatedBy: grant.mentorName,
-              notes: grant.purpose,
-              lastUpdated: new Date().toISOString()
-            })
-        }
-
-        // Record to phone history - mark as IN (phone returned)
-        await db.insert(phoneHistory).values({
-          studentId,
-          status: "IN",
-          updatedBy: grant.mentorName,
-          notes: `PHONE PASS RETURNED: ${grant.purpose}`,
-        })
-
-        // Log the action in background
-        if (grant.mentorId) {
-          await db.insert(userActivityLogs).values({
-            userId: grant.mentorId,
-            action: "RETURN_SPECIAL_PASS",
-            details: `Special pass returned for student ${grant.studentId}. Pass ID: ${grantId}`,
-          })
-        }
-      } catch (innerError) {
-        // Don't throw here to ensure the response is still returned as success if the main pass status was updated
-      }
+    if (!updated) {
+      return NextResponse.json({ error: "Special pass not found" }, { status: 404 })
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Special pass returned successfully",
-        data: updated,
-      },
-      { status: 200 }
-    )
+    // Return response IMMEDIATELY
+    const response = NextResponse.json({
+      success: true,
+      message: "Special pass returned successfully",
+      data: updated,
+    })
+
+    // Fire-and-forget: sync everything in background
+    const studentId = updated.studentId
+    Promise.all([
+      // Update student special_pass to NO
+      db.update(students).set({ specialPass: "NO" }).where(eq(students.id, studentId)),
+      // Upsert phone status to IN
+      db.select().from(phoneStatus).where(eq(phoneStatus.studentId, studentId)).limit(1)
+        .then(([existing]) => {
+          if (existing) {
+            return db.update(phoneStatus).set({
+              status: "IN",
+              lastUpdated: new Date().toISOString(),
+              updatedBy: updated.mentorName,
+              notes: updated.purpose
+            }).where(eq(phoneStatus.studentId, studentId))
+          } else {
+            return db.insert(phoneStatus).values({
+              studentId,
+              status: "IN",
+              updatedBy: updated.mentorName,
+              notes: updated.purpose,
+              lastUpdated: new Date().toISOString()
+            })
+          }
+        }),
+      // Record phone history
+      db.insert(phoneHistory).values({
+        studentId,
+        status: "IN",
+        updatedBy: updated.mentorName,
+        notes: `PHONE PASS RETURNED: ${updated.purpose}`,
+      }),
+      // Log activity
+      updated.mentorId
+        ? db.insert(userActivityLogs).values({
+          userId: updated.mentorId,
+          action: "RETURN_SPECIAL_PASS",
+          details: `Special pass returned for student ${studentId}. Pass ID: ${grantId}`,
+        })
+        : Promise.resolve()
+    ]).catch(() => { })
+
+    return response
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to return special pass" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to return special pass" }, { status: 500 })
   }
 }

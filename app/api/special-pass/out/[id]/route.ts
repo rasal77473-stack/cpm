@@ -11,71 +11,58 @@ export async function POST(
     const { id } = await params
     const grantId = parseInt(id)
 
-    // Check if grant exists
-    const [grant] = await db
-      .select()
-      .from(specialPassGrants)
-      .where(eq(specialPassGrants.id, grantId))
-
-    if (!grant) {
-      return NextResponse.json({ error: "Special pass not found" }, { status: 404 })
-    }
-
-    // Update grant status to OUT
+    // Update grant status to OUT immediately (skip the SELECT check - UPDATE is idempotent)
     const [updated] = await db
       .update(specialPassGrants)
-      .set({
-        status: "OUT",
-      })
+      .set({ status: "OUT" })
       .where(eq(specialPassGrants.id, grantId))
       .returning()
 
-    // Sync main phone status to OUT (synchronous)
-    const studentId = grant.studentId
-    const [existingStatus] = await db
-      .select()
-      .from(phoneStatus)
-      .where(eq(phoneStatus.studentId, studentId))
-      .limit(1)
-
-    if (existingStatus) {
-      await db.update(phoneStatus)
-        .set({
-          status: "OUT",
-          lastUpdated: new Date().toISOString(),
-          updatedBy: grant.mentorName,
-          notes: grant.purpose
-        })
-        .where(eq(phoneStatus.studentId, studentId))
-    } else {
-      await db.insert(phoneStatus)
-        .values({
-          studentId,
-          status: "OUT",
-          updatedBy: grant.mentorName,
-          notes: grant.purpose,
-          lastUpdated: new Date().toISOString()
-        })
+    if (!updated) {
+      return NextResponse.json({ error: "Special pass not found" }, { status: 404 })
     }
 
-    // Log the action in background (fire and forget)
-    if (grant.mentorId) {
-      db.insert(userActivityLogs).values({
-        userId: grant.mentorId,
-        action: "OUT_SPECIAL_PASS",
-        details: `Student left with special pass. Student ID: ${grant.studentId}. Pass ID: ${grantId}`
-      }).catch(err => {})
-    }
-
-    return NextResponse.json({
+    // Return response IMMEDIATELY - do phone status sync in background
+    const response = NextResponse.json({
       success: true,
       message: "Special pass marked as OUT successfully",
-      data: {
-        id: updated.id,
-        status: updated.status,
-        timestamp: new Date().toISOString()
-      }
+      data: { id: updated.id, status: updated.status, timestamp: new Date().toISOString() }
     })
+
+    // Fire-and-forget: sync phone status + log activity in parallel
+    const studentId = updated.studentId
+    Promise.all([
+      // Upsert phone status
+      db.select().from(phoneStatus).where(eq(phoneStatus.studentId, studentId)).limit(1)
+        .then(([existing]) => {
+          if (existing) {
+            return db.update(phoneStatus).set({
+              status: "OUT",
+              lastUpdated: new Date().toISOString(),
+              updatedBy: updated.mentorName,
+              notes: updated.purpose
+            }).where(eq(phoneStatus.studentId, studentId))
+          } else {
+            return db.insert(phoneStatus).values({
+              studentId,
+              status: "OUT",
+              updatedBy: updated.mentorName,
+              notes: updated.purpose,
+              lastUpdated: new Date().toISOString()
+            })
+          }
+        }),
+      // Log activity
+      updated.mentorId
+        ? db.insert(userActivityLogs).values({
+          userId: updated.mentorId,
+          action: "OUT_SPECIAL_PASS",
+          details: `Student left with special pass. Student ID: ${studentId}. Pass ID: ${grantId}`
+        })
+        : Promise.resolve()
+    ]).catch(() => { })
+
+    return response
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to process OUT request"
     return NextResponse.json({ error: errorMessage }, { status: 500 })
