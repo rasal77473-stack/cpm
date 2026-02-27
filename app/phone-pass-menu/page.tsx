@@ -102,19 +102,25 @@ export default function PhonePassMenu() {
   ]
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen relative bg-[#fafafa] overflow-x-hidden font-sans pb-24 flex flex-col items-center">
+      {/* Subtle background element */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-5%] left-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-100/30 blur-[100px]" />
+        <div className="absolute bottom-[10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-teal-50/40 blur-[100px]" />
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white border-b px-4 py-4">
-        <div onClick={() => router.push("/dashboard")} className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity w-fit">
-          <Button variant="ghost" size="icon" asChild className="-ml-2 text-green-600 pointer-events-none">
+      <header className="w-full sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 sm:py-4">
+        <div onClick={() => router.push("/dashboard")} className="max-w-md mx-auto flex items-center gap-2 cursor-pointer group hover:opacity-80 transition-opacity w-fit">
+          <Button variant="ghost" size="icon" asChild className="-ml-2 text-gray-800 rounded-xl pointer-events-none">
             <div><ChevronLeft className="h-6 w-6" /></div>
           </Button>
-          <h1 className="text-2xl font-bold text-green-900 pointer-events-none">Phone Pass Menu</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 pointer-events-none">Phone Pass Menu</h1>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-md mx-auto px-6 py-6 pb-20">
+      <main className="relative z-10 w-full max-w-[420px] mx-auto px-6 py-8 pb-20">
         <div className="grid grid-cols-2 gap-4">
           {menuItems.map((item) => {
             if (!item.visible) return null
@@ -123,11 +129,13 @@ export default function PhonePassMenu() {
               <Link
                 key={item.label}
                 href={item.href}
-                className="block focus:outline-none"
+                className="block group"
               >
-                <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-all cursor-pointer border border-green-100 hover:border-green-300 hover:scale-105 h-full w-full">
-                  <Icon className="w-8 h-8 text-green-600" strokeWidth={1.5} />
-                  <span className="text-xs font-semibold text-gray-700 text-center leading-tight">{item.label}</span>
+                <div className="bg-white rounded-3xl p-6 aspect-square flex flex-col items-center justify-center gap-4 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-gray-100 hover:border-emerald-100 hover:shadow-[0_8px_30px_-4px_rgba(16,185,129,0.1)] active:scale-95 transition-all duration-300 h-full w-full">
+                  <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors duration-300">
+                    <Icon className="w-6 h-6 text-emerald-600" strokeWidth={2} />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-700 text-center leading-tight">{item.label}</span>
                 </div>
               </Link>
             )
