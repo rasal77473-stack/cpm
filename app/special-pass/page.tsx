@@ -330,6 +330,11 @@ function SpecialPassContent() {
       return
     }
 
+    // Ultra-smooth Optimistic UI Update
+    mutate("/api/special-pass/all", (current: any[] = []) => {
+      return current.map(p => p.id === passId ? { ...p, status: "OUT" } : p)
+    }, false)
+
     mutate("/api/phone-status", (current: any[] = []) => {
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
@@ -337,15 +342,18 @@ function SpecialPassContent() {
         : [...current, { studentId: pass.studentId, status: "OUT" }]
     }, false)
 
-    toast.success("Marked as OUT")
 
     try {
       const res = await fetch(`/api/special-pass/out/${passId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
 
+      toast.success("Marked as OUT")
+
+      // Background sync without killing the optimistic state
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
     } catch (e) {
+      // Revert on failure
       mutate("/api/phone-status")
       mutate("/api/special-pass/all")
       toast.error("Failed to update status")
@@ -355,9 +363,15 @@ function SpecialPassContent() {
   }
 
   const handleSubmitIn = async (passId: number) => {
+    setReturningPassId(passId)
     const pass = passes.find((p: any) => p.id === passId)
-    if (!pass) return
+    if (!pass) {
+      setReturningPassId(null)
+      toast.error("Pass not found")
+      return
+    }
 
+    // Ultra-smooth Optimistic UI Update
     mutate("/api/special-pass/all", (current: any[] = []) => {
       return current.map(p => p.id === passId ? { ...p, status: "COMPLETED", submissionTime: new Date().toISOString() } : p)
     }, false)
@@ -369,19 +383,20 @@ function SpecialPassContent() {
         : [...current, { studentId: pass.studentId, status: "IN" }]
     }, false)
 
-    toast.success("Pass Completed")
-
     try {
-      setReturningPassId(passId)
       const res = await fetch(`/api/special-pass/return/${passId}`, { method: "POST" })
       if (!res.ok) throw new Error("Failed")
 
+      toast.success("Pass Completed")
+
+      // Background sync without killing the optimistic state
       mutate("/api/special-pass/all")
       mutate("/api/phone-status")
     } catch (e) {
+      // Revert on failure
       mutate("/api/special-pass/all")
       mutate("/api/phone-status")
-      toast.error("Failed to complete pass")
+      toast.error("Failed to return pass")
     } finally {
       setReturningPassId(null)
     }
