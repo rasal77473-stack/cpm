@@ -513,7 +513,10 @@ function SpecialPassContent() {
               filteredStudents.map((s: any) => (
                 <div
                   key={s.id}
-                  onClick={() => router.push(`/admin/special-pass/grant/${s.id}`)}
+                  onClick={() => {
+                    sessionStorage.setItem(`student_${s.id}`, JSON.stringify(s))
+                    router.push(`/admin/special-pass/grant/${s.id}`)
+                  }}
                   className="flex items-center gap-4 p-3.5 rounded-[20px] bg-white border border-slate-100 hover:border-green-200 hover:shadow-md cursor-pointer transition-all active:scale-[0.98]"
                 >
                   <Avatar className="h-11 w-11 rounded-full border border-green-100 shadow-sm">

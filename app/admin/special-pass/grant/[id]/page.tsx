@@ -47,13 +47,38 @@ export default function GrantSpecialPassPage() {
     setMentorId(id)
   }, [router])
 
-  // Fetch student details when studentId changes
+  // Fetch student details - try sessionStorage first for instant load
   useEffect(() => {
     if (!studentId) {
       setLoading(false)
       return
     }
 
+    // Try sessionStorage first (instant - set by the previous page)
+    const cached = sessionStorage.getItem(`student_${studentId}`)
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached)
+        // Transform snake_case keys from the list API to camelCase
+        setStudent({
+          id: parsed.id,
+          name: parsed.name,
+          admissionNumber: parsed.admissionNumber || parsed.admission_number,
+          lockerNumber: parsed.lockerNumber || parsed.locker_number,
+          phoneNumber: parsed.phoneNumber || parsed.phone_number,
+          phoneName: parsed.phoneName || parsed.phone_name,
+          className: parsed.className || parsed.class_name,
+          rollNo: parsed.rollNo || parsed.roll_no,
+          specialPass: parsed.specialPass || parsed.special_pass,
+        })
+        setLoading(false)
+        return
+      } catch (e) {
+        // If parsing fails, fall through to API
+      }
+    }
+
+    // Fallback: fetch from API
     const fetchStudent = async () => {
       try {
         const res = await fetch(`/api/students/${studentId}`)
