@@ -94,7 +94,7 @@ export default function PhonePassMenu() {
     },
     {
       icon: PhoneOff,
-      label: "Nill",
+      label: "Non Active",
       color: "text-green-600",
       href: "/special-pass?tab=nill",
       visible: role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.length === 0,

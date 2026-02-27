@@ -618,7 +618,7 @@ function SpecialPassContent() {
             <StatCard title="All Students" subtitle="" count={stats.allStudents} param="all-students" />
           </div>
           <div className="snap-start shrink-0 flex-1 min-w-[100px]">
-            <StatCard title="Nill" subtitle="" count={stats.nillCount} param="nill" />
+            <StatCard title="Non Active" subtitle="" count={stats.nillCount} param="nill" />
           </div>
         </div>
 
