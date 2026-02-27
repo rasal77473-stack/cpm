@@ -128,13 +128,9 @@ export default function GrantSpecialPassPage() {
       return
     }
 
-    setSubmitting(true)
-
-    // Validate mentorId is a valid positive number
     const parsedMentorId = parseInt(mentorId)
     if (isNaN(parsedMentorId) || parsedMentorId <= 0) {
       toast.error("Invalid staff ID. Please login again.")
-      setSubmitting(false)
       router.push("/login")
       return
     }
@@ -145,41 +141,27 @@ export default function GrantSpecialPassPage() {
       mentorName: mentorName || "Staff",
       purpose: purpose.trim(),
       staffId: parsedMentorId,
-      expectedReturnDate: expectedReturnDate,
-      expectedReturnTime: expectedReturnTime,
+      expectedReturnDate,
+      expectedReturnTime,
     }
 
-    try {
-      const res = await fetch("/api/special-pass/grant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+    // INSTANT: Show success and redirect immediately
+    toast.success("Phone pass granted!")
+    router.push("/special-pass")
 
-      console.log("📥 Response Status:", res.status)
-      console.log("📥 Response Headers:", res.headers)
-
-      let data: any
-      try {
-        data = await res.json()
-      } catch (e) {
-        data = { error: "Invalid response from server" }
-      }
-
+    // Fire API in background - errors will show as toast on the next page
+    fetch("/api/special-pass/grant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(async (res) => {
       if (!res.ok) {
-        const errorMsg = data?.details || data?.error || `Server error: ${res.status}`
-        throw new Error(errorMsg)
+        const data = await res.json().catch(() => ({}))
+        toast.error(data?.error || data?.details || "Grant failed - please try again")
       }
-
-      toast.success("Special pass granted successfully!")
-      // Redirect to phone pass page immediately
-      router.push("/special-pass")
-    } catch (error: any) {
-      const errorMessage = error?.message || "Failed to grant special pass"
-      toast.error(errorMessage)
-    } finally {
-      setSubmitting(false)
-    }
+    }).catch(() => {
+      toast.error("Network error - please check and try again")
+    })
   }
 
   if (loading) {
