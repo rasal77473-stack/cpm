@@ -12,7 +12,8 @@ import {
   History,
   ArrowRightCircle,
   ChevronLeft,
-  Loader2
+  Loader2,
+  PhoneOff
 } from "lucide-react"
 
 export default function PhonePassMenu() {
@@ -20,7 +21,6 @@ export default function PhonePassMenu() {
   const [permissions, setPermissions] = useState<string[]>([])
   const [role, setRole] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
-  const [loadingHref, setLoadingHref] = useState<string | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -37,11 +37,6 @@ export default function PhonePassMenu() {
     setRole(role || "")
   }, [router])
 
-  const handleNavigation = (href: string) => {
-    setLoadingHref(href)
-    // Push navigation immediately (non-blocking)
-    router.push(href)
-  }
 
   if (!isAuthorized) {
     return (
@@ -97,16 +92,25 @@ export default function PhonePassMenu() {
       href: "/admin/settings",
       visible: role === "admin",
     },
+    {
+      icon: PhoneOff,
+      label: "Nill",
+      color: "text-green-600",
+      href: "/special-pass?tab=nill",
+      visible: role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.length === 0,
+    }
   ]
 
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white border-b px-4 py-4 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 text-green-600">
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-2xl font-bold text-green-900">Phone Pass Menu</h1>
+      <header className="sticky top-0 z-10 bg-white border-b px-4 py-4">
+        <div onClick={() => router.push("/dashboard")} className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity w-fit">
+          <Button variant="ghost" size="icon" asChild className="-ml-2 text-green-600 pointer-events-none">
+            <div><ChevronLeft className="h-6 w-6" /></div>
+          </Button>
+          <h1 className="text-2xl font-bold text-green-900 pointer-events-none">Phone Pass Menu</h1>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -115,25 +119,17 @@ export default function PhonePassMenu() {
           {menuItems.map((item) => {
             if (!item.visible) return null
             const Icon = item.icon
-            const isLoading = loadingHref === item.href
             return (
-              <button
+              <Link
                 key={item.label}
-                onClick={() => handleNavigation(item.href)}
-                disabled={loadingHref !== null}
+                href={item.href}
                 className="block focus:outline-none"
               >
-                <div className={`bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-all cursor-pointer border border-green-100 hover:border-green-300 h-full w-full ${
-                  isLoading ? "opacity-60 scale-95" : "hover:scale-105"
-                } ${loadingHref !== null && !isLoading ? "opacity-40" : ""}`}>
-                  {isLoading ? (
-                    <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
-                  ) : (
-                    <Icon className={`w-8 h-8 text-green-600`} strokeWidth={1.5} />
-                  )}
+                <div className="bg-white rounded-3xl p-4 aspect-square flex flex-col items-center justify-center gap-3 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] active:scale-95 transition-all cursor-pointer border border-green-100 hover:border-green-300 hover:scale-105 h-full w-full">
+                  <Icon className="w-8 h-8 text-green-600" strokeWidth={1.5} />
                   <span className="text-xs font-semibold text-gray-700 text-center leading-tight">{item.label}</span>
                 </div>
-              </button>
+              </Link>
             )
           })}
         </div>

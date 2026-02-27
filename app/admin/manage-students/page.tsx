@@ -408,24 +408,27 @@ export default function ManageStudents() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div
+            className="flex items-center gap-3 w-full sm:w-auto cursor-pointer group hover:opacity-80 transition-opacity"
+            onClick={() => {
+              const role = localStorage.getItem("role")
+              const specialPass = localStorage.getItem("special_pass")
+              if (role === "admin" || specialPass === "YES") {
+                router.push("/admin")
+              } else {
+                router.push("/dashboard")
+              }
+            }}
+          >
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                const role = localStorage.getItem("role")
-                const specialPass = localStorage.getItem("special_pass")
-                if (role === "admin" || specialPass === "YES") {
-                  router.push("/admin")
-                } else {
-                  router.push("/dashboard")
-                }
-              }}
-              className="rounded-xl shrink-0 hover:bg-slate-100"
+              asChild
+              className="rounded-xl shrink-0 group-hover:bg-slate-100 pointer-events-none"
             >
-              <ChevronLeft className="w-5 h-5 text-slate-700" />
+              <div><ChevronLeft className="w-5 h-5 text-slate-700" /></div>
             </Button>
-            <div className="min-w-0">
+            <div className="min-w-0 pointer-events-none">
               <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">
                 Manage Students
               </h1>
@@ -713,15 +716,30 @@ export default function ManageStudents() {
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Phone Name</label>
-              <Input
-                placeholder="Phone model or 'Nill'"
-                value={newStudent.phone_name}
-                onChange={(e) => setNewStudent({ ...newStudent, phone_name: e.target.value })}
-                className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+            <div className="flex items-center space-x-3 p-3 bg-slate-50 border border-slate-200 rounded-xl mt-2">
+              <input
+                type="checkbox"
+                id="phone_active"
+                checked={!(!newStudent.phone_name || newStudent.phone_name.toLowerCase() === "nill" || newStudent.phone_name.toLowerCase() === "nil" || newStudent.phone_name.toLowerCase() === "none")}
+                onChange={(e) => setNewStudent({ ...newStudent, phone_name: e.target.checked ? "" : "NIL" })}
+                className="w-5 h-5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
               />
+              <label htmlFor="phone_active" className="text-sm font-bold text-slate-700 cursor-pointer">
+                Phone Active <span className="text-xs font-medium text-slate-400 block">(Checked if student has a registered phone)</span>
+              </label>
             </div>
+
+            {!(!newStudent.phone_name || newStudent.phone_name.toLowerCase() === "nill" || newStudent.phone_name.toLowerCase() === "nil" || newStudent.phone_name.toLowerCase() === "none") && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Phone Name</label>
+                <Input
+                  placeholder="Phone model"
+                  value={newStudent.phone_name === "NIL" ? "" : newStudent.phone_name}
+                  onChange={(e) => setNewStudent({ ...newStudent, phone_name: e.target.value })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase text-slate-500 ml-1">Class</label>

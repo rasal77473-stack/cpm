@@ -32,13 +32,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import Link from "next/link"
 import { format } from "date-fns"
+import { useSearchParams } from "next/navigation"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 function SpecialPassContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialTab = (searchParams.get("tab") as any) || "phone-pass"
+
   const [searchQuery, setSearchQuery] = useState("")
   const [startDate, setStartDate] = useState<string>("")
   const [endDate, setEndDate] = useState<string>("")
@@ -47,7 +58,7 @@ function SpecialPassContent() {
   const [returningPassId, setReturningPassId] = useState<number | null>(null)
   const [showStudentList, setShowStudentList] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
-  const [activeTab, setActiveTab] = useState<"phone-pass" | "phone-in" | "phone-out" | "all-students">("phone-pass")
+  const [activeTab, setActiveTab] = useState<"phone-pass" | "phone-in" | "phone-out" | "all-students" | "nill">(initialTab)
 
   const [studentSearchQuery, setStudentSearchQuery] = useState("")
   const [selectedClass, setSelectedClass] = useState("all")
@@ -55,6 +66,9 @@ function SpecialPassContent() {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const debouncedStudentSearchQuery = useDebounce(studentSearchQuery, 300)
+
+  const [activatingStudent, setActivatingStudent] = useState<any>(null)
+  const [activatePhoneModel, setActivatePhoneModel] = useState("")
 
   const [canGrantPass, setCanGrantPass] = useState(false)
   const [canViewLogs, setCanViewLogs] = useState(false)
@@ -92,8 +106,14 @@ function SpecialPassContent() {
     if (Array.isArray(phoneStatusData)) {
       phoneStatusData.forEach((s: any) => map.set(s.studentId, s.status))
     }
+    // Override with passes data to ensure sync: any active pass means OUT
+    passes.forEach((p: any) => {
+      if (p.status !== "COMPLETED") {
+        map.set(p.studentId, "OUT")
+      }
+    })
     return map
-  }, [phoneStatusData])
+  }, [phoneStatusData, passes])
 
   const duplicatePassesPerStudent = useMemo(() => {
     const duplicates = new Map<number, any[]>()
@@ -119,16 +139,27 @@ function SpecialPassContent() {
 
   const stats = useMemo(() => {
     const totalPasses = passes.length
-    const totalStudents = students.length
 
-    const outCount = students.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length
-    const inCount = students.length - outCount
+    // Filter out students who don't have a phone registered
+    const studentsWithPhones = students.filter((s: any) => {
+      const hasNoPhone = !s.phone_name ||
+        s.phone_name?.toLowerCase?.() === "nill" ||
+        s.phone_name?.toLowerCase?.() === "nil" ||
+        s.phone_name?.toLowerCase?.() === "none"
+      return !hasNoPhone
+    })
+
+    const totalStudents = studentsWithPhones.length
+    const outCount = studentsWithPhones.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length
+    const inCount = totalStudents - outCount
+    const nillCount = students.length - totalStudents
 
     return {
       allStudents: totalStudents,
       phonePass: totalPasses,
       phoneIn: inCount,
-      phoneOut: outCount
+      phoneOut: outCount,
+      nillCount: nillCount
     }
   }, [passes, students, phoneStatusMap])
 
@@ -175,6 +206,10 @@ function SpecialPassContent() {
           s.phone_name?.toLowerCase?.() === "nill" ||
           s.phone_name?.toLowerCase?.() === "nil" ||
           s.phone_name?.toLowerCase?.() === "none"
+
+        // Find their active phone pass if they have one
+        const activePass = passes.find((p: any) => p.studentId === s.id && p.status !== "COMPLETED")
+
         return {
           id: `student-${s.id}`,
           originalId: s.id,
@@ -186,9 +221,9 @@ function SpecialPassContent() {
           rollNo: s.roll_no,
           phoneNumber: s.phone_name || s.phone_number || "Not Registered",
           status: currentStatus,
-          issueTime: null,
-          returnTime: null,
-          purpose: "Registered Student",
+          issueTime: activePass ? activePass.issueTime : null,
+          returnTime: activePass ? activePass.returnTime : null,
+          purpose: activePass ? activePass.purpose : "Registered Student",
           hasNoPhone: hasNoPhone
         }
       })
@@ -197,6 +232,10 @@ function SpecialPassContent() {
         studentList = studentList.filter((s: any) => s.status === "OUT" && !s.hasNoPhone)
       } else if (activeTab === "phone-in") {
         studentList = studentList.filter((s: any) => s.status === "IN" && !s.hasNoPhone)
+      } else if (activeTab === "all-students") {
+        studentList = studentList.filter((s: any) => !s.hasNoPhone)
+      } else if (activeTab === "nill") {
+        studentList = studentList.filter((s: any) => s.hasNoPhone)
       }
 
       if (debouncedSearchQuery.trim()) {
@@ -323,6 +362,21 @@ function SpecialPassContent() {
     }
   }
 
+  const handleActivatePhone = async (studentId: number, phoneName: string) => {
+    try {
+      const res = await fetch(`/api/students`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: studentId, phone_name: phoneName })
+      })
+      if (!res.ok) throw new Error("Failed to activate phone")
+      toast.success("Phone activated successfully")
+      mutate("/api/students")
+    } catch (e) {
+      toast.error("Failed to activate phone")
+    }
+  }
+
   const StatCard = ({
     title,
     subtitle,
@@ -332,7 +386,7 @@ function SpecialPassContent() {
     title: string,
     subtitle: string,
     count: number,
-    param: "phone-pass" | "phone-in" | "phone-out" | "all-students"
+    param: "phone-pass" | "phone-in" | "phone-out" | "all-students" | "nill"
   }) => {
     const isActive = activeTab === param
     return (
@@ -446,11 +500,11 @@ function SpecialPassContent() {
   return (
     <div className="min-h-screen bg-white pb-20 md:pb-8 font-sans">
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3 sm:py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/phone-pass-menu")} className="-ml-2 hover:bg-gray-50 text-gray-800 rounded-xl">
-            <ChevronLeft className="h-6 w-6" />
+        <div onClick={() => router.push("/phone-pass-menu")} className="flex items-center gap-2 cursor-pointer group hover:opacity-80 transition-opacity">
+          <Button variant="ghost" size="icon" asChild className="-ml-2 text-gray-800 rounded-xl pointer-events-none">
+            <div><ChevronLeft className="h-6 w-6" /></div>
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Phone Pass</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 pointer-events-none">Phone Pass</h1>
         </div>
         <div className="flex items-center gap-2.5">
           {canGrantPass && (
@@ -538,6 +592,9 @@ function SpecialPassContent() {
           <div className="snap-start shrink-0 flex-1 min-w-[100px]">
             <StatCard title="All Students" subtitle="" count={stats.allStudents} param="all-students" />
           </div>
+          <div className="snap-start shrink-0 flex-1 min-w-[100px]">
+            <StatCard title="Nill" subtitle="" count={stats.nillCount} param="nill" />
+          </div>
         </div>
 
         <div className="h-px bg-gray-200 w-full rounded-full"></div>
@@ -596,10 +653,11 @@ function SpecialPassContent() {
           ) : filteredList.map((item: any) => {
             const isStudent = item.type === "student"
             const currentStatus = item.status || "IN"
-            const isOut = currentStatus === "OUT"
             const isActive = currentStatus === "ACTIVE"
+            const isOut = currentStatus === "OUT" || isActive
             const isCompleted = currentStatus === "COMPLETED"
-            const isNotIssued = isStudent && !item.issueTime
+            // If they are a student, they are "not issued" only if they don't have an active pass (so their status is IN)
+            const isNotIssued = isStudent && (!item.issueTime || currentStatus === "IN")
 
             let displayTime = "-"
             if (item.issueTime) {
@@ -679,7 +737,7 @@ function SpecialPassContent() {
                   </div>
                 )}
 
-                {isStudent && canGrantPass && (
+                {isStudent && canGrantPass && !item.hasNoPhone && (
                   <div className="flex gap-3 mt-6 pt-2 justify-end">
                     {isOut ? (
                       <Button
@@ -707,11 +765,67 @@ function SpecialPassContent() {
                     )}
                   </div>
                 )}
+                {isStudent && canGrantPass && item.hasNoPhone && activeTab === "nill" && (
+                  <div className="flex gap-3 mt-6 pt-2 justify-end">
+                    <Button
+                      onClick={() => {
+                        setActivatingStudent(item)
+                        setActivatePhoneModel("")
+                      }}
+                      className="px-6 py-2.5 h-auto rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
+                    >
+                      Activate Phone
+                    </Button>
+                  </div>
+                )}
               </div>
             )
           })}
         </div>
       </main>
+
+      {/* Activate Phone Modal */}
+      <Dialog open={!!activatingStudent} onOpenChange={(open) => !open && setActivatingStudent(null)}>
+        <DialogContent className="sm:max-w-md rounded-3xl border-slate-200 p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold text-slate-900">Activate Phone</DialogTitle>
+            <DialogDescription className="text-slate-500 font-medium">
+              Enter phone model for {activatingStudent?.studentName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Phone Model</label>
+              <Input
+                placeholder="e.g. iPhone 13"
+                value={activatePhoneModel}
+                onChange={(e) => setActivatePhoneModel(e.target.value)}
+                className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3 pt-4 border-t border-slate-100 mt-6">
+              <Button onClick={() => setActivatingStudent(null)} variant="outline" className="flex-1 h-11 rounded-xl font-bold bg-white hover:bg-slate-50 border-slate-200 shadow-none transition-colors">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const phone = activatePhoneModel.trim()
+                  if (phone && phone.toLowerCase() !== "nil" && phone.toLowerCase() !== "nill") {
+                    handleActivatePhone(activatingStudent.originalId, phone)
+                    setActivatingStudent(null)
+                  } else {
+                    toast.error("Invalid phone name. Must not be empty or Nil.")
+                  }
+                }}
+                className="flex-1 h-11 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-none transition-colors"
+              >
+                Activate
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
