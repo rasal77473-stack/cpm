@@ -143,8 +143,6 @@ function SpecialPassContent() {
   }, [passes])
 
   const stats = useMemo(() => {
-    const totalPasses = passes.length
-
     // Filter out students who don't have a phone registered
     const studentsWithPhones = students.filter((s: any) => {
       const hasNoPhone = !s.phone_name ||
@@ -159,9 +157,20 @@ function SpecialPassContent() {
     const inCount = totalStudents - outCount
     const nillCount = students.length - totalStudents
 
+    // Number of passes belonging to students with phones
+    const validPasses = passes.filter((p: any) => {
+      const student = students.find((s: any) => s.id === p.studentId)
+      if (!student) return true;
+      const hasNoPhone = !student.phone_name ||
+        student.phone_name?.toLowerCase?.() === "nill" ||
+        student.phone_name?.toLowerCase?.() === "nil" ||
+        student.phone_name?.toLowerCase?.() === "none"
+      return !hasNoPhone
+    })
+
     return {
       allStudents: totalStudents,
-      phonePass: totalPasses,
+      phonePass: validPasses.length,
       phoneIn: inCount,
       phoneOut: outCount,
       nillCount: nillCount
@@ -172,7 +181,18 @@ function SpecialPassContent() {
     let list: any[] = []
 
     if (activeTab === "phone-pass") {
-      list = passes.map((p: any) => ({ ...p, type: "pass", originalId: p.id }))
+      // Filter out passes belonging to nill students 
+      const validPasses = passes.filter((p: any) => {
+        const student = students.find((s: any) => s.id === p.studentId)
+        if (!student) return true;
+        const hasNoPhone = !student.phone_name ||
+          student.phone_name?.toLowerCase?.() === "nill" ||
+          student.phone_name?.toLowerCase?.() === "nil" ||
+          student.phone_name?.toLowerCase?.() === "none"
+        return !hasNoPhone
+      })
+
+      list = validPasses.map((p: any) => ({ ...p, type: "pass", originalId: p.id }))
 
       if (startDate || endDate) {
         list = list.filter((p: any) => {

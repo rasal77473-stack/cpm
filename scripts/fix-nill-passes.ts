@@ -5,10 +5,11 @@ import { eq, and, inArray } from "drizzle-orm"
 async function run() {
     console.log("Checking for active phone passes on students with no registered phone...")
 
-    // 1. Get all students with "no phone"
+    // 1. Get all students with "no phone" using the correct property 'phoneName'
     const allStudents = await db.select().from(students)
     const nillStudents = allStudents.filter((s) => {
-        const p = s.phone_name?.toLowerCase() || ""
+        // IMPORTANT: the student object has 'phoneName' not 'phone_name' from the JS side
+        const p = s.phoneName?.toLowerCase() || ""
         return !p || p === "nill" || p === "nil" || p === "none"
     })
 
@@ -34,7 +35,7 @@ async function run() {
 
     const phonePasses = invalidPasses.filter((p) => p.purpose?.startsWith("PHONE:"))
 
-    console.log(`Found ${phonePasses.length} invalid active phone passes for nill students.`)
+    console.log(`Found ${phonePasses.length} invalid active phone passes for actual nill students.`)
 
     if (phonePasses.length === 0) {
         console.log("All clean! No invalid passes found.")
@@ -63,7 +64,7 @@ async function run() {
             .where(eq(phoneStatus.studentId, pass.studentId))
     }
 
-    console.log("Successfully fixed all invalid passes.")
+    console.log("Successfully fixed all invalid passes.");
 }
 
 run()
