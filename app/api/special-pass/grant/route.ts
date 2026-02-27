@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       })
       .returning()
 
-    // Initialize or update phone status to OUT (phone is now with student/staff via pass)
+    // Initialize or update phone status to ACTIVE (pass issued, phone not yet picked up)
     const [existingStatus] = await db
       .select()
       .from(phoneStatus)
@@ -75,13 +75,13 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (existingStatus) {
-      // Update existing status to OUT
+      // Update existing status to ACTIVE
       await db.update(phoneStatus)
         .set({
-          status: "OUT",
+          status: "ACTIVE",
           lastUpdated: new Date().toISOString(),
           updatedBy: mentorName,
-          notes: `PHONE PASS: ${purpose}`,
+          notes: `PHONE PASS ISSUED: ${purpose}`,
         })
         .where(eq(phoneStatus.studentId, Number(studentId)))
     } else {
@@ -89,19 +89,19 @@ export async function POST(request: NextRequest) {
       await db.insert(phoneStatus)
         .values({
           studentId: Number(studentId),
-          status: "OUT",
+          status: "ACTIVE",
           updatedBy: mentorName,
-          notes: `PHONE PASS: ${purpose}`,
+          notes: `PHONE PASS ISSUED: ${purpose}`,
           lastUpdated: new Date().toISOString(),
         })
     }
 
-    // Record to phone history - mark as OUT (phone is with staff)
+    // Record to phone history - mark as ACTIVE (pass issued)
     await db.insert(phoneHistory).values({
       studentId: Number(studentId),
-      status: "OUT",
+      status: "ACTIVE",
       updatedBy: mentorName,
-      notes: `PHONE PASS: ${purpose}`,
+      notes: `PHONE PASS ISSUED: ${purpose}`,
     })
 
     // Update student's special_pass status to "YES"

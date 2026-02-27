@@ -106,10 +106,15 @@ function SpecialPassContent() {
     if (Array.isArray(phoneStatusData)) {
       phoneStatusData.forEach((s: any) => map.set(s.studentId, s.status))
     }
-    // Override with passes data to ensure sync: any active pass means OUT
+    // Override with passes data to ensure sync
     passes.forEach((p: any) => {
-      if (p.status !== "COMPLETED") {
+      if (p.status === "OUT") {
         map.set(p.studentId, "OUT")
+      } else if (p.status === "ACTIVE" || p.status === "PENDING") {
+        // Only set ACTIVE if not already OUT
+        if (map.get(p.studentId) !== "OUT") {
+          map.set(p.studentId, "ACTIVE")
+        }
       }
     })
     return map
@@ -150,7 +155,7 @@ function SpecialPassContent() {
     })
 
     const totalStudents = studentsWithPhones.length
-    const outCount = studentsWithPhones.filter((s: any) => phoneStatusMap.get(s.id) === "OUT").length
+    const outCount = studentsWithPhones.filter((s: any) => phoneStatusMap.get(s.id) === "OUT" || phoneStatusMap.get(s.id) === "ACTIVE").length
     const inCount = totalStudents - outCount
     const nillCount = students.length - totalStudents
 
@@ -229,7 +234,7 @@ function SpecialPassContent() {
       })
 
       if (activeTab === "phone-out") {
-        studentList = studentList.filter((s: any) => s.status === "OUT" && !s.hasNoPhone)
+        studentList = studentList.filter((s: any) => (s.status === "OUT" || s.status === "ACTIVE") && !s.hasNoPhone)
       } else if (activeTab === "phone-in") {
         studentList = studentList.filter((s: any) => s.status === "IN" && !s.hasNoPhone)
       } else if (activeTab === "all-students") {
@@ -654,9 +659,9 @@ function SpecialPassContent() {
             const isStudent = item.type === "student"
             const currentStatus = item.status || "IN"
             const isActive = currentStatus === "ACTIVE"
-            const isOut = currentStatus === "OUT" || isActive
+            const isOut = currentStatus === "OUT"
             const isCompleted = currentStatus === "COMPLETED"
-            // If they are a student, they are "not issued" only if they don't have an active pass (so their status is IN)
+            // If they are a student, they are "not issued" only if they don't have an active pass (status is IN)
             const isNotIssued = isStudent && (!item.issueTime || currentStatus === "IN")
 
             let displayTime = "-"
@@ -679,9 +684,10 @@ function SpecialPassContent() {
                   <h3 className="font-bold text-[#0ca643] text-lg uppercase tracking-tight pr-4">{item.studentName}</h3>
                   <div className={`px-3 py-0.5 rounded-full border text-xs font-semibold lowercase
                        ${isNotIssued ? 'border-orange-500 text-orange-500' :
-                      (!isCompleted && isOut ? 'border-red-500 text-red-500' :
-                        (isCompleted ? 'border-gray-300 text-gray-500' : 'border-gray-400 text-gray-600'))}`}>
-                    {isNotIssued ? "not issued" : (isStudent ? (isOut ? "out" : "in") : (isCompleted ? "returned" : (isOut ? "out" : "active")))}
+                      (isActive ? 'border-amber-500 text-amber-500' :
+                        (isOut ? 'border-red-500 text-red-500' :
+                          (isCompleted ? 'border-gray-300 text-gray-500' : 'border-gray-400 text-gray-600')))}`}>
+                    {isNotIssued ? "not issued" : (isStudent ? (isOut ? "out" : (isActive ? "active" : "in")) : (isCompleted ? "returned" : (isOut ? "out" : (isActive ? "active" : "active"))))}
                   </div>
                 </div>
 
@@ -723,8 +729,8 @@ function SpecialPassContent() {
                   <div className="flex justify-end items-center gap-3 mt-6 pt-2">
                     <div className="flex gap-3">
                       <div className={`px-6 py-2.5 rounded-full border-2 font-bold text-sm uppercase tracking-wide
-                             ${isOut ? 'border-red-400 text-red-500' : 'border-green-400 text-green-600'}`}>
-                        {isOut ? "OUT" : "IN"}
+                             ${isOut ? 'border-red-400 text-red-500' : (isActive ? 'border-amber-400 text-amber-500' : 'border-green-400 text-green-600')}`}>
+                        {isOut ? "OUT" : (isActive ? "ACTIVE" : "IN")}
                       </div>
                       <Button
                         onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
@@ -754,6 +760,21 @@ function SpecialPassContent() {
                         className="px-6 py-2.5 h-auto rounded-full bg-white border-2 border-green-400 text-green-600 hover:bg-green-50 font-bold text-sm shadow-none transition-transform active:scale-95"
                       >
                         Submit In
+                      </Button>
+                    ) : isActive ? (
+                      <Button
+                        onClick={() => {
+                          const activePass = passes.find((p: any) => p.studentId === item.originalId && (p.status === 'ACTIVE' || p.status === 'PENDING'));
+                          if (activePass) {
+                            handleSubmitOut(activePass.id);
+                          } else {
+                            toast.error("Active pass record not found");
+                          }
+                        }}
+                        disabled={returningPassId === item.originalId}
+                        className="px-6 py-2.5 h-auto rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
+                      >
+                        Submit Out
                       </Button>
                     ) : (
                       <Button
