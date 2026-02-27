@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate mentorId is a positive number
     const validMentorId = parseInt(mentorId)
     if (isNaN(validMentorId) || validMentorId <= 0) {
       return NextResponse.json(
@@ -25,13 +24,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Fetch student to check phone status
-    const [student] = await db
-      .select()
-      .from(students)
-      .where(eq(students.id, Number(studentId)))
-      .limit(1)
+    const sid = Number(studentId)
 
+    // Run both validation queries IN PARALLEL instead of sequentially
+    const [studentResult, existingPhonePasses] = await Promise.all([
+      db.select().from(students).where(eq(students.id, sid)).limit(1),
+      db.select().from(specialPassGrants).where(
+        and(
+          eq(specialPassGrants.studentId, sid),
+          inArray(specialPassGrants.status, ["ACTIVE", "OUT", "PENDING"])
+        )
+      )
+    ])
+
+    const student = studentResult[0]
     if (!student) {
       return NextResponse.json({ error: "Student not found." }, { status: 404 })
     }
@@ -48,38 +54,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if student already has an active PHONE pass (not GATE)
-    // Only 1 PHONE pass per student at a time - strictly enforce
-    const existingPhonePasses = await db
-      .select()
-      .from(specialPassGrants)
-      .where(
-        and(
-          eq(specialPassGrants.studentId, Number(studentId)),
-          inArray(specialPassGrants.status, ["ACTIVE", "OUT", "PENDING"])
-        )
-      )
-
-    // Filter for PHONE passes only
     const activePhonePasses = existingPhonePasses.filter((p: any) => p.purpose?.startsWith("PHONE:"))
-
     if (activePhonePasses.length > 0) {
       return NextResponse.json(
-        { error: `Student already has an active PHONE pass (Status: ${activePhonePasses[0].status}). Only 1 phone pass allowed per student at a time. Please return it first.` },
+        { error: `Student already has an active PHONE pass (Status: ${activePhonePasses[0].status}). Only 1 phone pass allowed per student at a time.` },
         { status: 400 }
       )
     }
 
-    // Create new special pass grant
-    // Subtract 5:30 hours (330 minutes) from issueTime for IST to UTC conversion
-    const issueTime = new Date();
-    issueTime.setMinutes(issueTime.getMinutes() - 330); // 330 minutes = 5 hours 30 minutes
+    // Create the pass - this is the critical operation
+    const issueTime = new Date()
+    issueTime.setMinutes(issueTime.getMinutes() - 330)
 
     const [newGrant] = await db
       .insert(specialPassGrants)
       .values({
-        studentId: Number(studentId),
-        mentorId: validMentorId, // Use validated mentorId
+        studentId: sid,
+        mentorId: validMentorId,
         mentorName,
         purpose: `PHONE: ${purpose}`,
         issueTime: issueTime.toISOString(),
@@ -90,73 +81,58 @@ export async function POST(request: NextRequest) {
       })
       .returning()
 
-    // Initialize or update phone status to ACTIVE (pass issued, phone not yet picked up)
-    const [existingStatus] = await db
-      .select()
-      .from(phoneStatus)
-      .where(eq(phoneStatus.studentId, Number(studentId)))
-      .limit(1)
-
-    if (existingStatus) {
-      // Update existing status to ACTIVE
-      await db.update(phoneStatus)
-        .set({
-          status: "ACTIVE",
-          lastUpdated: new Date().toISOString(),
-          updatedBy: mentorName,
-          notes: `PHONE PASS ISSUED: ${purpose}`,
-        })
-        .where(eq(phoneStatus.studentId, Number(studentId)))
-    } else {
-      // Create new phone status record
-      await db.insert(phoneStatus)
-        .values({
-          studentId: Number(studentId),
-          status: "ACTIVE",
-          updatedBy: mentorName,
-          notes: `PHONE PASS ISSUED: ${purpose}`,
-          lastUpdated: new Date().toISOString(),
-        })
-    }
-
-    // Record to phone history - mark as ACTIVE (pass issued)
-    await db.insert(phoneHistory).values({
-      studentId: Number(studentId),
-      status: "ACTIVE",
-      updatedBy: mentorName,
-      notes: `PHONE PASS ISSUED: ${purpose}`,
-    })
-
-    // Update student's special_pass status to "YES"
-    await db
-      .update(students)
-      .set({ specialPass: "YES" })
-      .where(eq(students.id, Number(studentId)))
-
-    // Log the activity
-    if (staffId) {
-      const validStaffId = parseInt(staffId)
-      if (!isNaN(validStaffId) && validStaffId > 0) {
-        await db.insert(userActivityLogs).values({
-          userId: validStaffId,
-          action: "GRANT_SPECIAL_PASS",
-          details: `Granted special pass to student ${studentId}. Purpose: ${purpose}`,
-        })
-      }
-    }
-
-    return NextResponse.json(
+    // Return response IMMEDIATELY after insert
+    const response = NextResponse.json(
       { success: true, message: "Special pass granted successfully", data: newGrant },
       { status: 201 }
     )
+
+    // Fire-and-forget: all secondary operations in parallel background
+    Promise.all([
+      // Phone status upsert
+      db.select().from(phoneStatus).where(eq(phoneStatus.studentId, sid)).limit(1)
+        .then(([existing]) => {
+          if (existing) {
+            return db.update(phoneStatus).set({
+              status: "ACTIVE",
+              lastUpdated: new Date().toISOString(),
+              updatedBy: mentorName,
+              notes: `PHONE PASS ISSUED: ${purpose}`,
+            }).where(eq(phoneStatus.studentId, sid))
+          } else {
+            return db.insert(phoneStatus).values({
+              studentId: sid,
+              status: "ACTIVE",
+              updatedBy: mentorName,
+              notes: `PHONE PASS ISSUED: ${purpose}`,
+              lastUpdated: new Date().toISOString(),
+            })
+          }
+        }),
+      // Phone history
+      db.insert(phoneHistory).values({
+        studentId: sid,
+        status: "ACTIVE",
+        updatedBy: mentorName,
+        notes: `PHONE PASS ISSUED: ${purpose}`,
+      }),
+      // Update student special_pass
+      db.update(students).set({ specialPass: "YES" }).where(eq(students.id, sid)),
+      // Activity log
+      staffId && parseInt(staffId) > 0
+        ? db.insert(userActivityLogs).values({
+          userId: parseInt(staffId),
+          action: "GRANT_SPECIAL_PASS",
+          details: `Granted special pass to student ${studentId}. Purpose: ${purpose}`,
+        })
+        : Promise.resolve()
+    ]).catch(() => { })
+
+    return response
   } catch (error) {
     const errorDetails = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      {
-        error: "Failed to grant special pass",
-        details: errorDetails,
-        timestamp: new Date().toISOString()
-      },
+      { error: "Failed to grant special pass", details: errorDetails },
       { status: 500 }
     )
   }
