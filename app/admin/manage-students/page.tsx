@@ -636,7 +636,7 @@ export default function ManageStudents() {
                             <div className="mt-1 flex gap-1.5 flex-wrap">
                               {student.class_name && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-semibold">{student.class_name}</span>}
                               <span className="text-[10px] text-slate-400 font-medium">L: {student.locker_number}</span>
-                              {!student.phone_name || student.phone_name.toLowerCase() === "nill" ? (
+                              {!student.phone_name || student.phone_name.toLowerCase() === "nill" || student.phone_name.toLowerCase() === "nil" || student.phone_name.toLowerCase() === "none" ? (
                                 <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-semibold border border-amber-100/50">No Phone</span>
                               ) : null}
                               {student.special_pass === "YES" && (

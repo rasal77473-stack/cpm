@@ -139,16 +139,16 @@ export async function PUT(request: NextRequest) {
 
     const updated = await db.update(students)
       .set({
-        admissionNumber: updateData.admission_number ? String(updateData.admission_number).trim() : undefined,
-        name: updateData.name ? String(updateData.name).trim() : undefined,
-        lockerNumber: updateData.locker_number ? String(updateData.locker_number).trim() : undefined,
-        phoneNumber: updateData.phone_number ? String(updateData.phone_number).trim() : undefined,
-        class: updateData.class ? String(updateData.class).trim() : undefined,
-        rollNumber: updateData.roll_number ? String(updateData.roll_number).trim() : undefined,
-        phoneName: updateData.phone_name ? String(updateData.phone_name).trim() : undefined,
-        className: updateData.class_name ? String(updateData.class_name).trim() : undefined,
-        rollNo: updateData.roll_no ? String(updateData.roll_no).trim() : undefined,
-        specialPass: updateData.special_pass ? String(updateData.special_pass).trim() : undefined,
+        admissionNumber: updateData.admission_number !== undefined ? String(updateData.admission_number).trim() : undefined,
+        name: updateData.name !== undefined ? String(updateData.name).trim() : undefined,
+        lockerNumber: updateData.locker_number !== undefined ? String(updateData.locker_number || "-").trim() : undefined,
+        phoneNumber: updateData.phone_number !== undefined ? (updateData.phone_number ? String(updateData.phone_number).trim() : null) : undefined,
+        class: updateData.class !== undefined ? (updateData.class ? String(updateData.class).trim() : null) : undefined,
+        rollNumber: updateData.roll_number !== undefined ? (updateData.roll_number ? String(updateData.roll_number).trim() : null) : undefined,
+        phoneName: updateData.phone_name !== undefined ? (updateData.phone_name ? String(updateData.phone_name).trim() : null) : undefined,
+        className: updateData.class_name !== undefined ? (updateData.class_name ? String(updateData.class_name).trim() : null) : undefined,
+        rollNo: updateData.roll_no !== undefined ? (updateData.roll_no ? String(updateData.roll_no).trim() : null) : undefined,
+        specialPass: updateData.special_pass !== undefined ? (updateData.special_pass ? String(updateData.special_pass).trim() : null) : undefined,
       })
       .where(eq(students.id, Number(id)))
       .returning()
