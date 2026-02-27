@@ -340,14 +340,14 @@ function SpecialPassContent() {
     // Ultra-smooth Optimistic UI Update
     mutate("/api/special-pass/all", (current: any[] = []) => {
       return current.map(p => p.id === passId ? { ...p, status: "OUT" } : p)
-    }, false)
+    }, { revalidate: false })
 
     mutate("/api/phone-status", (current: any[] = []) => {
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
         ? current.map(s => s.studentId === pass.studentId ? { ...s, status: "OUT" } : s)
         : [...current, { studentId: pass.studentId, status: "OUT" }]
-    }, false)
+    }, { revalidate: false })
 
     // Fire API in background
     fetch(`/api/special-pass/out/${passId}`, { method: "POST" })
@@ -378,14 +378,14 @@ function SpecialPassContent() {
     // Ultra-smooth Optimistic UI Update
     mutate("/api/special-pass/all", (current: any[] = []) => {
       return current.map(p => p.id === passId ? { ...p, status: "COMPLETED", submissionTime: new Date().toISOString() } : p)
-    }, false)
+    }, { revalidate: false })
 
     mutate("/api/phone-status", (current: any[] = []) => {
       const existing = current.find(s => s.studentId === pass.studentId)
       return existing
         ? current.map(s => s.studentId === pass.studentId ? { ...s, status: "IN" } : s)
         : [...current, { studentId: pass.studentId, status: "IN" }]
-    }, false)
+    }, { revalidate: false })
 
     // Fire API in background
     fetch(`/api/special-pass/return/${passId}`, { method: "POST" })
