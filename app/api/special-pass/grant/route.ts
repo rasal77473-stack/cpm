@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     Promise.all([
       // Phone status upsert
       db.select().from(phoneStatus).where(eq(phoneStatus.studentId, sid)).limit(1)
-        .then(([existing]) => {
+        .then(([existing]: any[]) => {
           if (existing) {
             return db.update(phoneStatus).set({
               status: "ACTIVE",
