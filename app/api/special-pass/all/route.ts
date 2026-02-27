@@ -1,14 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { specialPassGrants, students } from "@/db/schema"
-import { desc, eq, or, inArray, gte } from "drizzle-orm"
+import { desc, eq, or } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
   try {
-    // Only fetch active/recent passes (last 30 days) instead of ALL passes ever
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
     const allPasses = await db
       .select({
         id: specialPassGrants.id,
@@ -28,17 +24,11 @@ export async function GET(request: NextRequest) {
       })
       .from(specialPassGrants)
       .innerJoin(students, eq(specialPassGrants.studentId, students.id))
-      .where(
-        or(
-          inArray(specialPassGrants.status, ["ACTIVE", "OUT", "PENDING"]),
-          gte(specialPassGrants.issueTime, thirtyDaysAgo.toISOString())
-        )
-      )
       .orderBy(desc(specialPassGrants.issueTime))
 
     return NextResponse.json(allPasses, {
       headers: {
-        'Cache-Control': 'no-store, max-age=0'
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10'
       }
     })
   } catch (error) {
