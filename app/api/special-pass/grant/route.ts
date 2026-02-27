@@ -36,10 +36,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Student not found." }, { status: 404 })
     }
 
-    const hasNoPhone = !student.phone_name ||
-      student.phone_name.toLowerCase() === "nill" ||
-      student.phone_name.toLowerCase() === "nil" ||
-      student.phone_name.toLowerCase() === "none"
+    const hasNoPhone = !student.phoneName ||
+      student.phoneName.toLowerCase() === "nill" ||
+      student.phoneName.toLowerCase() === "nil" ||
+      student.phoneName.toLowerCase() === "none"
 
     if (hasNoPhone) {
       return NextResponse.json(
