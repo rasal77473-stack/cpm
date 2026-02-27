@@ -23,12 +23,9 @@ export default function GrantSpecialPassPage() {
   const [mentorId, setMentorId] = useState("")
   const [expectedReturnDate, setExpectedReturnDate] = useState("")
   const [expectedReturnTime, setExpectedReturnTime] = useState("")
-  const [isClient, setIsClient] = useState(false)
 
   // Ensure we only access localStorage on client side
   useEffect(() => {
-    setIsClient(true)
-
     // Get mentor info from localStorage
     const name = localStorage.getItem("staffName")
     const id = localStorage.getItem("staffId")
@@ -48,12 +45,11 @@ export default function GrantSpecialPassPage() {
 
     if (name) setMentorName(name)
     setMentorId(id)
-
   }, [router])
 
   // Fetch student details when studentId changes
   useEffect(() => {
-    if (!studentId || !isClient) {
+    if (!studentId) {
       setLoading(false)
       return
     }
@@ -66,22 +62,22 @@ export default function GrantSpecialPassPage() {
 
         if (!found || !found.id) {
           setError("Student not found")
-          setTimeout(() => router.back(), 500) // Quick redirect without error UI
+          setTimeout(() => router.back(), 500)
           return
         }
         setStudent(found)
-        setError(null) // Clear error on success
+        setError(null)
       } catch (error) {
         console.error("Error fetching student:", error)
         setError("Failed to load student details")
-        setTimeout(() => router.back(), 500) // Quick redirect without error UI
+        setTimeout(() => router.back(), 500)
       } finally {
         setLoading(false)
       }
     }
 
     fetchStudent()
-  }, [studentId, isClient, router])
+  }, [studentId, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,7 +87,7 @@ export default function GrantSpecialPassPage() {
       return
     }
 
-    if (!mentorId || !isClient) {
+    if (!mentorId) {
       toast.error("Session expired. Please login again.")
       router.push("/login")
       return

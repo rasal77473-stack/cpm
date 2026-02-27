@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { students } from "@/db/schema"
 import { eq } from "drizzle-orm"
+import { getCached, STUDENTS_CACHE_KEY } from "@/lib/student-cache"
 
 // Transform student data to match frontend expectations (camelCase)
 function transformStudent(student: any) {
@@ -36,6 +37,18 @@ export async function GET(
       )
     }
 
+    // Try cache first for instant response
+    const cached = getCached<any[]>(STUDENTS_CACHE_KEY)
+    if (cached) {
+      const found = cached.find((s: any) => s.id === studentId)
+      if (found) {
+        return NextResponse.json(transformStudent(found), {
+          headers: { 'X-Cache': 'HIT' }
+        })
+      }
+    }
+
+    // Fallback to DB
     const student = await db
       .select()
       .from(students)
