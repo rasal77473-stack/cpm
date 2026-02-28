@@ -10,6 +10,7 @@ import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { handleLogout } from "@/lib/auth-utils"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -80,7 +81,7 @@ export default function AdminSpecialPassPage() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground">Access verification in progress...</p>
         </div>
-      </div>
+    </div>
     )
   }
 
@@ -129,6 +130,7 @@ export default function AdminSpecialPassPage() {
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
+              <BackToDashboard />
             <div>
               <h1 className="text-2xl font-bold text-foreground">Manage Special Passes</h1>
               <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>

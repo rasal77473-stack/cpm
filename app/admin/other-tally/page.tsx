@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { ChevronLeft, LogOut, Plus, Search, Star, Loader2, ClipboardList, TrendingUp, Users, ShieldAlert } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
+import { BackToDashboard } from "@/components/back-to-dashboard"
+import { DownloadButton } from "@/components/download-button"
 
 interface StudentTally {
   id: number
@@ -180,6 +182,7 @@ export default function OtherTallyManagementPage() {
               >
                 <ChevronLeft className="w-5 h-5 text-gray-700" />
               </Button>
+              <BackToDashboard />
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight truncate">
                   Other Tallies
@@ -192,6 +195,19 @@ export default function OtherTallyManagementPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <DownloadButton
+                data={filteredTallies}
+                columns={[
+                  { key: "studentName", header: "Student Name" },
+                  { key: "admissionNumber", header: "Admission No" },
+                  { key: "studentClass", header: "Class" },
+                  { key: "count", header: "Total Tallies" },
+                  { key: "rupees", header: "Fine Amount (₹)" },
+                  { key: "lastDate", header: "Last Issued" },
+                ]}
+                filename="other-tallies"
+                title="Other Tallies Report"
+              />
               <Link href="/admin/other-tally/manage" className="flex-1 sm:flex-none">
                 <Button variant="outline" className="w-full sm:w-auto rounded-xl gap-1.5 bg-white/50 border-gray-200 hover:bg-orange-50 hover:text-orange-700 shadow-sm transition-colors text-sm px-3 sm:px-4">
                   <ClipboardList className="w-4 h-4" />

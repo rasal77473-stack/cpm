@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogOut, ChevronLeft, Phone, Banknote, AlertCircle, Star } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 interface StudentData {
   id: number
@@ -172,7 +173,7 @@ export default function StudentDetailPage() {
     total: 0,
     rupees: 0,
   }
-  
+
   // Calculate total and rupees after star reduction
   tallyCounts.total = tallyCounts.normal + tallyCounts.fixed
   tallyCounts.rupees = tallyCounts.total * 10
@@ -205,7 +206,7 @@ export default function StudentDetailPage() {
       setAwardingStars(true)
       const token = localStorage.getItem("token")
       const staffName = localStorage.getItem("staffName") || "Staff"
-      
+
       const res = await fetch(`/api/students/${studentId}/stars`, {
         method: "POST",
         headers: {
@@ -242,7 +243,7 @@ export default function StudentDetailPage() {
       setAwardingStars(true)
       const token = localStorage.getItem("token")
       const staffName = localStorage.getItem("staffName") || "Staff"
-      
+
       const res = await fetch(`/api/students/${studentId}/stars`, {
         method: "POST",
         headers: {
@@ -305,6 +306,7 @@ export default function StudentDetailPage() {
             >
               <ChevronLeft className="w-5 h-5" />
             </Button>
+              <BackToDashboard />
             <div>
               <h1 className="text-2xl font-bold text-green-900">{student.name}</h1>
               <p className="text-sm text-gray-600">Admission: {student.admissionNumber}</p>
@@ -354,44 +356,40 @@ export default function StudentDetailPage() {
         <div className="flex gap-4 mb-6 border-b border-gray-200">
           <button
             onClick={() => setActiveTab("phone")}
-            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${
-              activeTab === "phone"
+            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${activeTab === "phone"
                 ? "border-green-600 text-green-600"
                 : "border-transparent text-gray-600 hover:text-gray-900"
-            }`}
+              }`}
           >
             <Phone className="w-4 h-4 inline mr-2" />
             Phone History
           </button>
           <button
             onClick={() => setActiveTab("fines")}
-            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${
-              activeTab === "fines"
+            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${activeTab === "fines"
                 ? "border-green-600 text-green-600"
                 : "border-transparent text-gray-600 hover:text-gray-900"
-            }`}
+              }`}
           >
             <Banknote className="w-4 h-4 inline mr-2" />
             Fines
           </button>
           <button
             onClick={() => setActiveTab("tallies")}
-            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${
-              activeTab === "tallies"
+            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${activeTab === "tallies"
                 ? "border-green-600 text-green-600"
                 : "border-transparent text-gray-600 hover:text-gray-900"
-            }`}
+              }`}
           >
             <AlertCircle className="w-4 h-4 inline mr-2" />
             Tallies ({tallies.length})
           </button>
           <button
             onClick={() => setActiveTab("stars")}
-            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${
-              activeTab === "stars"
+            className={`pb-4 px-4 font-medium border-b-2 transition-colors ${activeTab === "stars"
                 ? "border-green-600 text-green-600"
                 : "border-transparent text-gray-600 hover:text-gray-900"
-            }`}
+              }`}
           >
             <Star className="w-4 h-4 inline mr-2" />
             Stars
@@ -413,11 +411,10 @@ export default function StudentDetailPage() {
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                          entry.status === "IN"
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${entry.status === "IN"
                             ? "bg-green-100 text-green-800"
                             : "bg-red-100 text-red-800"
-                        }`}>
+                          }`}>
                           {entry.status}
                         </span>
                         <p className="text-sm text-gray-600">{formatDate(entry.timestamp)}</p>
@@ -537,11 +534,10 @@ export default function StudentDetailPage() {
                               <p className="font-semibold text-gray-900">{fine.fineName}</p>
                               <p className="text-sm text-gray-600">Amount: ₹{fine.amount.toFixed(2)}</p>
                             </div>
-                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                              fine.isPaid === "YES"
+                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${fine.isPaid === "YES"
                                 ? "bg-green-100 text-green-800"
                                 : "bg-yellow-100 text-yellow-800"
-                            }`}>
+                              }`}>
                               {fine.isPaid === "YES" ? "Paid" : "Pending"}
                             </span>
                           </div>
@@ -656,11 +652,10 @@ export default function StudentDetailPage() {
                                 <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
                                   ₹{tally.count * 10}
                                 </span>
-                                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                                  tally.tallyType === 'NORMAL'
+                                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${tally.tallyType === 'NORMAL'
                                     ? "bg-blue-100 text-blue-800"
                                     : "bg-red-100 text-red-800"
-                                }`}>
+                                  }`}>
                                   {tally.tallyType}
                                 </span>
                               </div>

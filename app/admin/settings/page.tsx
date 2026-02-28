@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { LogOut, ChevronLeft, Lock, Bell, Database, Eye } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { Switch } from "@/components/ui/switch"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 export default function SystemSettings() {
   const router = useRouter()
@@ -45,7 +46,7 @@ export default function SystemSettings() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground animate-pulse">Admin access only - Verifying...</p>
         </div>
-      </div>
+    </div>
     )
   }
 
@@ -83,6 +84,7 @@ export default function SystemSettings() {
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
+              <BackToDashboard />
             <div>
               <h1 className="text-2xl font-bold text-foreground">System Settings</h1>
               <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>

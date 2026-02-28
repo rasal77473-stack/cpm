@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogOut, ChevronLeft, BarChart3, Download, TrendingUp } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 interface ReportData {
   totalStudents: number
@@ -116,6 +117,7 @@ All data is based on the current system state.
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
+              <BackToDashboard />
             <div>
               <h1 className="text-2xl font-bold text-foreground">Reports</h1>
               <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>

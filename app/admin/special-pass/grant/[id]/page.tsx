@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { mutate } from "swr"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 export default function GrantSpecialPassPage() {
   const router = useRouter()
@@ -232,6 +233,7 @@ export default function GrantSpecialPassPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2">
           <ChevronLeft className="h-6 w-6" />
         </Button>
+              <BackToDashboard />
         <h1 className="text-lg font-bold">Grant Special Pass</h1>
       </header>
 

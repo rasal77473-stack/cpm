@@ -42,6 +42,8 @@ import {
 import Link from "next/link"
 import { format } from "date-fns"
 import { useSearchParams } from "next/navigation"
+import { BackToDashboard } from "@/components/back-to-dashboard"
+import { DownloadButton } from "@/components/download-button"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -165,7 +167,14 @@ function SpecialPassContent() {
     const nillCount = students.length - totalStudents
 
     // Number of passes belonging to students with phones
+    // Number of passes belonging to students with phones
     const validPasses = passes.filter((p: any) => {
+      if (!p.purpose?.startsWith("PHONE:")) return false;
+
+      if (p.status !== "PENDING" && p.status !== "ACTIVE" && p.status !== "OUT" && p.status !== "COMPLETED") {
+        return false;
+      }
+
       const student = students.find((s: any) => s.id === p.studentId)
       if (!student) return true;
       const hasNoPhone = !student.phone_name ||
@@ -190,6 +199,12 @@ function SpecialPassContent() {
     if (activeTab === "phone-pass") {
       // Filter out passes belonging to nill students 
       const validPasses = passes.filter((p: any) => {
+        if (!p.purpose?.startsWith("PHONE:")) return false;
+
+        if (p.status !== "PENDING" && p.status !== "ACTIVE" && p.status !== "OUT" && p.status !== "COMPLETED") {
+          return false;
+        }
+
         const student = students.find((s: any) => s.id === p.studentId)
         if (!student) return true;
         const hasNoPhone = !student.phone_name ||
@@ -204,7 +219,8 @@ function SpecialPassContent() {
       if (startDate || endDate) {
         list = list.filter((p: any) => {
           if (!p.issueTime) return false
-          const passDate = new Date(p.issueTime).toISOString().split('T')[0]
+          const timeStr = p.issueTime.endsWith('Z') || p.issueTime.includes('+') ? p.issueTime : p.issueTime + 'Z'
+          const passDate = format(new Date(timeStr), "yyyy-MM-dd")
           if (startDate && endDate) return passDate >= startDate && passDate <= endDate
           if (startDate) return passDate >= startDate
           if (endDate) return passDate <= endDate
@@ -228,7 +244,11 @@ function SpecialPassContent() {
       return list.sort((a, b) => {
         if (a.status === "COMPLETED" && b.status !== "COMPLETED") return 1
         if (a.status !== "COMPLETED" && b.status === "COMPLETED") return -1
-        return new Date(b.issueTime || 0).getTime() - new Date(a.issueTime || 0).getTime()
+
+        const aStr = a.issueTime ? (a.issueTime.endsWith('Z') || a.issueTime.includes('+') ? a.issueTime : a.issueTime + 'Z') : 0
+        const bStr = b.issueTime ? (b.issueTime.endsWith('Z') || b.issueTime.includes('+') ? b.issueTime : b.issueTime + 'Z') : 0
+
+        return new Date(bStr).getTime() - new Date(aStr).getTime()
       })
 
     } else {
@@ -548,9 +568,24 @@ function SpecialPassContent() {
           <Button variant="ghost" size="icon" asChild className="-ml-2 text-gray-800 rounded-xl pointer-events-none">
             <div><ChevronLeft className="h-6 w-6" /></div>
           </Button>
+          <BackToDashboard />
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 pointer-events-none">Phone Pass</h1>
         </div>
         <div className="flex items-center gap-2.5">
+          <DownloadButton
+            data={filteredList}
+            columns={[
+              { key: "studentName", header: "Student Name" },
+              { key: "admissionNumber", header: "Admission No" },
+              { key: "className", header: "Class" },
+              { key: "phoneNumber", header: "Phone" },
+              { key: "status", header: "Status" },
+              { key: "issueTime", header: "Out Time" },
+              { key: "returnTime", header: "Return Time" },
+            ]}
+            filename={`phone-pass-${activeTab}`}
+            title="Phone Pass Report"
+          />
           {canGrantPass && (
             <Button
               className="bg-[#0ca643] hover:bg-green-700 text-white gap-1 rounded-2xl px-5 h-10 font-bold text-sm shadow-sm transition-transform active:scale-95"
@@ -706,7 +741,9 @@ function SpecialPassContent() {
             let displayTime = "-"
             if (item.issueTime) {
               try {
-                displayTime = format(new Date(item.issueTime), "dd MMM • hh:mm a")
+                // Ensure db string is parsed as UTC by appending 'Z' if missing timezone indicator
+                const timeStr = item.issueTime.endsWith('Z') || item.issueTime.includes('+') ? item.issueTime : item.issueTime + 'Z'
+                displayTime = format(new Date(timeStr), "dd MMM • hh:mm a")
               } catch (e) { }
             }
 
@@ -750,9 +787,25 @@ function SpecialPassContent() {
                   )}
 
                   {!isStudent && item.issueTime && (
-                    <div className="col-span-2">
+                    <div className={isCompleted && item.submissionTime ? "col-span-1" : "col-span-2"}>
                       <p className="text-xs font-medium text-slate-400 mb-1">Out Time</p>
                       <p className="font-bold text-slate-800 text-[15px]">{displayTime}</p>
+                    </div>
+                  )}
+
+                  {!isStudent && isCompleted && item.submissionTime && (
+                    <div className="col-span-1">
+                      <p className="text-xs font-medium text-slate-400 mb-1">Submit In</p>
+                      <div className="inline-flex items-center px-2 py-1 bg-red-50 border border-red-200 text-red-600 rounded text-[13px] font-bold shadow-sm whitespace-nowrap">
+                        {(() => {
+                          try {
+                            const submitStr = item.submissionTime.endsWith('Z') || item.submissionTime.includes('+') ? item.submissionTime : item.submissionTime + 'Z';
+                            return format(new Date(submitStr), "dd MMM • hh:mm a");
+                          } catch (e) {
+                            return "-";
+                          }
+                        })()}
+                      </div>
                     </div>
                   )}
 

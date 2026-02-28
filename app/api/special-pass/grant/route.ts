@@ -64,7 +64,6 @@ export async function POST(request: NextRequest) {
 
     // Create the pass - this is the critical operation
     const issueTime = new Date()
-    issueTime.setMinutes(issueTime.getMinutes() - 330)
 
     const [newGrant] = await db
       .insert(specialPassGrants)

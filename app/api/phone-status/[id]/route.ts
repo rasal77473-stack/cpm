@@ -97,7 +97,7 @@ export async function PUT(
           status,
           updatedBy: updatedBy || "system",
           notes: notes || null,
-          lastUpdated: new Date(),
+          lastUpdated: new Date().toISOString(),
         })
         .where(eq(phoneStatus.studentId, studentId))
         .returning()

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, LogOut, Banknote, CheckCircle, Zap, ShieldAlert, ChevronRight } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 export default function PunishmentsPage() {
   const router = useRouter()
@@ -49,6 +50,7 @@ export default function PunishmentsPage() {
               >
                 <ChevronLeft className="w-5 h-5 text-gray-700" />
               </Button>
+              <BackToDashboard />
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight truncate">
                   Punishments

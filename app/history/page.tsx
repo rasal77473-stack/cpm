@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { LogOut, Search, Calendar } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
+import { BackToDashboard } from "@/components/back-to-dashboard"
+import { DownloadButton } from "@/components/download-button"
 
 interface HistoryEntry {
   id: number
@@ -57,8 +59,9 @@ export default function HistoryPage() {
   }
 
   const formatDate = (timestamp: string) => {
-    if (!mounted) return ""
-    return new Date(timestamp).toLocaleString("en-US", {
+    if (!mounted || !timestamp) return ""
+    const timeStr = timestamp.endsWith('Z') || timestamp.includes('+') ? timestamp : timestamp + 'Z'
+    return new Date(timeStr).toLocaleString("en-US", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -103,10 +106,23 @@ export default function HistoryPage() {
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
+            <BackToDashboard />
             <h1 className="text-2xl font-bold text-foreground">Phone Management History</h1>
             <p className="text-sm text-muted-foreground mt-1">Logged in as: {staffName}</p>
           </div>
           <div className="flex gap-3" suppressHydrationWarning>
+            <DownloadButton
+              data={filteredHistory.map((item) => ({ ...item, timestamp: formatDate(item.timestamp) }))}
+              columns={[
+                { key: "student_name", header: "Student Name" },
+                { key: "staff_name", header: "Staff Name" },
+                { key: "action", header: "Action" },
+                { key: "notes", header: "Notes" },
+                { key: "timestamp", header: "Date & Time" },
+              ]}
+              filename="phone-history"
+              title="Phone Management History"
+            />
             <Button onClick={() => router.push("/dashboard")} variant="outline" className="font-medium">
               Dashboard
             </Button>

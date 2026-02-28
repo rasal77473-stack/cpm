@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogOut, Search, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { handleLogout } from "@/lib/auth-utils"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 interface Student {
   id: number
@@ -80,9 +81,12 @@ export default function StudentLookupPage() {
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-green-900">Student Lookup</h1>
-            <p className="text-sm text-gray-600 mt-1">Find and view student records</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <BackToDashboard />
+              <h1 className="text-2xl font-bold text-green-900">Student Lookup</h1>
+              <p className="text-sm text-gray-600 mt-1">Find and view student records</p>
+            </div>
           </div>
           <Button
             onClick={handleLogout}

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { LogOut, ChevronLeft, Plus, Upload, Trash2, Edit2, Search, Users, GraduationCap, X, FileSpreadsheet } from "lucide-react"
 import * as XLSX from "xlsx"
 import { handleLogout } from "@/lib/auth-utils"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 interface Student {
   id: number
@@ -102,7 +103,7 @@ export default function ManageStudents() {
           <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-800 rounded-full animate-spin mx-auto"></div>
           <p className="text-sm font-medium text-slate-500 animate-pulse tracking-wide">Checking permissions...</p>
         </div>
-      </div>
+    </div>
     )
   }
 
@@ -428,6 +429,7 @@ export default function ManageStudents() {
             >
               <div><ChevronLeft className="w-5 h-5 text-slate-700" /></div>
             </Button>
+              <BackToDashboard />
             <div className="min-w-0 pointer-events-none">
               <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">
                 Manage Students

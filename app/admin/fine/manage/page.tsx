@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { ChevronLeft, LogOut, Plus, Edit2, Trash2, Banknote, ToggleLeft, ToggleRight } from "lucide-react"
 import { toast } from "sonner"
 import { handleLogout } from "@/lib/auth-utils"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 interface FineType {
     id: number
@@ -234,7 +235,7 @@ export default function ManageFineTypesPage() {
                     <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
                     <p className="text-muted-foreground animate-pulse">Checking permissions...</p>
                 </div>
-            </div>
+    </div>
         )
     }
 
@@ -252,6 +253,7 @@ export default function ManageFineTypesPage() {
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </Button>
+              <BackToDashboard />
                         <div>
                             <h1 className="text-2xl font-bold text-foreground">Fine Types</h1>
                             <p className="text-sm text-muted-foreground mt-0.5">Logged in as: {staffName}</p>

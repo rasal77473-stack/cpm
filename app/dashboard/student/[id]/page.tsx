@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 interface Student {
   id: number
@@ -216,6 +217,7 @@ export default function StudentDetailPage() {
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
+              <BackToDashboard />
           <div>
             <h1 className="text-2xl font-bold text-foreground">{student.name}</h1>
             <p className="text-sm text-muted-foreground mt-1">Admission: {student.admission_number}</p>
@@ -227,31 +229,28 @@ export default function StudentDetailPage() {
           <div className="flex gap-8 max-w-3xl mx-auto">
             <button
               onClick={() => setActiveTab("phone")}
-              className={`py-3 px-1 border-b-2 font-medium transition ${
-                activeTab === "phone"
+              className={`py-3 px-1 border-b-2 font-medium transition ${activeTab === "phone"
                   ? "border-blue-600 text-blue-600"
                   : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               Phone History
             </button>
             <button
               onClick={() => setActiveTab("fines")}
-              className={`py-3 px-1 border-b-2 font-medium transition ${
-                activeTab === "fines"
+              className={`py-3 px-1 border-b-2 font-medium transition ${activeTab === "fines"
                   ? "border-green-600 text-green-600"
                   : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               Fines
             </button>
             <button
               onClick={() => setActiveTab("tallies")}
-              className={`py-3 px-1 border-b-2 font-medium transition ${
-                activeTab === "tallies"
+              className={`py-3 px-1 border-b-2 font-medium transition ${activeTab === "tallies"
                   ? "border-orange-600 text-orange-600"
                   : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               Tallies ({filteredTallies.length})
             </button>
@@ -306,11 +305,10 @@ export default function StudentDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div
-                  className={`p-4 rounded-lg flex items-center gap-3 ${
-                    isPhoneIn
+                  className={`p-4 rounded-lg flex items-center gap-3 ${isPhoneIn
                       ? "bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100"
                       : "bg-orange-100 text-orange-900 dark:bg-orange-900 dark:text-orange-100"
-                  }`}
+                    }`}
                 >
                   {isPhoneIn ? <CheckCircle className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
                   <div>
@@ -333,11 +331,10 @@ export default function StudentDetailPage() {
               <CardContent className="space-y-4">
                 {message && (
                   <div
-                    className={`p-3 rounded-lg text-sm ${
-                      message.includes("updated")
+                    className={`p-3 rounded-lg text-sm ${message.includes("updated")
                         ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
                         : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200"
-                    }`}
+                      }`}
                   >
                     {message}
                   </div>
@@ -528,21 +525,20 @@ export default function StudentDetailPage() {
                       <div className="text-right flex items-center gap-3">
                         <span className="font-semibold">₹{fine.amount}</span>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          fine.isPaid === "YES"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {fine.isPaid === "YES" ? "Paid" : "Pending"}
-                      </span>
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${fine.isPaid === "YES"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                            }`}
+                        >
+                          {fine.isPaid === "YES" ? "Paid" : "Pending"}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
       </main>
     </div>

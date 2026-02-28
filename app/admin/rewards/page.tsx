@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, LogOut, Star } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 export default function RewardsPage() {
   const router = useRouter()
@@ -33,7 +34,7 @@ export default function RewardsPage() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
-      </div>
+    </div>
     )
   }
 
@@ -52,6 +53,7 @@ export default function RewardsPage() {
               >
                 <ChevronLeft className="w-5 h-5" />
               </Button>
+              <BackToDashboard />
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Rewards & Achievements</h1>
                 <p className="text-xs sm:text-sm text-gray-600 truncate">{staffName}</p>

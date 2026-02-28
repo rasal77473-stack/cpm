@@ -27,6 +27,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -80,7 +81,7 @@ export default function MonthlyLeavePage() {
 
         setIsAuthorized(true)
         setStaffName(name || "Admin")
-        
+
         // Parse staffId safely
         if (id && !isNaN(parseInt(id))) {
             setStaffId(parseInt(id))
@@ -169,9 +170,9 @@ export default function MonthlyLeavePage() {
                 createdByName: staffName,
                 excludedStudents: Array.from(excludedStudents),
             }
-            
+
             console.log("Sending monthly leave payload:", payload)
-            
+
             const response = await fetch("/api/monthly-leave", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -184,7 +185,7 @@ export default function MonthlyLeavePage() {
             }
 
             const data = await response.json()
-            
+
             // Automatically grant passes
             try {
                 const grantResponse = await fetch(`/api/monthly-leave/${data.id}/grant`, {
@@ -297,6 +298,7 @@ export default function MonthlyLeavePage() {
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </Button>
+                          <BackToDashboard />
                         <div>
                             <h1 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2">
                                 <CalendarDays className="w-6 h-6 text-purple-600" />
@@ -450,12 +452,12 @@ export default function MonthlyLeavePage() {
                                             const endDate = new Date(leave.endDate)
                                             const passIssuedTime = leave.passIssuedTime ? new Date(leave.passIssuedTime) : new Date(leave.startDate)
                                             const passCompletionTime = leave.passCompletionTime ? new Date(leave.passCompletionTime) : new Date(leave.endDate)
-                                            
+
                                             const displayStatus = leave.calculatedStatus || leave.status || "PENDING"
-                                            
+
                                             let statusColor = "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
                                             let statusIcon = "⏳"
-                                            
+
                                             if (displayStatus === "COMPLETED") {
                                                 statusColor = "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                                 statusIcon = "✓"
@@ -463,7 +465,7 @@ export default function MonthlyLeavePage() {
                                                 statusColor = "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                                                 statusIcon = "▶"
                                             }
-                                            
+
                                             const isActive = displayStatus === "ACTIVE"
 
                                             return (
@@ -479,7 +481,7 @@ export default function MonthlyLeavePage() {
                                                             {statusIcon} {displayStatus}
                                                         </span>
                                                     </div>
-                                                    
+
                                                     <div className="text-sm space-y-1">
                                                         <p className="text-muted-foreground">
                                                             <Clock className="w-3 h-3 inline mr-1" />
@@ -497,7 +499,7 @@ export default function MonthlyLeavePage() {
                                                             </p>
                                                         )}
                                                     </div>
-                                                    
+
                                                     {isActive && (
                                                         <div className="flex gap-2 pt-2">
                                                             <Button

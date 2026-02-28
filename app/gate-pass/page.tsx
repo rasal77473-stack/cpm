@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/select"
 import Link from "next/link"
 import { format } from "date-fns"
+import { BackToDashboard } from "@/components/back-to-dashboard"
+import { DownloadButton } from "@/components/download-button"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -411,9 +413,23 @@ function GatePassContent() {
           <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")} className="-ml-2 hover:bg-gray-50 text-gray-800 rounded-xl">
             <ChevronLeft className="h-6 w-6" />
           </Button>
+          <BackToDashboard />
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Gate Pass</h1>
         </div>
         <div className="flex items-center gap-2.5">
+          <DownloadButton
+            data={filteredList}
+            columns={[
+              { key: "studentName", header: "Student Name" },
+              { key: "admissionNumber", header: "Admission No" },
+              { key: "className", header: "Class" },
+              { key: "status", header: "Status" },
+              { key: "issueTime", header: "Issue Time" },
+              { key: "purpose", header: "Purpose" },
+            ]}
+            filename={`gate-pass-${activeTab}`}
+            title="Gate Pass Report"
+          />
           {canGrantPass && (
             <Button
               className="bg-[#0ca643] hover:bg-green-700 text-white gap-1 rounded-2xl px-5 h-10 font-bold text-sm shadow-sm transition-transform active:scale-95"

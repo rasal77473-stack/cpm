@@ -10,6 +10,7 @@ import { ChevronLeft, LogOut, Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Chec
 import { toast } from "sonner"
 import { handleLogout } from "@/lib/auth-utils"
 import { Checkbox } from "@/components/ui/checkbox"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 interface TallyType {
   id: number
@@ -178,7 +179,7 @@ export default function ManageTallyTypesPage() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
-      </div>
+    </div>
     )
   }
 
@@ -192,6 +193,7 @@ export default function ManageTallyTypesPage() {
               <Button variant="ghost" size="icon" onClick={() => router.back()}>
                 <ChevronLeft className="w-5 h-5" />
               </Button>
+              <BackToDashboard />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Manage Tally Types</h1>
                 <p className="text-sm text-gray-600">{staffName}</p>

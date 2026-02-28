@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { toast } from "sonner";
 import { History, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 const PERMISSION_CATEGORIES = [
   {
@@ -251,7 +252,10 @@ export default function UserManagement() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">User Management</h1>
+      <div className="flex items-center gap-3">
+        <BackToDashboard />
+        <h1 className="text-3xl font-bold">User Management</h1>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>

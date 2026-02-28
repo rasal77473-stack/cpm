@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { ChevronLeft, LogOut, Search, Check, Users, AlertCircle, Loader2, Sparkles, Star, Plus, Minus } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 interface Student {
   id: number
@@ -225,6 +226,7 @@ export default function AwardStarPage() {
               >
                 <ChevronLeft className="w-5 h-5 text-gray-700" />
               </Button>
+              <BackToDashboard />
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight">
                   Award Stars

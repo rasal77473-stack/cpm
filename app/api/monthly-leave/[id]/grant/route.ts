@@ -93,13 +93,12 @@ export async function POST(
         const [startHour, startMin] = leave.startTime.split(":").map(Number);
         const [endHour, endMin] = leave.endTime.split(":").map(Number);
 
-        // Set issue time to start date + start time
-        const issueTime = new Date(startDate);
-        issueTime.setHours(startHour, startMin, 0, 0);
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
 
-        // Set return time to end date + end time
-        const returnTime = new Date(endDate);
-        returnTime.setHours(endHour, endMin, 0, 0);
+        // Construct issue and return times with explicit IST timezone offset
+        const issueTime = new Date(`${startDateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00+05:30`);
+        const returnTime = new Date(`${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00+05:30`);
 
         console.log("📅 Creating passes:", {
             issueTime: issueTime.toISOString(),
@@ -170,7 +169,7 @@ export async function POST(
         console.error(`\n❌ POST /api/monthly-leave/[id]/grant error: ${errorMessage}`);
         console.error("Stack:", errorStack);
         console.error("Full error:", error);
-        
+
         return NextResponse.json(
             { error: "Failed to schedule passes", details: errorMessage },
             { status: 500 }

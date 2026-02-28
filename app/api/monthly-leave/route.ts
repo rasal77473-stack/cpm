@@ -16,33 +16,27 @@ export async function GET() {
         const enrichedLeaves = leaves.map((leave) => {
             const [startHour, startMin] = leave.startTime.split(":").map(Number);
             const [endHour, endMin] = leave.endTime.split(":").map(Number);
-            
+
             // Get local timezone offset in minutes
-            const tzOffset = new Date().getTimezoneOffset(); // Returns minutes offset from UTC
-            
             // Parse the start date from the database
             const startDateObj = new Date(leave.startDate);
             const startDateStr = startDateObj.toISOString().split('T')[0]; // Get YYYY-MM-DD
-            
-            // Create date in local timezone (not UTC)
-            // The time input is in local timezone, so we need to create a date that represents that local time
-            const leaveStartTime = new Date(`${startDateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00`);
-            // Adjust for timezone offset to get correct UTC time
-            leaveStartTime.setMinutes(leaveStartTime.getMinutes() - tzOffset);
-            
+
+            // Construct with explicit IST offset so server doesn't treat as UTC
+            const leaveStartTime = new Date(`${startDateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00+05:30`);
+
             // Same for end date
             const endDateObj = new Date(leave.endDate);
             const endDateStr = endDateObj.toISOString().split('T')[0]; // Get YYYY-MM-DD
-            const leaveEndTime = new Date(`${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00`);
-            leaveEndTime.setMinutes(leaveEndTime.getMinutes() - tzOffset);
-            
+            const leaveEndTime = new Date(`${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00+05:30`);
+
             let calculatedStatus = "PENDING";
             if (now >= leaveEndTime) {
                 calculatedStatus = "COMPLETED";
             } else if (now >= leaveStartTime) {
                 calculatedStatus = "ACTIVE";
             }
-            
+
             return {
                 ...leave,
                 calculatedStatus,
@@ -71,7 +65,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         console.log("POST /api/monthly-leave - Request received");
-        
+
         if (!db) {
             console.error("❌ Database connection is null!");
             return NextResponse.json(
@@ -79,12 +73,12 @@ export async function POST(request: NextRequest) {
                 { status: 500 }
             );
         }
-        
+
         console.log("✓ Database connection verified");
 
         const body = await request.json();
         console.log("Request body:", JSON.stringify(body, null, 2));
-        
+
         const { startDate, endDate, startTime, endTime, createdBy, createdByName, excludedStudents } = body;
 
         // Check each field and provide specific error message
@@ -128,7 +122,7 @@ export async function POST(request: NextRequest) {
                 status: "ACTIVE",
             })
             .returning();
-        
+
         console.log("✓ Monthly leave created with ID:", newLeave?.id);
 
         // Add exclusions if any
@@ -153,13 +147,13 @@ export async function POST(request: NextRequest) {
         const errorStack = error instanceof Error ? error.stack : "";
         console.error("❌ POST /api/monthly-leave error:", errorMessage);
         console.error("Stack:", errorStack);
-        
+
         // Log the full error object for debugging
         console.error("Full error object:", error);
-        
+
         return NextResponse.json(
-            { 
-                error: "Failed to create monthly leave", 
+            {
+                error: "Failed to create monthly leave",
                 details: errorMessage,
                 message: "Check server logs for details"
             },
@@ -173,7 +167,7 @@ export async function DELETE(request: NextRequest) {
     try {
         const url = new URL(request.url);
         const id = url.pathname.split("/").pop();
-        
+
         if (!id || isNaN(parseInt(id))) {
             return NextResponse.json({ error: "Invalid leave ID" }, { status: 400 });
         }

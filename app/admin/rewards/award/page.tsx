@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ChevronLeft, Search, Star, LogOut } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 interface Student {
   id: number
@@ -109,7 +110,7 @@ export default function AwardStarPage() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
-      </div>
+    </div>
     )
   }
 
@@ -128,6 +129,7 @@ export default function AwardStarPage() {
               >
                 <ChevronLeft className="w-5 h-5" />
               </Button>
+              <BackToDashboard />
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Award Star</h1>
                 <p className="text-xs sm:text-sm text-gray-600 truncate">{staffName}</p>

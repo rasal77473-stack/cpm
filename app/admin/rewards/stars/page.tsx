@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { BackToDashboard } from "@/components/back-to-dashboard"
+import { DownloadButton } from "@/components/download-button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { ChevronLeft, LogOut, Plus, Search, Star, X } from "lucide-react"
@@ -224,9 +228,23 @@ export default function StarsManagementPage() {
                 <p className="text-xs sm:text-sm text-gray-600 truncate">{staffName}</p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleLogout} className="gap-2 w-auto text-sm">
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <DownloadButton
+                data={filteredStars}
+                columns={[
+                  { key: "studentName", header: "Student Name" },
+                  { key: "admissionNumber", header: "Admission No" },
+                  { key: "studentClass", header: "Class" },
+                  { key: "stars", header: "Total Stars" },
+                ]}
+                filename="stars-report"
+                title="Stars Reward Report"
+              />
+              <Button variant="outline" onClick={handleLogout} className="gap-2 w-auto text-sm">
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -305,7 +323,7 @@ export default function StarsManagementPage() {
                 ))}
               </select>
             </div>
-            
+
             {viewMode === "logs" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div>
@@ -414,11 +432,10 @@ export default function StarsManagementPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="font-semibold text-gray-900">{log.studentName}</h3>
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              log.action === "award"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}>
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${log.action === "award"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                              }`}>
                               {log.action === "award" ? "⭐ Awarded" : "Removed"}
                             </span>
                           </div>

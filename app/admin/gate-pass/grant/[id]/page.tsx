@@ -46,7 +46,7 @@ export default function GrantGatePassPage() {
         const res = await fetch(`/api/students/${studentId}`)
         if (!res.ok) throw new Error("Failed to fetch student")
         const found = await res.json()
-        
+
         if (!found || !found.id) {
           setError("Student not found")
           setTimeout(() => router.back(), 500)
@@ -68,7 +68,7 @@ export default function GrantGatePassPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.purpose.trim()) {
       toast.error("Please enter purpose/remarks")
       return
@@ -89,11 +89,8 @@ export default function GrantGatePassPage() {
     // Create return time from date and time
     const returnDateTime = new Date(`${formData.returnDate}T${formData.returnTime}`)
 
-    // Subtract 5 hours and 30 minutes from start time to fix timezone difference
+    // Fix: Using correct UTC ISO string directly, no manual timezone subtraction
     const submissionTime = new Date()
-    
-    submissionTime.setHours(submissionTime.getHours() - 5)
-    submissionTime.setMinutes(submissionTime.getMinutes() - 30)
 
     const payload = {
       studentId: parseInt(studentId as string),
@@ -131,7 +128,7 @@ export default function GrantGatePassPage() {
 
       // Update SWR cache
       await mutate("/api/special-pass/all")
-      
+
       toast.success("Gate pass granted successfully!")
       console.log("✅ Gate pass created successfully")
       // Redirect to gate pass page immediately

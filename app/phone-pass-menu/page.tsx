@@ -15,6 +15,7 @@ import {
   Loader2,
   PhoneOff
 } from "lucide-react"
+import { BackToDashboard } from "@/components/back-to-dashboard"
 
 export default function PhonePassMenu() {
   const router = useRouter()
@@ -45,7 +46,7 @@ export default function PhonePassMenu() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground animate-pulse">Verifying credentials...</p>
         </div>
-      </div>
+    </div>
     )
   }
 
@@ -115,6 +116,7 @@ export default function PhonePassMenu() {
           <Button variant="ghost" size="icon" asChild className="-ml-2 text-gray-800 rounded-xl pointer-events-none">
             <div><ChevronLeft className="h-6 w-6" /></div>
           </Button>
+            <BackToDashboard />
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 pointer-events-none">Phone Pass Menu</h1>
         </div>
       </header>

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { ChevronLeft, LogOut, Plus, Settings, Search, Filter, Loader2, IndianRupee, Banknote, ShieldAlert, CheckCircle2, TrendingDown } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
+import { BackToDashboard } from "@/components/back-to-dashboard"
+import { DownloadButton } from "@/components/download-button"
 
 interface StudentFine {
   id: number
@@ -140,6 +142,7 @@ export default function FineManagementPage() {
               >
                 <ChevronLeft className="w-5 h-5 text-gray-700" />
               </Button>
+              <BackToDashboard />
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight truncate">
                   Fine Management
@@ -152,6 +155,21 @@ export default function FineManagementPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <DownloadButton
+                data={sortedFines}
+                columns={[
+                  { key: "studentName", header: "Student Name" },
+                  { key: "admissionNumber", header: "Admission No" },
+                  { key: "studentClass", header: "Class" },
+                  { key: "fineName", header: "Fine Reason" },
+                  { key: "amount", header: "Amount (₹)" },
+                  { key: "isPaid", header: "Paid Status" },
+                  { key: "issuedAt", header: "Issue Date" },
+                  { key: "issuedByName", header: "Issued By" },
+                ]}
+                filename="fine-management"
+                title="Fine Management Report"
+              />
               <Link href="/admin/fine/manage" className="flex-1 sm:flex-none">
                 <Button variant="outline" className="w-full sm:w-auto rounded-xl gap-1.5 bg-white/50 border-gray-200 hover:bg-violet-50 hover:text-violet-700 shadow-sm transition-colors text-sm px-3 sm:px-4">
                   <Settings className="w-4 h-4" />
@@ -358,8 +376,8 @@ export default function FineManagementPage() {
                         <div className="flex flex-col gap-1 items-start">
                           <span
                             className={`px-2.5 py-1 rounded-md text-[10px] font-black tracking-widest uppercase border ${fine.isPaid === "YES"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200/60"
-                                : "bg-rose-50 text-rose-700 border-rose-200/60"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200/60"
+                              : "bg-rose-50 text-rose-700 border-rose-200/60"
                               }`}
                           >
                             {fine.isPaid === "YES" ? "Paid" : "Pending"}
