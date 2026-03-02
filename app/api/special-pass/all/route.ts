@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
         issueTime: specialPassGrants.issueTime,
         returnTime: specialPassGrants.returnTime,
         submissionTime: specialPassGrants.submissionTime,
+        expectedReturnDate: specialPassGrants.expectedReturnDate,
+        expectedReturnTime: specialPassGrants.expectedReturnTime,
         status: specialPassGrants.status,
       })
       .from(specialPassGrants)

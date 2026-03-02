@@ -275,6 +275,8 @@ function SpecialPassContent() {
           status: currentStatus,
           issueTime: activePass ? activePass.issueTime : null,
           returnTime: activePass ? activePass.returnTime : null,
+          expectedReturnDate: activePass ? activePass.expectedReturnDate : null,
+          expectedReturnTime: activePass ? activePass.expectedReturnTime : null,
           purpose: activePass ? activePass.purpose : "Registered Student",
           hasNoPhone: hasNoPhone
         }
@@ -756,7 +758,26 @@ function SpecialPassContent() {
 
             // Calculate if late
             let isLate = false;
-            if (item.returnTime) {
+            if (item.expectedReturnDate && item.expectedReturnTime) {
+              try {
+                // Determine the correct timestamp for when they were supposed to return the phone
+                const expectedDateStr = item.expectedReturnDate.split('T')[0];
+                const expectedTimeStr = item.expectedReturnTime;
+
+                // Note: assuming IST timezone offset since it was being used in monthly leave (+05:30)
+                const expectedTimestamp = new Date(`${expectedDateStr}T${expectedTimeStr}:00+05:30`).getTime();
+
+                if (isCompleted && item.submissionTime) {
+                  const submitStr = item.submissionTime.endsWith('Z') || item.submissionTime.includes('+') ? item.submissionTime : item.submissionTime + 'Z';
+                  const submitTimestamp = new Date(submitStr).getTime();
+                  isLate = submitTimestamp > expectedTimestamp;
+                } else if (isOut || isActive || (isStudent && !isNotIssued)) {
+                  isLate = new Date().getTime() > expectedTimestamp;
+                }
+              } catch (e) {
+                console.error("Error calculating late status:", e);
+              }
+            } else if (item.returnTime) { // Fallback to `returnTime` property if old pass without explicit expectedReturnTime
               try {
                 const expectedStr = item.returnTime.endsWith('Z') || item.returnTime.includes('+') ? item.returnTime : item.returnTime + 'Z';
                 const expectedTimestamp = new Date(expectedStr).getTime();
@@ -765,7 +786,7 @@ function SpecialPassContent() {
                   const submitStr = item.submissionTime.endsWith('Z') || item.submissionTime.includes('+') ? item.submissionTime : item.submissionTime + 'Z';
                   const submitTimestamp = new Date(submitStr).getTime();
                   isLate = submitTimestamp > expectedTimestamp;
-                } else if (isOut || isActive) {
+                } else if (isOut || isActive || (isStudent && !isNotIssued)) {
                   isLate = new Date().getTime() > expectedTimestamp;
                 }
               } catch (e) { }
