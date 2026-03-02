@@ -884,7 +884,7 @@ function SpecialPassContent() {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          const activePass = passes.find((p: any) => p.studentId === item.originalId && (!p.returnTime || p.status === 'OUT' || p.status === 'ACTIVE'));
+                          const activePass = passes.find((p: any) => p.studentId === item.originalId && (p.status === 'OUT' || p.status === 'ACTIVE' || p.status === 'PENDING'));
                           if (activePass) {
                             handleSubmitIn(activePass.id);
                           } else {
