@@ -754,8 +754,30 @@ function SpecialPassContent() {
               remarksText = ""
             }
 
+            // Calculate if late
+            let isLate = false;
+            if (item.returnTime) {
+              try {
+                const expectedStr = item.returnTime.endsWith('Z') || item.returnTime.includes('+') ? item.returnTime : item.returnTime + 'Z';
+                const expectedTimestamp = new Date(expectedStr).getTime();
+
+                if (isCompleted && item.submissionTime) {
+                  const submitStr = item.submissionTime.endsWith('Z') || item.submissionTime.includes('+') ? item.submissionTime : item.submissionTime + 'Z';
+                  const submitTimestamp = new Date(submitStr).getTime();
+                  isLate = submitTimestamp > expectedTimestamp;
+                } else if (isOut || isActive) {
+                  isLate = new Date().getTime() > expectedTimestamp;
+                }
+              } catch (e) { }
+            }
+
             return (
               <div key={item.id} className="bg-[#f8fcf9] rounded-[24px] p-5 sm:p-6 border border-green-100 shadow-sm relative overflow-hidden">
+                {isLate && (
+                  <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-bl-xl shadow-sm z-10 animate-pulse">
+                    Late Mark
+                  </div>
+                )}
                 <div className="flex justify-between items-start mb-6">
                   <h3 className="font-bold text-[#0ca643] text-lg uppercase tracking-tight pr-4">{item.studentName}</h3>
                   <div className={`px-3 py-0.5 rounded-full border text-xs font-semibold lowercase

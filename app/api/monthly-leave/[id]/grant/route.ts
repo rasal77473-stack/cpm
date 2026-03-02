@@ -57,7 +57,7 @@ export async function POST(
             .from(leaveExclusions)
             .where(eq(leaveExclusions.leaveId, leaveId));
 
-        const excludedIds = exclusions.map((e) => e.studentId);
+        const excludedIds = exclusions.map((e: { studentId: number }) => e.studentId);
         console.log(`✓ Found ${exclusions.length} excluded students`);
 
         // Get all eligible students (not excluded)
