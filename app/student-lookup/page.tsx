@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogOut, Search, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { handleLogout } from "@/lib/auth-utils"
@@ -25,16 +24,28 @@ export default function StudentLookupPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [staffName, setStaffName] = useState("")
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
+    const storedRole = localStorage.getItem("role")
+    const perms: string[] = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
       router.push("/login")
       return
     }
 
+    const isAdmin = storedRole === "admin"
+    const hasPerm = perms.includes("manage_students")
+
+    if (!isAdmin && !hasPerm) {
+      router.replace("/dashboard")
+      return
+    }
+
+    setIsAuthorized(true)
     setStaffName(name || "Staff")
     fetchStudents()
   }, [router])
@@ -65,7 +76,7 @@ export default function StudentLookupPage() {
     }
   }
 
-  if (!staffName) {
+  if (!isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -88,11 +99,7 @@ export default function StudentLookupPage() {
               <p className="text-sm text-gray-600 mt-1">Find and view student records</p>
             </div>
           </div>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="gap-2"
-          >
+          <Button onClick={handleLogout} variant="outline" className="gap-2">
             <LogOut className="w-4 h-4" />
             Logout
           </Button>
@@ -150,10 +157,7 @@ export default function StudentLookupPage() {
 
         {/* Back Button */}
         <div className="mt-8">
-          <Button
-            variant="outline"
-            onClick={() => router.back()}
-          >
+          <Button variant="outline" onClick={() => router.back()}>
             Back to Dashboard
           </Button>
         </div>

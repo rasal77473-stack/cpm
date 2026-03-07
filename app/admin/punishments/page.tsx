@@ -16,9 +16,19 @@ export default function PunishmentsPage() {
   useEffect(() => {
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
+    const storedRole = localStorage.getItem("role")
+    const perms: string[] = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
       router.replace("/login")
+      return
+    }
+
+    const isAdmin = storedRole === "admin"
+    const hasPerm = ["manage_punishments", "manage_tallies", "view_tally_reports"].some(p => perms.includes(p))
+
+    if (!isAdmin && !hasPerm) {
+      router.replace("/dashboard")
       return
     }
 
@@ -30,7 +40,7 @@ export default function PunishmentsPage() {
 
   return (
     <div className="min-h-screen relative bg-[#f8fafc] overflow-x-hidden font-sans pb-24">
-      {/* Background Orbs indicating a glassmorphic modern design */}
+      {/* Background Orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-5%] left-[-10%] w-[500px] h-[500px] rounded-full bg-slate-300/30 blur-[100px]" />
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-indigo-200/30 blur-[100px]" />
@@ -94,14 +104,12 @@ export default function PunishmentsPage() {
           <Link href="/admin/fine">
             <div className="group h-full rounded-[24px] backdrop-blur-xl bg-white/60 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-100/50 transition-all duration-300 p-6 flex flex-col justify-between relative overflow-hidden cursor-pointer">
               <div className="absolute -right-10 -top-10 w-32 h-32 bg-indigo-50 rounded-full blur-2xl group-hover:bg-indigo-100 transition-colors"></div>
-
               <div className="relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center border border-indigo-200/50 mb-5 shadow-sm group-hover:scale-105 transition-transform duration-300">
                   <Banknote className="w-7 h-7 text-indigo-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Fines Management</h3>
               </div>
-
               <div className="mt-8 flex items-center justify-between text-indigo-600 font-semibold text-sm group-hover:text-indigo-700 transition-colors z-10">
                 <span>Open Management</span>
                 <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
@@ -115,14 +123,12 @@ export default function PunishmentsPage() {
           <Link href="/admin/tally">
             <div className="group h-full rounded-[24px] backdrop-blur-xl bg-white/60 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:shadow-cyan-500/10 hover:border-cyan-100/50 transition-all duration-300 p-6 flex flex-col justify-between relative overflow-hidden cursor-pointer">
               <div className="absolute -right-10 -top-10 w-32 h-32 bg-cyan-50 rounded-full blur-2xl group-hover:bg-cyan-100 transition-colors"></div>
-
               <div className="relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-100 to-cyan-50 flex items-center justify-center border border-cyan-200/50 mb-5 shadow-sm group-hover:scale-105 transition-transform duration-300">
                   <CheckCircle className="w-7 h-7 text-cyan-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Tally Management</h3>
               </div>
-
               <div className="mt-8 flex items-center justify-between text-cyan-600 font-semibold text-sm group-hover:text-cyan-700 transition-colors z-10">
                 <span>Open Management</span>
                 <div className="w-8 h-8 rounded-full bg-cyan-50 flex items-center justify-center group-hover:bg-cyan-100 transition-colors">
@@ -136,14 +142,12 @@ export default function PunishmentsPage() {
           <Link href="/admin/other-tally">
             <div className="group h-full rounded-[24px] backdrop-blur-xl bg-white/60 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:shadow-orange-500/10 hover:border-orange-100/50 transition-all duration-300 p-6 flex flex-col justify-between relative overflow-hidden cursor-pointer">
               <div className="absolute -right-10 -top-10 w-32 h-32 bg-orange-50 rounded-full blur-2xl group-hover:bg-orange-100 transition-colors"></div>
-
               <div className="relative z-10">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-100 to-orange-50 flex items-center justify-center border border-orange-200/50 mb-5 shadow-sm group-hover:scale-105 transition-transform duration-300">
                   <Zap className="w-7 h-7 text-orange-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Other Tally System</h3>
               </div>
-
               <div className="mt-8 flex items-center justify-between text-orange-600 font-semibold text-sm group-hover:text-orange-700 transition-colors z-10">
                 <span>Open Management</span>
                 <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center group-hover:bg-orange-100 transition-colors">

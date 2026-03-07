@@ -520,6 +520,6 @@ export default function AddFinePage() {
           background-color: rgba(156, 163, 175, 0.5);
         }
       `}} />
-</div>
+    </div>
   )
 }

@@ -46,7 +46,7 @@ export default function PhonePassMenu() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground animate-pulse">Verifying credentials...</p>
         </div>
-    </div>
+      </div>
     )
   }
 
@@ -56,7 +56,7 @@ export default function PhonePassMenu() {
       label: "Students",
       color: "text-green-600",
       href: "/admin/manage-students",
-      visible: role === "admin" || permissions.includes("manage_students") || permissions.length === 0,
+      visible: role === "admin" || permissions.includes("manage_students"),
     },
     {
       icon: Ticket,
@@ -98,7 +98,7 @@ export default function PhonePassMenu() {
       label: "Non Active",
       color: "text-green-600",
       href: "/special-pass?tab=nill",
-      visible: role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass") || permissions.length === 0,
+      visible: role === "admin" || permissions.includes("issue_phone_pass") || permissions.includes("access_phone_pass"),
     }
   ]
 
@@ -116,7 +116,7 @@ export default function PhonePassMenu() {
           <Button variant="ghost" size="icon" asChild className="-ml-2 text-gray-800 rounded-xl pointer-events-none">
             <div><ChevronLeft className="h-6 w-6" /></div>
           </Button>
-            <BackToDashboard />
+          <BackToDashboard />
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 pointer-events-none">Phone Pass Menu</h1>
         </div>
       </header>

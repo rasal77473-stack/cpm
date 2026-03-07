@@ -9,7 +9,9 @@ import {
   AlertCircle,
   UserCheck,
   Star,
-  LogOut
+  LogOut,
+  DoorOpen,
+  GraduationCap,
 } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 
@@ -23,7 +25,7 @@ export default function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
-    const role = localStorage.getItem("role")
+    const storedRole = localStorage.getItem("role")
     const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
@@ -34,7 +36,7 @@ export default function Dashboard() {
 
     setIsAuthorized(true)
     setPermissions(perms)
-    setRole(role || "")
+    setRole(storedRole || "")
     setStaffName(name || "Staff")
   }, [router])
 
@@ -42,9 +44,97 @@ export default function Dashboard() {
     return null
   }
 
+  const isAdmin = role === "admin"
+  const has = (...perms: string[]) => perms.some((p) => permissions.includes(p))
+
+  // Each item is only shown when the user has at least one relevant permission
+  const menuItems = [
+    {
+      href: "/phone-pass-menu",
+      label: "Phone Pass",
+      Icon: Ticket,
+      bg: "bg-emerald-50",
+      hoverBg: "group-hover:bg-emerald-100",
+      iconColor: "text-emerald-600",
+      borderHover: "hover:border-emerald-100",
+      shadowHover: "hover:shadow-[0_8px_30px_-4px_rgba(16,185,129,0.1)]",
+      visible:
+        isAdmin ||
+        has(
+          "issue_phone_pass",
+          "access_phone_pass",
+          "manage_phone_status",
+          "view_phone_logs",
+          "view_phone_history"
+        ),
+    },
+    {
+      href: "/gate-pass-menu",
+      label: "Gate Pass",
+      Icon: DoorOpen,
+      bg: "bg-blue-50",
+      hoverBg: "group-hover:bg-blue-100",
+      iconColor: "text-blue-600",
+      borderHover: "hover:border-blue-100",
+      shadowHover: "hover:shadow-[0_8px_30px_-4px_rgba(59,130,246,0.1)]",
+      visible:
+        isAdmin ||
+        has(
+          "issue_gate_pass",
+          "access_gate_pass",
+          "manage_gate_status",
+          "view_gate_logs"
+        ),
+    },
+    {
+      href: "/student-lookup",
+      label: "Student",
+      Icon: GraduationCap,
+      bg: "bg-teal-50",
+      hoverBg: "group-hover:bg-teal-100",
+      iconColor: "text-teal-600",
+      borderHover: "hover:border-teal-100",
+      shadowHover: "hover:shadow-[0_8px_30px_-4px_rgba(20,184,166,0.1)]",
+      visible: isAdmin || has("manage_students"),
+    },
+    {
+      href: "/admin/punishments",
+      label: "Punishments",
+      Icon: AlertCircle,
+      bg: "bg-red-50",
+      hoverBg: "group-hover:bg-red-100",
+      iconColor: "text-red-600",
+      borderHover: "hover:border-red-100",
+      shadowHover: "hover:shadow-[0_8px_30px_-4px_rgba(239,68,68,0.1)]",
+      visible: isAdmin || has("manage_punishments", "manage_tallies", "view_tally_reports"),
+    },
+    {
+      href: "/admin/rewards",
+      label: "Rewards",
+      Icon: Star,
+      bg: "bg-amber-50",
+      hoverBg: "group-hover:bg-amber-100",
+      iconColor: "text-amber-500",
+      borderHover: "hover:border-amber-100",
+      shadowHover: "hover:shadow-[0_8px_30px_-4px_rgba(245,158,11,0.1)]",
+      visible: isAdmin || has("manage_rewards", "manage_stars"),
+    },
+    {
+      href: "/admin/users",
+      label: "Users",
+      Icon: UserCheck,
+      bg: "bg-violet-50",
+      hoverBg: "group-hover:bg-violet-100",
+      iconColor: "text-violet-600",
+      borderHover: "hover:border-violet-100",
+      shadowHover: "hover:shadow-[0_8px_30px_-4px_rgba(139,92,246,0.1)]",
+      visible: isAdmin || has("manage_users"),
+    },
+  ].filter((item) => item.visible)
+
   return (
     <div className="min-h-screen relative bg-[#fafafa] overflow-x-hidden font-sans pb-24 flex flex-col items-center justify-center">
-      {/* Subtle background element - Very clean and minimal */}
+      {/* Subtle background element */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-5%] left-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-100/30 blur-[100px]" />
         <div className="absolute bottom-[10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-teal-50/40 blur-[100px]" />
@@ -69,47 +159,27 @@ export default function Dashboard() {
         </div>
 
         {/* Grid Menu */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Phone Pass Button */}
-          <Link href="/phone-pass-menu" className="block group">
-            <div className="bg-white rounded-3xl p-6 aspect-square flex flex-col items-center justify-center gap-4 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-gray-100 hover:border-emerald-100 hover:shadow-[0_8px_30px_-4px_rgba(16,185,129,0.1)] active:scale-95 transition-all duration-300 h-full w-full">
-              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors duration-300">
-                <Ticket className="w-6 h-6 text-emerald-600" strokeWidth={2} />
-              </div>
-              <span className="text-sm font-semibold text-gray-700 text-center">Phone Pass</span>
-            </div>
-          </Link>
-
-          {/* Student Button */}
-          <Link href="/student-lookup" className="block group">
-            <div className="bg-white rounded-3xl p-6 aspect-square flex flex-col items-center justify-center gap-4 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-gray-100 hover:border-teal-100 hover:shadow-[0_8px_30px_-4px_rgba(20,184,166,0.1)] active:scale-95 transition-all duration-300 h-full w-full">
-              <div className="w-14 h-14 rounded-full bg-teal-50 flex items-center justify-center group-hover:bg-teal-100 transition-colors duration-300">
-                <UserCheck className="w-6 h-6 text-teal-600" strokeWidth={2} />
-              </div>
-              <span className="text-sm font-semibold text-gray-700 text-center">Student</span>
-            </div>
-          </Link>
-
-          {/* Punishments Button */}
-          <Link href="/admin/punishments" className="block group">
-            <div className="bg-white rounded-3xl p-6 aspect-square flex flex-col items-center justify-center gap-4 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-gray-100 hover:border-red-100 hover:shadow-[0_8px_30px_-4px_rgba(239,68,68,0.1)] active:scale-95 transition-all duration-300 h-full w-full">
-              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-100 transition-colors duration-300">
-                <AlertCircle className="w-6 h-6 text-red-600" strokeWidth={2} />
-              </div>
-              <span className="text-sm font-semibold text-gray-700 text-center">Punishments</span>
-            </div>
-          </Link>
-
-          {/* Rewards Button */}
-          <Link href="/admin/rewards" className="block group">
-            <div className="bg-white rounded-3xl p-6 aspect-square flex flex-col items-center justify-center gap-4 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-gray-100 hover:border-amber-100 hover:shadow-[0_8px_30px_-4px_rgba(245,158,11,0.1)] active:scale-95 transition-all duration-300 h-full w-full">
-              <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors duration-300">
-                <Star className="w-6 h-6 text-amber-500" strokeWidth={2} />
-              </div>
-              <span className="text-sm font-semibold text-gray-700 text-center">Rewards</span>
-            </div>
-          </Link>
-        </div>
+        {menuItems.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4">
+            {menuItems.map(({ href, label, Icon, bg, hoverBg, iconColor, borderHover, shadowHover }) => (
+              <Link key={label} href={href} className="block group">
+                <div
+                  className={`bg-white rounded-3xl p-6 aspect-square flex flex-col items-center justify-center gap-4 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-gray-100 ${borderHover} ${shadowHover} active:scale-95 transition-all duration-300 h-full w-full`}
+                >
+                  <div className={`w-14 h-14 rounded-full ${bg} flex items-center justify-center ${hoverBg} transition-colors duration-300`}>
+                    <Icon className={`w-6 h-6 ${iconColor}`} strokeWidth={2} />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-700 text-center">{label}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16 text-gray-400">
+            <p className="text-base font-medium">No menu items available.</p>
+            <p className="text-sm mt-1">Contact your administrator to grant you access.</p>
+          </div>
+        )}
       </main>
     </div>
   )

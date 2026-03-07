@@ -17,9 +17,19 @@ export default function RewardsPage() {
   useEffect(() => {
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
+    const storedRole = localStorage.getItem("role")
+    const perms: string[] = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
       router.replace("/login")
+      return
+    }
+
+    const isAdmin = storedRole === "admin"
+    const hasPerm = ["manage_rewards", "manage_stars"].some(p => perms.includes(p))
+
+    if (!isAdmin && !hasPerm) {
+      router.replace("/dashboard")
       return
     }
 
@@ -34,7 +44,7 @@ export default function RewardsPage() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
-    </div>
+      </div>
     )
   }
 
@@ -55,7 +65,7 @@ export default function RewardsPage() {
               </Button>
               <BackToDashboard />
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Rewards & Achievements</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Rewards &amp; Achievements</h1>
                 <p className="text-xs sm:text-sm text-gray-600 truncate">{staffName}</p>
               </div>
             </div>

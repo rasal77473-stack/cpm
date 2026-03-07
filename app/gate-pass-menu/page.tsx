@@ -44,7 +44,7 @@ export default function GatePassMenu() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground animate-pulse">Verifying credentials...</p>
         </div>
-    </div>
+      </div>
     )
   }
 
@@ -54,7 +54,7 @@ export default function GatePassMenu() {
       label: "Students",
       color: "text-green-600",
       href: "/admin/manage-students",
-      visible: role === "admin" || permissions.includes("manage_students") || permissions.length === 0,
+      visible: role === "admin" || permissions.includes("manage_students"),
     },
     {
       icon: DoorOpen,
@@ -100,7 +100,7 @@ export default function GatePassMenu() {
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 text-green-600">
           <ChevronLeft className="h-6 w-6" />
         </Button>
-          <BackToDashboard />
+        <BackToDashboard />
         <h1 className="text-2xl font-bold text-green-900">Menu</h1>
       </header>
 
