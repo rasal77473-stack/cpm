@@ -77,7 +77,8 @@ export default function Dashboard() {
       iconColor: "text-blue-600",
       borderHover: "hover:border-blue-100",
       shadowHover: "hover:shadow-[0_8px_30px_-4px_rgba(59,130,246,0.1)]",
-      visible:
+      visible: false, // Temporarily hidden as requested
+      /*
         isAdmin ||
         has(
           "issue_gate_pass",
@@ -85,6 +86,7 @@ export default function Dashboard() {
           "manage_gate_status",
           "view_gate_logs"
         ),
+      */
     },
     {
       href: "/student-lookup",
@@ -118,17 +120,6 @@ export default function Dashboard() {
       borderHover: "hover:border-amber-100",
       shadowHover: "hover:shadow-[0_8px_30px_-4px_rgba(245,158,11,0.1)]",
       visible: isAdmin || has("manage_rewards", "manage_stars"),
-    },
-    {
-      href: "/admin/users",
-      label: "Users",
-      Icon: UserCheck,
-      bg: "bg-violet-50",
-      hoverBg: "group-hover:bg-violet-100",
-      iconColor: "text-violet-600",
-      borderHover: "hover:border-violet-100",
-      shadowHover: "hover:shadow-[0_8px_30px_-4px_rgba(139,92,246,0.1)]",
-      visible: isAdmin || has("manage_users"),
     },
   ].filter((item) => item.visible)
 
