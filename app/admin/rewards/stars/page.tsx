@@ -62,6 +62,10 @@ export default function StarsManagementPage() {
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
 
+  // Remove stars modal state
+  const [removeModal, setRemoveModal] = useState<{ studentId: number; studentName: string; maxStars: number } | null>(null)
+  const [removeCount, setRemoveCount] = useState(1)
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
@@ -124,7 +128,7 @@ export default function StarsManagementPage() {
 
 
 
-  const handleRemoveStar = async (studentId: number, studentName: string) => {
+  const handleRemoveStar = async (studentId: number, studentName: string, count: number) => {
     try {
       const token = localStorage.getItem("token")
       const staffId = localStorage.getItem("staffId")
@@ -137,7 +141,7 @@ export default function StarsManagementPage() {
         },
         body: JSON.stringify({
           action: "remove",
-          stars: 1,
+          stars: count,
           awardedBy: parseInt(staffId || "0"),
           awardedByName: staffName,
           reason: "Star removed",
@@ -145,7 +149,8 @@ export default function StarsManagementPage() {
       })
 
       if (res.ok) {
-        toast.success(`⭐ Star removed from ${studentName}`)
+        toast.success(`⭐ ${count} star${count > 1 ? "s" : ""} removed from ${studentName}`)
+        setRemoveModal(null)
         fetchData()
       } else {
         const error = await res.json()
@@ -397,7 +402,10 @@ export default function StarsManagementPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleRemoveStar(star.studentId, star.studentName)}
+                              onClick={() => {
+                                setRemoveCount(1)
+                                setRemoveModal({ studentId: star.studentId, studentName: star.studentName, maxStars: star.stars })
+                              }}
                               className="text-xs text-red-600 hover:bg-red-50"
                             >
                               Remove
@@ -470,7 +478,47 @@ export default function StarsManagementPage() {
         )}
       </main>
 
+      {/* Remove Stars Modal */}
+      {removeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 animate-in zoom-in-95">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-gray-900">Remove Stars</h2>
+              <button onClick={() => setRemoveModal(null)} className="text-gray-400 hover:text-gray-600 rounded-full p-1 hover:bg-gray-100 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
+            <p className="text-sm text-gray-600 mb-1">Student: <span className="font-semibold text-gray-900">{removeModal.studentName}</span></p>
+            <p className="text-sm text-gray-500 mb-5">
+              Current stars: <span className="font-bold text-amber-600">{removeModal.maxStars} ⭐</span>
+            </p>
+
+            <label className="block text-sm font-semibold text-gray-700 mb-2">How many stars to remove?</label>
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={() => setRemoveCount(c => Math.max(1, c - 1))}
+                className="w-10 h-10 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 font-bold text-lg flex items-center justify-center transition-colors"
+              >−</button>
+              <span className="flex-1 text-center text-2xl font-black text-red-600">{removeCount}</span>
+              <button
+                onClick={() => setRemoveCount(c => Math.min(removeModal.maxStars, c + 1))}
+                className="w-10 h-10 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 font-bold text-lg flex items-center justify-center transition-colors"
+              >+</button>
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 rounded-xl h-11 font-bold" onClick={() => setRemoveModal(null)}>Cancel</Button>
+              <Button
+                className="flex-1 rounded-xl h-11 font-bold bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => handleRemoveStar(removeModal.studentId, removeModal.studentName, removeCount)}
+              >
+                Remove {removeCount} ⭐
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

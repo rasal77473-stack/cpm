@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, LogOut, Plus, Search, Star, Loader2, ClipboardList, TrendingUp, Users, ShieldAlert } from "lucide-react"
+import { ChevronLeft, LogOut, Plus, Search, Star, Loader2, ClipboardList, TrendingUp, Users, ShieldAlert, Trash2 } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
 import { BackToDashboard } from "@/components/back-to-dashboard"
@@ -49,6 +49,7 @@ export default function OtherTallyManagementPage() {
   const [classes, setClasses] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<"summary" | "logs">("summary")
   const [awardingStars, setAwardingStars] = useState<number | null>(null)
+  const [canDelete, setCanDelete] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -61,6 +62,9 @@ export default function OtherTallyManagementPage() {
 
     setIsAuthorized(true)
     setStaffName(name || "Staff")
+    const storedRole = localStorage.getItem("role")
+    const perms: string[] = JSON.parse(localStorage.getItem("permissions") || "[]")
+    setCanDelete(storedRole === "admin" || perms.includes("delete_records"))
     fetchTallies()
   }, [router])
 
@@ -512,6 +516,25 @@ export default function OtherTallyManagementPage() {
                           <div className="mt-4 pt-3 border-t border-dashed border-gray-200 bg-gray-50/50 rounded-xl p-3">
                             <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Optional Note</p>
                             <p className="text-sm font-medium text-gray-700 italic">"{tally.reason}"</p>
+                          </div>
+                        )}
+
+                        {canDelete && (
+                          <div className="mt-3 pt-3 border-t border-gray-100 flex justify-start">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (!confirm("Delete this tally record? This cannot be undone.")) return
+                                fetch(`/api/tallies/${tally.id}`, { method: "DELETE" })
+                                  .then(res => res.ok ? res.json() : Promise.reject())
+                                  .then(() => { toast.success("Tally deleted"); fetchTallies() })
+                                  .catch(() => toast.error("Failed to delete tally"))
+                              }}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl gap-1.5 text-xs font-semibold px-3 h-8"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Delete
+                            </Button>
                           </div>
                         )}
                       </div>
