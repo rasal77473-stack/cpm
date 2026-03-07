@@ -58,7 +58,7 @@ export default function RewardsPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => router.back()}
+                onClick={() => router.push("/dashboard")}
                 className="flex-shrink-0"
               >
                 <ChevronLeft className="w-5 h-5" />

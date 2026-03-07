@@ -97,7 +97,7 @@ export default function GatePassMenu() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b px-4 py-4 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 text-green-600">
+        <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")} className="-ml-2 text-green-600">
           <ChevronLeft className="h-6 w-6" />
         </Button>
         <BackToDashboard />

@@ -157,7 +157,7 @@ export default function StudentLookupPage() {
 
         {/* Back Button */}
         <div className="mt-8">
-          <Button variant="outline" onClick={() => router.back()}>
+          <Button variant="outline" onClick={() => router.push("/dashboard")}>
             Back to Dashboard
           </Button>
         </div>
