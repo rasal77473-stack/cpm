@@ -21,7 +21,8 @@ import {
   Users,
   Settings,
   Calendar,
-  DoorOpen
+  DoorOpen,
+  Trash2
 } from "lucide-react"
 import useSWR, { mutate } from "swr"
 import { toast } from "sonner"
@@ -75,6 +76,7 @@ function SpecialPassContent() {
   const [canGrantPass, setCanGrantPass] = useState(false)
   const [canViewLogs, setCanViewLogs] = useState(false)
   const [canManageStatus, setCanManageStatus] = useState(false)
+  const [canDeleteRecords, setCanDeleteRecords] = useState(false)
 
   // Prefetch grant page bundle so it loads instantly on click
   useEffect(() => {
@@ -334,6 +336,7 @@ function SpecialPassContent() {
     setCanGrantPass(role === "admin" || perms.includes("issue_phone_pass"))
     setCanViewLogs(role === "admin" || perms.includes("view_phone_logs") || perms.includes("issue_phone_pass") || perms.includes("access_phone_pass"))
     setCanManageStatus(role === "admin" || perms.includes("manage_phone_status") || perms.includes("issue_phone_pass"))
+    setCanDeleteRecords(role === "admin" || perms.includes("delete_records"))
   }, [router])
 
   useEffect(() => {
@@ -931,6 +934,29 @@ function SpecialPassContent() {
                       className="px-6 py-2.5 h-auto rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
                     >
                       Activate Phone
+                    </Button>
+                  </div>
+                )}
+
+                {/* Delete button - only for users with delete_records permission */}
+                {canDeleteRecords && !isStudent && (
+                  <div className="flex justify-start mt-4 pt-3 border-t border-green-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (!confirm("Delete this pass record? This cannot be undone.")) return
+                        fetch(`/api/special-pass/${item.originalId}`, { method: "DELETE" })
+                          .then(res => res.ok ? res.json() : Promise.reject())
+                          .then(() => {
+                            toast.success("Pass deleted")
+                            mutate("/api/special-pass/all")
+                          })
+                          .catch(() => toast.error("Failed to delete pass"))
+                      }}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl gap-1.5 text-xs font-semibold px-3 h-8"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
                     </Button>
                   </div>
                 )}

@@ -6,10 +6,10 @@ import { eq, desc, and } from "drizzle-orm"
 // GET - Retrieve latest phone status for a student
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id } = await context.params
     const studentId = parseInt(id)
 
     // Validate student ID
@@ -48,10 +48,10 @@ export async function GET(
 // PUT - Update phone status for a student
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id } = await context.params
     const studentId = parseInt(id)
     const body = await request.json()
     const { status, updatedBy, notes } = body
@@ -126,23 +126,23 @@ export async function PUT(
       notes: notes || null,
     });
 
-    // Log activity and sync special pass in background (fire and forget)
+    // Log activity in background (fire and forget)
     if (updatedBy && updatedBy !== "system" && !isNaN(parseInt(updatedBy))) {
-      // Run in background without awaiting
-      db.select()
-        .from(students)
-        .where(eq(students.id, studentId))
-        .limit(1)
-        .then(([student]) => {
+      void (async () => {
+        try {
+          const rows = await db.select().from(students).where(eq(students.id, studentId)).limit(1)
+          const student = rows[0]
           if (student) {
-            db.insert(userActivityLogs).values({
+            await db.insert(userActivityLogs).values({
               userId: parseInt(updatedBy),
               action: "PHONE_STATUS_CHANGE",
               details: `Phone status changed to ${status} for student ${student.name || studentId}`,
-            }).catch(err => console.error("Error logging activity:", err))
+            })
           }
-        })
-        .catch(err => console.error("Error fetching student:", err))
+        } catch (err) {
+          console.error("Error logging activity:", err)
+        }
+      })()
     }
 
 

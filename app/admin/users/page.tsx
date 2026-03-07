@@ -30,6 +30,7 @@ const PERMISSION_CATEGORIES = [
       { id: "view_phone_logs", label: "View Phone Logs" },
       { id: "view_phone_history", label: "View Phone History" },
       { id: "manage_phone_status", label: "Manage Phone Status Lists" },
+      { id: "delete_records", label: "Delete Records (Passes, Logs & Cards)" },
     ],
   },
   {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, LogOut, Plus, Settings, Search, Filter, Loader2, IndianRupee, Banknote, ShieldAlert, CheckCircle2, TrendingDown } from "lucide-react"
+import { ChevronLeft, LogOut, Plus, Settings, Search, Filter, Loader2, IndianRupee, Banknote, ShieldAlert, CheckCircle2, TrendingDown, Trash2 } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
 import { BackToDashboard } from "@/components/back-to-dashboard"
@@ -38,6 +38,7 @@ export default function FineManagementPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [classes, setClasses] = useState<string[]>([])
   const [processingId, setProcessingId] = useState<number | null>(null)
+  const [canDelete, setCanDelete] = useState(false)
 
   // Calculate fine statistics
   const fineStats = useMemo(() => {
@@ -61,6 +62,9 @@ export default function FineManagementPage() {
 
     setIsAuthorized(true)
     setStaffName(name || "Staff")
+    const storedRole = localStorage.getItem("role")
+    const perms: string[] = JSON.parse(localStorage.getItem("permissions") || "[]")
+    setCanDelete(storedRole === "admin" || perms.includes("delete_records"))
     fetchFines()
   }, [router, search, classFilter, statusFilter])
 
@@ -389,7 +393,7 @@ export default function FineManagementPage() {
                       </div>
 
                       {/* Action Button */}
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-2">
                         {fine.isPaid === "NO" ? (
                           <Button
                             size="sm"
@@ -408,6 +412,22 @@ export default function FineManagementPage() {
                             className="gap-1.5 h-9 rounded-xl text-gray-600 hover:text-rose-600 hover:bg-rose-50 font-semibold px-3 transition-colors border-gray-200"
                           >
                             {processingId === fine.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Undo"}
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (!confirm("Delete this fine record? This cannot be undone.")) return
+                              fetch(`/api/fines/student-fines/${fine.id}`, { method: "DELETE" })
+                                .then(res => res.ok ? res.json() : Promise.reject())
+                                .then(() => { toast.success("Fine deleted"); fetchFines() })
+                                .catch(() => toast.error("Failed to delete fine"))
+                            }}
+                            className="h-9 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         )}
                       </div>
@@ -463,26 +483,44 @@ export default function FineManagementPage() {
                         {new Date(fine.issuedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
 
-                      {fine.isPaid === "NO" ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleStatusChange(fine.id, "YES")}
-                          disabled={processingId === fine.id}
-                          className="shrink-0 gap-1.5 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-200 border border-emerald-500 font-bold px-6"
-                        >
-                          {processingId === fine.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Mark Paid"}
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => handleStatusChange(fine.id, "NO")}
-                          disabled={processingId === fine.id}
-                          variant="outline"
-                          className="shrink-0 gap-1.5 h-10 rounded-xl text-gray-600 hover:text-rose-600 hover:bg-rose-50 font-bold px-4 border-gray-200"
-                        >
-                          {processingId === fine.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Undo"}
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {fine.isPaid === "NO" ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStatusChange(fine.id, "YES")}
+                            disabled={processingId === fine.id}
+                            className="shrink-0 gap-1.5 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-200 border border-emerald-500 font-bold px-6"
+                          >
+                            {processingId === fine.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Mark Paid"}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStatusChange(fine.id, "NO")}
+                            disabled={processingId === fine.id}
+                            variant="outline"
+                            className="shrink-0 gap-1.5 h-10 rounded-xl text-gray-600 hover:text-rose-600 hover:bg-rose-50 font-bold px-4 border-gray-200"
+                          >
+                            {processingId === fine.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Undo"}
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (!confirm("Delete this fine record? This cannot be undone.")) return
+                              fetch(`/api/fines/student-fines/${fine.id}`, { method: "DELETE" })
+                                .then(res => res.ok ? res.json() : Promise.reject())
+                                .then(() => { toast.success("Fine deleted"); fetchFines() })
+                                .catch(() => toast.error("Failed to delete fine"))
+                            }}
+                            className="shrink-0 h-10 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50 px-3"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

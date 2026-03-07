@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronLeft, Search, Star, LogOut, TrendingUp } from "lucide-react"
+import { ChevronLeft, Search, Star, LogOut, TrendingUp, Trash2 } from "lucide-react"
 import { handleLogout } from "@/lib/auth-utils"
 import { toast } from "sonner"
 import { BackToDashboard } from "@/components/back-to-dashboard"
@@ -49,10 +49,13 @@ export default function StarLogsPage() {
   const [dateTo, setDateTo] = useState("")
   const [classes, setClasses] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<"summary" | "detailed">("summary")
+  const [canDelete, setCanDelete] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
     const name = localStorage.getItem("staffName")
+    const storedRole = localStorage.getItem("role")
+    const perms: string[] = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
       router.replace("/login")
@@ -61,6 +64,7 @@ export default function StarLogsPage() {
 
     setIsAuthorized(true)
     setStaffName(name || "Staff")
+    setCanDelete(storedRole === "admin" || perms.includes("delete_records"))
     fetchLogs()
   }, [router])
 
@@ -70,16 +74,15 @@ export default function StarLogsPage() {
       const res = await fetch("/api/students/star-logs")
       if (!res.ok) throw new Error("Failed to fetch logs")
       const data = await res.json()
-      
+
       setLogs(data.logs || [])
       setSummary(data.summary || [])
 
-      // Extract unique classes
       const uniqueClasses = [...new Set([...data.logs, ...data.summary]
         .map((item: any) => item.studentClass)
         .filter(Boolean))]
       setClasses(uniqueClasses as string[])
-      
+
       applyFilters(data.logs || [], search, classFilter, dateFrom, dateTo)
     } catch (error) {
       console.error("Failed to fetch logs:", error)
@@ -97,42 +100,30 @@ export default function StarLogsPage() {
     dateToVal: string
   ) => {
     let filtered = dataToFilter.filter((log) => {
-      const matchesSearch = 
+      const matchesSearch =
         log.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.admissionNumber.toLowerCase().includes(searchQuery.toLowerCase())
-      
       const matchesClass = classVal === "all" || log.studentClass === classVal
-      
-      const logDate = new Date(log.timestamp).toISOString().split('T')[0]
+      const logDate = new Date(log.timestamp).toISOString().split("T")[0]
       const matchesDateFrom = !dateFromVal || logDate >= dateFromVal
       const matchesDateTo = !dateToVal || logDate <= dateToVal
-      
       return matchesSearch && matchesClass && matchesDateFrom && matchesDateTo
     })
-
-    // Sort by timestamp (newest first)
     filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     setFilteredLogs(filtered)
   }
 
-  const handleSearch = (value: string) => {
-    setSearch(value)
-    applyFilters(logs, value, classFilter, dateFrom, dateTo)
-  }
+  const handleSearch = (value: string) => { setSearch(value); applyFilters(logs, value, classFilter, dateFrom, dateTo) }
+  const handleClassFilter = (value: string) => { setClassFilter(value); applyFilters(logs, search, value, dateFrom, dateTo) }
+  const handleDateFromChange = (value: string) => { setDateFrom(value); applyFilters(logs, search, classFilter, value, dateTo) }
+  const handleDateToChange = (value: string) => { setDateTo(value); applyFilters(logs, search, classFilter, dateFrom, value) }
 
-  const handleClassFilter = (value: string) => {
-    setClassFilter(value)
-    applyFilters(logs, search, value, dateFrom, dateTo)
-  }
-
-  const handleDateFromChange = (value: string) => {
-    setDateFrom(value)
-    applyFilters(logs, search, classFilter, value, dateTo)
-  }
-
-  const handleDateToChange = (value: string) => {
-    setDateTo(value)
-    applyFilters(logs, search, classFilter, dateFrom, value)
+  const handleDeleteLog = (id: number) => {
+    if (!confirm("Delete this log entry? This cannot be undone.")) return
+    fetch(`/api/students/star-logs/${id}`, { method: "DELETE" })
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(() => { toast.success("Log deleted"); fetchLogs() })
+      .catch(() => toast.error("Failed to delete log"))
   }
 
   if (!isAuthorized) {
@@ -142,7 +133,7 @@ export default function StarLogsPage() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
-    </div>
+      </div>
     )
   }
 
@@ -153,12 +144,7 @@ export default function StarLogsPage() {
         <div className="w-full px-4 md:px-6 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3 min-w-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.back()}
-                className="flex-shrink-0"
-              >
+              <Button variant="ghost" size="icon" onClick={() => router.back()} className="flex-shrink-0">
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <BackToDashboard />
@@ -177,18 +163,10 @@ export default function StarLogsPage() {
       <main className="w-full px-4 md:px-6 py-6 md:py-8 max-w-6xl mx-auto">
         {/* View Mode Toggle */}
         <div className="flex gap-2 mb-6">
-          <Button
-            variant={viewMode === "summary" ? "default" : "outline"}
-            onClick={() => setViewMode("summary")}
-            className="gap-2"
-          >
-            <TrendingUp className="w-4 h-4" />
-            Summary
+          <Button variant={viewMode === "summary" ? "default" : "outline"} onClick={() => setViewMode("summary")} className="gap-2">
+            <TrendingUp className="w-4 h-4" /> Summary
           </Button>
-          <Button
-            variant={viewMode === "detailed" ? "default" : "outline"}
-            onClick={() => setViewMode("detailed")}
-          >
+          <Button variant={viewMode === "detailed" ? "default" : "outline"} onClick={() => setViewMode("detailed")}>
             Detailed Logs
           </Button>
         </div>
@@ -199,40 +177,19 @@ export default function StarLogsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  placeholder="Search by name or admission..."
-                  value={search}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10 h-11"
-                />
+                <Input placeholder="Search by name or admission..." value={search} onChange={(e) => handleSearch(e.target.value)} className="pl-10 h-11" />
               </div>
-              <select 
-                value={classFilter}
-                onChange={(e) => handleClassFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg h-11"
-              >
+              <select value={classFilter} onChange={(e) => handleClassFilter(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg h-11">
                 <option value="all">All Classes</option>
-                {classes.map((cls) => (
-                  <option key={cls} value={cls}>{cls}</option>
-                ))}
+                {classes.map((cls) => (<option key={cls} value={cls}>{cls}</option>))}
               </select>
               <div>
                 <label className="text-xs text-gray-600 block mb-1">Date From</label>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => handleDateFromChange(e.target.value)}
-                  className="h-11"
-                />
+                <Input type="date" value={dateFrom} onChange={(e) => handleDateFromChange(e.target.value)} className="h-11" />
               </div>
               <div>
                 <label className="text-xs text-gray-600 block mb-1">Date To</label>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => handleDateToChange(e.target.value)}
-                  className="h-11"
-                />
+                <Input type="date" value={dateTo} onChange={(e) => handleDateToChange(e.target.value)} className="h-11" />
               </div>
             </div>
           </CardContent>
@@ -248,9 +205,7 @@ export default function StarLogsPage() {
                   <p className="mt-4 text-gray-500">Loading summary...</p>
                 </div>
               ) : summary.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  No star data available
-                </div>
+                <div className="text-center py-12 text-gray-500">No star data available</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -273,8 +228,7 @@ export default function StarLogsPage() {
                           <td className="py-3 px-4 text-gray-700">{item.studentClass || "-"}</td>
                           <td className="py-3 px-4 text-center">
                             <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm font-semibold">
-                              <Star className="w-4 h-4 fill-amber-500" />
-                              {item.totalStars}
+                              <Star className="w-4 h-4 fill-amber-500" /> {item.totalStars}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-center text-green-600 font-medium">+{item.totalAwarded}</td>
@@ -300,9 +254,7 @@ export default function StarLogsPage() {
                   <p className="mt-4 text-gray-500">Loading logs...</p>
                 </div>
               ) : filteredLogs.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  No logs found
-                </div>
+                <div className="text-center py-12 text-gray-500">No logs found</div>
               ) : (
                 <div className="space-y-3">
                   {filteredLogs.map((log) => (
@@ -311,24 +263,16 @@ export default function StarLogsPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="font-semibold text-gray-900">{log.studentName}</h3>
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              log.action === "award"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}>
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${log.action === "award" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                               {log.action === "award" ? "⭐ Awarded" : "Removed"}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600">
-                            {log.admissionNumber} • {log.studentClass || "N/A"}
-                          </p>
+                          <p className="text-sm text-gray-600">{log.admissionNumber} • {log.studentClass || "N/A"}</p>
                           <p className="text-sm text-gray-500 mt-2">
                             By: <span className="font-medium">{log.awardedByName}</span> on {new Date(log.timestamp).toLocaleDateString()} at {new Date(log.timestamp).toLocaleTimeString()}
                           </p>
                           {log.reason && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              Reason: <span className="italic">{log.reason}</span>
-                            </p>
+                            <p className="text-sm text-gray-600 mt-1">Reason: <span className="italic">{log.reason}</span></p>
                           )}
                         </div>
                         <div className="text-right">
@@ -336,6 +280,16 @@ export default function StarLogsPage() {
                             {log.currentStars}
                             <Star className="w-5 h-5 inline ml-1 fill-amber-500" />
                           </div>
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteLog(log.id)}
+                              className="mt-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg gap-1 text-xs font-semibold px-2 h-7"
+                            >
+                              <Trash2 className="w-3 h-3" /> Delete
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
