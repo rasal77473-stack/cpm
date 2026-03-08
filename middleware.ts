@@ -1,32 +1,28 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Protected routes pattern
-const protectedRoutes = ['/dashboard', '/admin', '/special-pass', '/history', '/phone-pass-menu', '/gate-pass-menu', '/gate-pass', '/student-lookup']
+// Public routes that don't require authentication
+const publicRoutes = ['/login']
 
 export function middleware(request: NextRequest) {
     const token = request.cookies.get('auth_token')?.value
     const { pathname } = request.nextUrl
 
-    // 1. If accessing a protected route without token -> Redirect to Login
-    if (protectedRoutes.some(route => pathname.startsWith(route))) {
-        if (!token) {
-            const loginUrl = new URL('/login', request.url)
-            return NextResponse.redirect(loginUrl)
-        }
+    const isPublic = publicRoutes.some(route => pathname.startsWith(route))
+
+    // 1. If NOT logged in and NOT on a public route -> strictly redirect to login
+    if (!token && !isPublic) {
+        const loginUrl = new URL('/login', request.url)
+        return NextResponse.redirect(loginUrl)
     }
 
-    // 2. If accessing root '/' -> Redirect to Dashboard if logged in, else Login
-    if (pathname === '/') {
-        if (token) {
-            return NextResponse.redirect(new URL('/dashboard', request.url))
-        } else {
-            return NextResponse.redirect(new URL('/login', request.url))
-        }
+    // 2. If logged in and on root '/' -> go to dashboard
+    if (token && pathname === '/') {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
-    // 3. If on login page but already logged in -> Redirect to Dashboard
-    if (pathname === '/login' && token) {
+    // 3. If already logged in and trying to access login -> go to dashboard
+    if (token && pathname === '/login') {
         return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
