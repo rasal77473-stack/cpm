@@ -62,6 +62,7 @@ export default function ManageStudents() {
     })
     return {
       classes: ["all", ...Array.from(classSet).sort()],
+
       lockers: ["all", ...Array.from(lockerSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))]
     }
   }, [students])
@@ -683,8 +684,8 @@ export default function ManageStudents() {
                   <div className="space-y-1">
                     {filteredStudents.map((student) => (
                       <div key={student.id} className={`relative group p-2.5 rounded-xl border transition-colors ${student.is_active === 'NO'
-                          ? 'bg-blue-50/40 border-blue-100 hover:bg-blue-50'
-                          : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
+                        ? 'bg-blue-50/40 border-blue-100 hover:bg-blue-50'
+                        : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
                         }`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-3">
@@ -710,8 +711,8 @@ export default function ManageStudents() {
                                 onClick={() => handleToggleActive(student)}
                                 title={student.is_active === 'NO' ? 'Mark as in hostel' : 'Mark as at home'}
                                 className={`p-1 rounded-md transition-colors flex items-center gap-0.5 ${student.is_active === 'NO'
-                                    ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-                                    : 'text-green-600 bg-green-50 hover:bg-green-100'
+                                  ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                                  : 'text-green-600 bg-green-50 hover:bg-green-100'
                                   }`}
                               >
                                 <Home className="w-3.5 h-3.5" />

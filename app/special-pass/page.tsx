@@ -83,20 +83,23 @@ function SpecialPassContent() {
     router.prefetch("/admin/special-pass/grant/0")
   }, [router])
 
-  // Fetch all students
+  // Fetch all students - stable data, long dedup but always revalidate on mount
   const { data: studentsData = [], isLoading: studentLoading } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 3600000,
+    revalidateOnMount: true,
+    dedupingInterval: 30000,       // 30s - students don't change often
+    keepPreviousData: true,        // show previous data while reloading
     onError: () => setCanGrantPass(false),
   })
   const students = Array.isArray(studentsData) ? studentsData : []
 
-  // Fetch all special passes
+  // Fetch all special passes - poll every 10s, show previous data instantly
   const { data: allPasses = [], isLoading: passesLoading } = useSWR("/api/special-pass/all", fetcher, {
     refreshInterval: 10000,
     revalidateOnFocus: true,
     revalidateOnMount: true,
-    dedupingInterval: 1000,
+    dedupingInterval: 2000,
+    keepPreviousData: true,        // never blank - show stale while fresh loads
   })
 
   const passes = Array.isArray(allPasses) ? allPasses.filter((p: any) => {
@@ -104,12 +107,13 @@ function SpecialPassContent() {
     return p.purpose.startsWith("PHONE:")
   }) : []
 
-  // Fetch phone statuses
+  // Fetch phone statuses - poll every 10s, show previous data instantly
   const { data: phoneStatusData = [] } = useSWR("/api/phone-status", fetcher, {
     refreshInterval: 10000,
     revalidateOnFocus: true,
     revalidateOnMount: true,
-    dedupingInterval: 1000,
+    dedupingInterval: 2000,
+    keepPreviousData: true,        // instant on revisit
   })
 
   const phoneStatusMap = useMemo(() => {
@@ -738,7 +742,7 @@ function SpecialPassContent() {
         </div>
 
         <div className="space-y-4 pt-2">
-          {passesLoading || studentLoading ? (
+          {(passesLoading || studentLoading) && filteredList.length === 0 ? (
             <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-green-500 animate-spin" /></div>
           ) : filteredList.length === 0 ? (
             <div className="text-center py-12 text-slate-400 font-medium">No records found.</div>

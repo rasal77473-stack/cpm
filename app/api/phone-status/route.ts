@@ -2,19 +2,30 @@ import { db } from "@/db";
 import { phoneStatus, phoneHistory } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
+import { getCached, setCache, invalidateCache, PHONE_STATUS_CACHE_KEY } from "@/lib/student-cache";
+
+const PHONE_STATUS_TTL = 10 * 1000 // 10 seconds
 
 // GET - Retrieve all phone statuses
 export async function GET() {
   try {
+    // Serve from in-memory cache instantly
+    const cached = getCached<any[]>(PHONE_STATUS_CACHE_KEY)
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { 'Cache-Control': 'no-store, max-age=0' }
+      });
+    }
+
     const statuses = await db
       .select()
       .from(phoneStatus)
       .orderBy(desc(phoneStatus.lastUpdated));
 
+    setCache(PHONE_STATUS_CACHE_KEY, statuses, PHONE_STATUS_TTL)
+
     return NextResponse.json(statuses, {
-      headers: {
-        'Cache-Control': 'no-store, max-age=0',
-      }
+      headers: { 'Cache-Control': 'no-store, max-age=0' }
     });
   } catch (error) {
     console.error("GET /api/phone-status error:", error);
