@@ -1,0 +1,82 @@
+Fetching Rasil...
+
+--- Student: MUHAMMED RASIL P (ID: 1635) ---
+PhoneStatus Records (1):
+[
+  {
+    "id": 179,
+    "studentId": 1635,
+    "status": "IN",
+    "lastUpdated": "2026-03-08 10:53:38.007",
+    "updatedBy": "Super Admin",
+    "notes": "PHONE: Tell mamma"
+  }
+]
+Special Passes (5):
+[
+  {
+    "id": 508,
+    "studentId": 1635,
+    "mentorId": 1,
+    "mentorName": "Test Script",
+    "purpose": "GATE: Monthly Leave (2026-02-20 - 2026-02-21)",
+    "issueTime": "2026-02-20 03:30:00",
+    "returnTime": "2026-02-21 11:30:00",
+    "submissionTime": null,
+    "status": "ACTIVE",
+    "expectedReturnDate": null,
+    "expectedReturnTime": null
+  },
+  {
+    "id": 507,
+    "studentId": 1635,
+    "mentorId": 1,
+    "mentorName": "Test Script",
+    "purpose": "PHONE: Monthly Leave (2026-02-20 - 2026-02-21)",
+    "issueTime": "2026-02-20 03:30:00",
+    "returnTime": "2026-02-21 11:30:00",
+    "submissionTime": "2026-02-21 06:41:55.904",
+    "status": "COMPLETED",
+    "expectedReturnDate": null,
+    "expectedReturnTime": null
+  },
+  {
+    "id": 579,
+    "studentId": 1635,
+    "mentorId": 1,
+    "mentorName": "Super Admin",
+    "purpose": "PHONE: Tell mamma",
+    "issueTime": "2026-02-21 01:12:27.898",
+    "returnTime": null,
+    "submissionTime": "2026-03-04 11:13:33.424",
+    "status": "COMPLETED",
+    "expectedReturnDate": "2026-02-22",
+    "expectedReturnTime": "17:30"
+  },
+  {
+    "id": 591,
+    "studentId": 1635,
+    "mentorId": 1,
+    "mentorName": "Super Admin",
+    "purpose": "PHONE: TESTING FOR CODE CHECKING",
+    "issueTime": "2026-02-22 05:22:34.798",
+    "returnTime": null,
+    "submissionTime": "2026-02-22 10:53:05.199",
+    "status": "COMPLETED",
+    "expectedReturnDate": "2026-02-22",
+    "expectedReturnTime": "18:24"
+  },
+  {
+    "id": 654,
+    "studentId": 1635,
+    "mentorId": 1,
+    "mentorName": "Super Admin",
+    "purpose": "PHONE: Tell mamma",
+    "issueTime": "2026-03-08 10:51:52.594",
+    "returnTime": null,
+    "submissionTime": "2026-03-08 10:53:37.637",
+    "status": "COMPLETED",
+    "expectedReturnDate": "2026-03-09",
+    "expectedReturnTime": "18:00"
+  }
+]

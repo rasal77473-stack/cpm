@@ -78,6 +78,8 @@ export async function POST(req: Request) {
       notes: notes || null,
     });
 
+    invalidateCache(PHONE_STATUS_CACHE_KEY);
+
     return NextResponse.json(newRecord[0], { status: 201 });
   } catch (error) {
     console.error("POST /api/phone-status error:", error);

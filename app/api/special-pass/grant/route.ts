@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { userActivityLogs, specialPassGrants, students, phoneHistory, phoneStatus } from "@/db/schema"
 import { eq, and, inArray } from "drizzle-orm"
+import { invalidateCache, PASSES_CACHE_KEY, PHONE_STATUS_CACHE_KEY } from "@/lib/student-cache"
 
 export async function POST(request: NextRequest) {
   try {
@@ -126,6 +127,10 @@ export async function POST(request: NextRequest) {
         })
         : Promise.resolve()
     ]).catch(() => { })
+
+    // Invalidate caches to prevent UI flickering from stale SWR data
+    invalidateCache(PASSES_CACHE_KEY)
+    invalidateCache(PHONE_STATUS_CACHE_KEY)
 
     return response
   } catch (error) {

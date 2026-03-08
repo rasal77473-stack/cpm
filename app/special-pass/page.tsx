@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo, Suspense } from "react"
+import { useEffect, useState, useMemo, Suspense, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Button } from "@/components/ui/button"
@@ -58,8 +58,8 @@ function SpecialPassContent() {
   const [endDate, setEndDate] = useState<string>("")
   const [passFilterClass, setPassFilterClass] = useState<string>("all")
 
-  const [returningPassId, setReturningPassId] = useState<number | null>(null)
   const [showStudentList, setShowStudentList] = useState(false)
+  const lastActionTime = useRef<Record<number, number>>({})
   const [showMenu, setShowMenu] = useState(false)
   const [activeTab, setActiveTab] = useState<"phone-pass" | "phone-in" | "phone-out" | "all-students" | "nill">(initialTab)
 
@@ -83,6 +83,16 @@ function SpecialPassContent() {
     router.prefetch("/admin/special-pass/grant/0")
   }, [router])
 
+  useEffect(() => {
+    // If arriving from a successful grant, force fresh fetch to override any stale SWR cache
+    if (searchParams.get("refresh") === "1") {
+      mutate("/api/special-pass/all")
+      mutate("/api/phone-status")
+      // Clean up URL without triggering navigation
+      window.history.replaceState({}, '', '/special-pass')
+    }
+  }, [searchParams])
+
   // Fetch all students - stable data, long dedup but always revalidate on mount
   const { data: studentsData = [], isLoading: studentLoading } = useSWR("/api/students", fetcher, {
     revalidateOnFocus: false,
@@ -98,7 +108,7 @@ function SpecialPassContent() {
     refreshInterval: 10000,
     revalidateOnFocus: true,
     revalidateOnMount: true,
-    dedupingInterval: 2000,
+    dedupingInterval: 100,
     keepPreviousData: true,        // never blank - show stale while fresh loads
   })
 
@@ -112,7 +122,7 @@ function SpecialPassContent() {
     refreshInterval: 10000,
     revalidateOnFocus: true,
     revalidateOnMount: true,
-    dedupingInterval: 2000,
+    dedupingInterval: 100,
     keepPreviousData: true,        // instant on revisit
   })
 
@@ -293,6 +303,7 @@ function SpecialPassContent() {
           hasNoPhone: isNonActive,
           isAtHome: isAtHome,
           hasRegisteredPhone: !hasNoPhone,
+          passId: activePass ? activePass.id : null,
         }
       })
 
@@ -341,7 +352,7 @@ function SpecialPassContent() {
     const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
-      document.cookie="auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax;"; window.location.href="/login"
+      document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax;"; window.location.href = "/login"
       return
     }
 
@@ -365,6 +376,10 @@ function SpecialPassContent() {
   }, [duplicatePassesPerStudent])
 
   const handleSubmitOut = (passId: number) => {
+    const now = Date.now();
+    if (lastActionTime.current[passId] && now - lastActionTime.current[passId] < 1000) return;
+    lastActionTime.current[passId] = now;
+
     const pass = passes.find((p: any) => p.id === passId)
     if (!pass) {
       toast.error("Pass not found")
@@ -403,6 +418,10 @@ function SpecialPassContent() {
   }
 
   const handleSubmitIn = (passId: number) => {
+    const now = Date.now();
+    if (lastActionTime.current[passId] && now - lastActionTime.current[passId] < 1000) return;
+    lastActionTime.current[passId] = now;
+
     const pass = passes.find((p: any) => p.id === passId)
     if (!pass) {
       toast.error("Pass not found")
@@ -889,7 +908,6 @@ function SpecialPassContent() {
                       </div>
                       <Button
                         onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
-                        disabled={returningPassId === item.originalId}
                         className="px-6 py-2.5 h-auto rounded-full bg-[#0ca643] hover:bg-green-700 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
                       >
                         {isOut ? "Submit In" : "Submit Out"}
@@ -911,7 +929,6 @@ function SpecialPassContent() {
                             toast.error("Active pass record not found");
                           }
                         }}
-                        disabled={returningPassId === item.originalId}
                         className="px-6 py-2.5 h-auto rounded-full bg-white border-2 border-green-400 text-green-600 hover:bg-green-50 font-bold text-sm shadow-none transition-transform active:scale-95"
                       >
                         Submit In
@@ -926,7 +943,6 @@ function SpecialPassContent() {
                             toast.error("Active pass record not found");
                           }
                         }}
-                        disabled={returningPassId === item.originalId}
                         className="px-6 py-2.5 h-auto rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
                       >
                         Submit Out

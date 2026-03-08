@@ -183,8 +183,8 @@ export default function GrantSpecialPassPage() {
         : [...current, { studentId: student.id, status: "ACTIVE" }]
     }, { revalidate: false })
 
-    // Redirect to list page instantly
-    router.push("/special-pass")
+    // Redirect to list page instantly with refresh flag
+    router.push("/special-pass?refresh=1")
 
     // Fire API in background and sync the real IDs silently afterwards
     fetch("/api/special-pass/grant", {
@@ -199,9 +199,9 @@ export default function GrantSpecialPassPage() {
         // Revert UI on failure
         mutate("/api/special-pass/all", (current: any[] = []) => current.filter(p => p.id !== fakePassId), { revalidate: false })
       } else {
-        // Fetch the real pass IDs in background
-        mutate("/api/special-pass/all")
-        mutate("/api/phone-status")
+        // Force fully fetch fresh passes globally so the list updates instantly
+        await mutate("/api/special-pass/all")
+        await mutate("/api/phone-status")
       }
     }).catch(() => {
       toast.error("Network error - please check and try again")
@@ -233,7 +233,7 @@ export default function GrantSpecialPassPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2">
           <ChevronLeft className="h-6 w-6" />
         </Button>
-              <BackToDashboard />
+        <BackToDashboard />
         <h1 className="text-lg font-bold">Grant Special Pass</h1>
       </header>
 
