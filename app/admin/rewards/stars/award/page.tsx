@@ -38,7 +38,7 @@ export default function AwardStarPage() {
     const name = localStorage.getItem("staffName")
 
     if (!token) {
-      router.replace("/login")
+      document.cookie="auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax;"; window.location.href="/login"
       return
     }
 
@@ -136,7 +136,7 @@ export default function AwardStarPage() {
 
       if (!token || !staffId) {
         toast.error("Not authenticated. Please login again.")
-        router.replace("/login")
+        document.cookie="auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax;"; window.location.href="/login"
         return
       }
 

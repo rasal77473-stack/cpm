@@ -13,7 +13,7 @@ import {
   DoorOpen,
   GraduationCap,
 } from "lucide-react"
-import { handleLogout } from "@/lib/auth-utils"
+import { handleLogout, clearAuthCookie } from "@/lib/auth-utils"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -29,8 +29,9 @@ export default function Dashboard() {
     const perms = JSON.parse(localStorage.getItem("permissions") || "[]")
 
     if (!token) {
-      console.log("⚠️ No local token found, forcing logout to clear invalid session state")
-      handleLogout()
+      // Immediately kill any stale cookie so middleware stops trusting it
+      clearAuthCookie()
+      window.location.href = "/login"
       return
     }
 

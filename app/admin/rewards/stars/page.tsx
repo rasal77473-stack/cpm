@@ -71,7 +71,7 @@ export default function StarsManagementPage() {
     const name = localStorage.getItem("staffName")
 
     if (!token) {
-      router.replace("/login")
+      document.cookie="auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax;"; window.location.href="/login"
       return
     }
 

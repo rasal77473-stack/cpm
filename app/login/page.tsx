@@ -50,9 +50,9 @@ export default function LoginPage() {
       localStorage.setItem("permissions", JSON.stringify(data.permissions))
       localStorage.setItem("special_pass", data.special_pass || "NO")
 
-      // Set Persistent Cookie for Middleware (Expires in 365 days - effectively forever until logout)
+      // Set auth cookie - expires in 8 hours (one work shift)
       const expires = new Date();
-      expires.setDate(expires.getDate() + 365);
+      expires.setHours(expires.getHours() + 8);
       document.cookie = `auth_token=${data.token}; expires=${expires.toUTCString()}; path=/; SameSite=Lax;`;
 
       // All users go to admin dashboard (button-based navigation)
