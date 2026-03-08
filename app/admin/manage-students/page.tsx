@@ -30,6 +30,7 @@ export default function ManageStudents() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedClass, setSelectedClass] = useState("all")
   const [selectedLocker, setSelectedLocker] = useState("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "atHome" | "noPhone" | "active">("all")
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
 
   // Add/Edit Student Modal
@@ -40,7 +41,7 @@ export default function ManageStudents() {
     admission_number: "",
     name: "",
     locker_number: "",
-    phone_name: "",
+    phone_name: "NIL",
     class_name: "",
     roll_no: "",
     special_pass: "NO",
@@ -109,34 +110,60 @@ export default function ManageStudents() {
     )
   }
 
-  const handleSearch = (query: string, className: string = selectedClass, lockerNo: string = selectedLocker) => {
-    setSearchQuery(query)
-    setSelectedClass(className)
-    setSelectedLocker(lockerNo)
+  const isNoPhone = (s: Student) =>
+    !s.phone_name ||
+    s.phone_name.toLowerCase() === "nill" ||
+    s.phone_name.toLowerCase() === "nil" ||
+    s.phone_name.toLowerCase() === "none"
 
-    let filtered = students
+  // Pure helper — applies all active filters to any student array
+  const applyFilters = (
+    list: Student[],
+    query = searchQuery,
+    className = selectedClass,
+    lockerNo = selectedLocker,
+    status: typeof statusFilter = statusFilter
+  ): Student[] => {
+    let filtered = list
 
     if (className !== "all") {
       filtered = filtered.filter((s) => s.class_name === className)
     }
-
     if (lockerNo !== "all") {
       filtered = filtered.filter((s) => s.locker_number === lockerNo)
     }
-
+    if (status === "atHome") {
+      filtered = filtered.filter((s) => s.is_active === "NO")
+    } else if (status === "noPhone") {
+      filtered = filtered.filter((s) => isNoPhone(s) && s.is_active !== "NO")
+    } else if (status === "active") {
+      filtered = filtered.filter((s) => s.is_active !== "NO" && !isNoPhone(s))
+    }
     if (query.trim()) {
       const q = query.toLowerCase()
       filtered = filtered.filter(
-        (student) =>
-          student.name.toLowerCase().includes(q) ||
-          student.admission_number.toLowerCase().includes(q) ||
-          student.locker_number.toLowerCase().includes(q) ||
-          (student.class_name && student.class_name.toLowerCase().includes(q)) ||
-          (student.roll_no && student.roll_no.toLowerCase().includes(q))
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.admission_number.toLowerCase().includes(q) ||
+          s.locker_number.toLowerCase().includes(q) ||
+          (s.class_name && s.class_name.toLowerCase().includes(q)) ||
+          (s.roll_no && s.roll_no.toLowerCase().includes(q))
       )
     }
+    return filtered
+  }
 
-    setFilteredStudents(filtered)
+  const handleSearch = (
+    query: string,
+    className: string = selectedClass,
+    lockerNo: string = selectedLocker,
+    status: typeof statusFilter = statusFilter
+  ) => {
+    setSearchQuery(query)
+    setSelectedClass(className)
+    setSelectedLocker(lockerNo)
+    setStatusFilter(status)
+    setFilteredStudents(applyFilters(students, query, className, lockerNo, status))
   }
 
   const handleAddStudent = async () => {
@@ -149,15 +176,15 @@ export default function ManageStudents() {
     const tempId = Date.now()
     const studentToSave = { ...newStudent, id: isEditing ? editingId! : tempId }
 
-    // Optimistic Update
+    // Optimistic Update — preserve active search/filters
     if (isEditing) {
       const updated = students.map(s => s.id === editingId ? studentToSave : s)
       setStudents(updated)
-      setFilteredStudents(updated)
+      setFilteredStudents(applyFilters(updated))
     } else {
       const updated = [...students, studentToSave]
       setStudents(updated)
-      setFilteredStudents(updated)
+      setFilteredStudents(applyFilters(updated))
     }
 
     setShowAddModal(false)
@@ -188,19 +215,19 @@ export default function ManageStudents() {
 
       const savedStudent = await response.json()
 
-      // Update with real data from server
+      // Update with real data from server — preserve active search/filters
       const finalStudents = isEditing
         ? students.map(s => s.id === editingId ? savedStudent : s)
         : oldStudents.concat(savedStudent)
 
       setStudents(finalStudents)
-      setFilteredStudents(finalStudents)
+      setFilteredStudents(applyFilters(finalStudents))
 
       setNewStudent({
         admission_number: "",
         name: "",
         locker_number: "",
-        phone_name: "",
+        phone_name: "NIL",
         class_name: "",
         roll_no: "",
         special_pass: "NO",
@@ -210,7 +237,7 @@ export default function ManageStudents() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : `Failed to ${isEditing ? 'update' : 'add'} student`
       setStudents(oldStudents)
-      setFilteredStudents(oldStudents)
+      setFilteredStudents(applyFilters(oldStudents))
       alert(errorMessage)
     }
   }
@@ -220,7 +247,7 @@ export default function ManageStudents() {
       admission_number: student.admission_number,
       name: student.name,
       locker_number: student.locker_number,
-      phone_name: student.phone_name || "",
+      phone_name: student.phone_name || "NIL",
       class_name: student.class_name || "",
       roll_no: student.roll_no || "",
       special_pass: (student as any).special_pass || "NO",
@@ -284,8 +311,8 @@ export default function ManageStudents() {
           special_pass: "NO"
         }));
 
-        setStudents(prev => [...prev, ...optimisticStudents]);
-        setFilteredStudents(prev => [...prev, ...optimisticStudents]);
+        setStudents(prev => { const next = [...prev, ...optimisticStudents]; return next });
+        setFilteredStudents(prev => applyFilters([...prev, ...optimisticStudents]));
         setShowBulkModal(false);
 
         // Background bulk import with client-side batching
@@ -340,7 +367,7 @@ export default function ManageStudents() {
       const oldStudents = [...students]
       const updated = students.filter((s) => s.id !== id)
       setStudents(updated)
-      setFilteredStudents(updated)
+      setFilteredStudents(applyFilters(updated))
 
       try {
         const response = await fetch(`/api/students?id=${id}`, {
@@ -362,7 +389,7 @@ export default function ManageStudents() {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to delete student"
         setStudents(oldStudents)
-        setFilteredStudents(oldStudents)
+        setFilteredStudents(applyFilters(oldStudents))
         alert(errorMessage)
       }
     }
@@ -394,7 +421,7 @@ export default function ManageStudents() {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to delete all students"
         setStudents(oldStudents)
-        setFilteredStudents(oldStudents)
+        setFilteredStudents(applyFilters(oldStudents))
         alert(errorMessage)
       }
     }
@@ -409,7 +436,7 @@ export default function ManageStudents() {
       s.id === student.id ? { ...s, is_active: newIsActive } : s
     )
     setStudents(updated)
-    setFilteredStudents(updated)
+    setFilteredStudents(applyFilters(updated))
 
     try {
       const response = await fetch('/api/students', {
@@ -421,7 +448,7 @@ export default function ManageStudents() {
     } catch (error) {
       // Revert on failure
       setStudents(oldStudents)
-      setFilteredStudents(oldStudents)
+      setFilteredStudents(applyFilters(oldStudents))
       alert('Failed to update student home status')
     }
   }
@@ -526,17 +553,47 @@ export default function ManageStudents() {
                     <option key={l} value={l}>Locker {l}</option>
                   ))}
                 </select>
-                {(searchQuery || selectedClass !== "all" || selectedLocker !== "all") && (
+                {(searchQuery || selectedClass !== "all" || selectedLocker !== "all" || statusFilter !== "all") && (
                   <Button
                     variant="secondary"
                     size="icon"
-                    onClick={() => handleSearch("", "all", "all")}
+                    onClick={() => handleSearch("", "all", "all", "all")}
                     className="shrink-0 h-11 w-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600"
+                    title="Clear all filters"
                   >
                     <X className="w-4 h-4" />
                   </Button>
                 )}
               </div>
+            </div>
+
+            {/* Status Filter Chips */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {([
+                { key: "all", label: "All Students", color: "bg-slate-100 text-slate-700 border-slate-200", active: "bg-slate-800 text-white border-slate-800" },
+                { key: "active", label: "✅ Active", color: "bg-green-50 text-green-700 border-green-200", active: "bg-green-600 text-white border-green-600" },
+                { key: "atHome", label: "🏠 At Home", color: "bg-blue-50 text-blue-700 border-blue-200", active: "bg-blue-600 text-white border-blue-600" },
+                { key: "noPhone", label: "📵 No Phone", color: "bg-amber-50 text-amber-700 border-amber-200", active: "bg-amber-500 text-white border-amber-500" },
+              ] as const).map(({ key, label, color, active: activeStyle }) => {
+                const count =
+                  key === "all" ? students.length
+                    : key === "atHome" ? students.filter(s => s.is_active === "NO").length
+                      : key === "noPhone" ? students.filter(s => isNoPhone(s) && s.is_active !== "NO").length
+                        : students.filter(s => s.is_active !== "NO" && !isNoPhone(s)).length
+
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleSearch(searchQuery, selectedClass, selectedLocker, key)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${statusFilter === key ? activeStyle : color + " hover:brightness-95"
+                      }`}
+                  >
+                    {label}
+                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${statusFilter === key ? "bg-white/20" : "bg-white/60"
+                      }`}>{count}</span>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Action Buttons */}
@@ -742,7 +799,7 @@ export default function ManageStudents() {
             admission_number: "",
             name: "",
             locker_number: "",
-            phone_name: "",
+            phone_name: "NIL",
             class_name: "",
             roll_no: "",
             special_pass: "NO",
@@ -790,7 +847,11 @@ export default function ManageStudents() {
               <input
                 type="checkbox"
                 id="phone_active"
-                checked={!(!newStudent.phone_name || newStudent.phone_name.toLowerCase() === "nill" || newStudent.phone_name.toLowerCase() === "nil" || newStudent.phone_name.toLowerCase() === "none")}
+                checked={
+                  newStudent.phone_name.toLowerCase() !== "nill" &&
+                  newStudent.phone_name.toLowerCase() !== "nil" &&
+                  newStudent.phone_name.toLowerCase() !== "none"
+                }
                 onChange={(e) => setNewStudent({ ...newStudent, phone_name: e.target.checked ? "" : "NIL" })}
                 className="w-5 h-5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
               />
@@ -799,17 +860,21 @@ export default function ManageStudents() {
               </label>
             </div>
 
-            {!(!newStudent.phone_name || newStudent.phone_name.toLowerCase() === "nill" || newStudent.phone_name.toLowerCase() === "nil" || newStudent.phone_name.toLowerCase() === "none") && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Phone Name</label>
-                <Input
-                  placeholder="Phone model"
-                  value={newStudent.phone_name === "NIL" ? "" : newStudent.phone_name}
-                  onChange={(e) => setNewStudent({ ...newStudent, phone_name: e.target.value })}
-                  className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
-                />
-              </div>
-            )}
+            {(
+              newStudent.phone_name.toLowerCase() !== "nill" &&
+              newStudent.phone_name.toLowerCase() !== "nil" &&
+              newStudent.phone_name.toLowerCase() !== "none"
+            ) && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-500 ml-1">Phone Name</label>
+                  <Input
+                    placeholder="Phone model"
+                    value={newStudent.phone_name}
+                    onChange={(e) => setNewStudent({ ...newStudent, phone_name: e.target.value })}
+                    className="h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                  />
+                </div>
+              )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase text-slate-500 ml-1">Class</label>
