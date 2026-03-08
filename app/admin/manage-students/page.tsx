@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { LogOut, ChevronLeft, Plus, Upload, Trash2, Edit2, Search, Users, GraduationCap, X, FileSpreadsheet } from "lucide-react"
+import { LogOut, ChevronLeft, Plus, Upload, Trash2, Edit2, Search, Users, GraduationCap, X, FileSpreadsheet, Home, ToggleLeft, ToggleRight } from "lucide-react"
 import * as XLSX from "xlsx"
 import { handleLogout } from "@/lib/auth-utils"
 import { BackToDashboard } from "@/components/back-to-dashboard"
@@ -19,6 +19,7 @@ interface Student {
   class_name?: string
   roll_no?: string
   special_pass: string
+  is_active?: string
 }
 
 export default function ManageStudents() {
@@ -103,7 +104,7 @@ export default function ManageStudents() {
           <div className="w-12 h-12 border-4 border-slate-300 border-t-slate-800 rounded-full animate-spin mx-auto"></div>
           <p className="text-sm font-medium text-slate-500 animate-pulse tracking-wide">Checking permissions...</p>
         </div>
-    </div>
+      </div>
     )
   }
 
@@ -398,6 +399,32 @@ export default function ManageStudents() {
     }
   }
 
+  const handleToggleActive = async (student: Student) => {
+    const newIsActive = student.is_active === 'NO' ? 'YES' : 'NO'
+    const oldStudents = [...students]
+
+    // Optimistic update
+    const updated = students.map(s =>
+      s.id === student.id ? { ...s, is_active: newIsActive } : s
+    )
+    setStudents(updated)
+    setFilteredStudents(updated)
+
+    try {
+      const response = await fetch('/api/students', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: student.id, is_active: newIsActive }),
+      })
+      if (!response.ok) throw new Error('Failed to update status')
+    } catch (error) {
+      // Revert on failure
+      setStudents(oldStudents)
+      setFilteredStudents(oldStudents)
+      alert('Failed to update student home status')
+    }
+  }
+
   return (
     <div className="min-h-screen relative bg-[#fafafa] overflow-x-hidden font-sans pb-24 text-slate-800">
 
@@ -429,7 +456,7 @@ export default function ManageStudents() {
             >
               <div><ChevronLeft className="w-5 h-5 text-slate-700" /></div>
             </Button>
-              <BackToDashboard />
+            <BackToDashboard />
             <div className="min-w-0 pointer-events-none">
               <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">
                 Manage Students
@@ -571,17 +598,23 @@ export default function ManageStudents() {
                         <th className="py-3 px-4 font-semibold text-slate-900 text-sm">Class / Roll</th>
                         <th className="py-3 px-4 font-semibold text-slate-900 text-sm">Locker</th>
                         <th className="py-3 px-4 font-semibold text-slate-900 text-sm">Phone/Pass</th>
+                        <th className="py-3 px-4 font-semibold text-slate-900 text-sm text-center">Home</th>
                         <th className="py-3 pl-4 font-semibold text-slate-900 text-sm text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredStudents.map((student) => {
                         const hasNoPhone = !student.phone_name || student.phone_name.toLowerCase() === "nill" || student.phone_name.toLowerCase() === "nil" || student.phone_name.toLowerCase() === "none"
+                        const isAtHome = student.is_active === 'NO'
 
                         return (
-                          <tr key={student.id} className={`group hover:bg-slate-50 transition-colors ${hasNoPhone ? 'bg-[#fffae5]/30' : ''}`}>
+                          <tr key={student.id} className={`group hover:bg-slate-50 transition-colors ${isAtHome ? 'bg-blue-50/40' : hasNoPhone ? 'bg-[#fffae5]/30' : ''
+                            }`}>
                             <td className="py-3 pr-4">
                               <p className="font-bold text-slate-800 text-sm">{student.name}</p>
+                              {isAtHome && (
+                                <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded uppercase">At Home</span>
+                              )}
                             </td>
                             <td className="py-3 px-4">
                               <p className="text-sm font-medium text-slate-600">{student.admission_number}</p>
@@ -611,6 +644,19 @@ export default function ManageStudents() {
                                 )}
                               </div>
                             </td>
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                onClick={() => handleToggleActive(student)}
+                                title={isAtHome ? "Student is at home (inactive) — click to mark as in hostel" : "Student is in hostel (active) — click to send home"}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${isAtHome
+                                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200'
+                                  : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-200'
+                                  }`}
+                              >
+                                <Home className="w-3 h-3" />
+                                {isAtHome ? 'Home' : 'Hostel'}
+                              </button>
+                            </td>
                             <td className="py-3 pl-4 text-right">
                               <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-lg" onClick={() => handleEditClick(student)}>
@@ -636,7 +682,10 @@ export default function ManageStudents() {
                   </div>
                   <div className="space-y-1">
                     {filteredStudents.map((student) => (
-                      <div key={student.id} className="relative group p-2.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors">
+                      <div key={student.id} className={`relative group p-2.5 rounded-xl border transition-colors ${student.is_active === 'NO'
+                          ? 'bg-blue-50/40 border-blue-100 hover:bg-blue-50'
+                          : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
+                        }`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-3">
                             <p className="font-bold text-slate-900 text-sm leading-snug">{student.name}</p>
@@ -649,11 +698,24 @@ export default function ManageStudents() {
                               {student.special_pass === "YES" && (
                                 <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded font-semibold border border-green-100/50">Pass</span>
                               )}
+                              {student.is_active === 'NO' && (
+                                <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-semibold border border-blue-100/50">At Home</span>
+                              )}
                             </div>
                           </div>
                           <div className="flex flex-col items-end pt-0.5">
                             <p className="text-sm font-medium text-slate-700">{student.admission_number}</p>
                             <div className="flex gap-1 mt-2">
+                              <button
+                                onClick={() => handleToggleActive(student)}
+                                title={student.is_active === 'NO' ? 'Mark as in hostel' : 'Mark as at home'}
+                                className={`p-1 rounded-md transition-colors flex items-center gap-0.5 ${student.is_active === 'NO'
+                                    ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                                    : 'text-green-600 bg-green-50 hover:bg-green-100'
+                                  }`}
+                              >
+                                <Home className="w-3.5 h-3.5" />
+                              </button>
                               <button onClick={() => handleEditClick(student)} className="p-1 text-slate-400 hover:text-slate-800 bg-slate-50 hover:bg-slate-200 rounded-md transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
                               <button onClick={() => handleDeleteStudent(student.id)} className="p-1 text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-md transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>

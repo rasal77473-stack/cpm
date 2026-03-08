@@ -1,4 +1,4 @@
-import { pgTable, foreignKey, serial, integer, text, timestamp, unique, real } from "drizzle-orm/pg-core"
+import { pgTable, foreignKey, serial, integer, text, timestamp, unique, real, boolean } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 // Students
@@ -14,6 +14,7 @@ export const students = pgTable("students", {
 	className: text("class_name"),
 	rollNo: text("roll_no"),
 	specialPass: text("special_pass").default('NO'),
+	isActive: text("is_active").default('YES'), // 'YES' = in hostel (active), 'NO' = at home (non-active)
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 }, (table) => [
 	unique("students_admission_number_unique").on(table.admissionNumber),
@@ -57,10 +58,10 @@ export const specialPassGrants = pgTable("special_pass_grants", {
 	expectedReturnTime: text("expected_return_time"),
 }, (table) => [
 	foreignKey({
-			columns: [table.studentId],
-			foreignColumns: [students.id],
-			name: "special_pass_grants_student_id_students_id_fk"
-		}),
+		columns: [table.studentId],
+		foreignColumns: [students.id],
+		name: "special_pass_grants_student_id_students_id_fk"
+	}),
 ]);
 
 // Phone Status - Current status only
@@ -73,10 +74,10 @@ export const phoneStatus = pgTable("phone_status", {
 	notes: text(),
 }, (table) => [
 	foreignKey({
-			columns: [table.studentId],
-			foreignColumns: [students.id],
-			name: "phone_status_student_id_students_id_fk"
-		}),
+		columns: [table.studentId],
+		foreignColumns: [students.id],
+		name: "phone_status_student_id_students_id_fk"
+	}),
 ]);
 
 // Phone History - Track all phone in/out events
@@ -89,10 +90,10 @@ export const phoneHistory = pgTable("phone_history", {
 	notes: text(),
 }, (table) => [
 	foreignKey({
-			columns: [table.studentId],
-			foreignColumns: [students.id],
-			name: "phone_history_student_id_students_id_fk"
-		}),
+		columns: [table.studentId],
+		foreignColumns: [students.id],
+		name: "phone_history_student_id_students_id_fk"
+	}),
 ]);
 
 // Monthly Leave Schedule
@@ -121,15 +122,15 @@ export const leaveExclusions = pgTable("leave_exclusions", {
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 }, (table) => [
 	foreignKey({
-			columns: [table.leaveId],
-			foreignColumns: [monthlyLeaves.id],
-			name: "leave_exclusions_leave_id_monthly_leaves_id_fk"
-		}),
+		columns: [table.leaveId],
+		foreignColumns: [monthlyLeaves.id],
+		name: "leave_exclusions_leave_id_monthly_leaves_id_fk"
+	}),
 	foreignKey({
-			columns: [table.studentId],
-			foreignColumns: [students.id],
-			name: "leave_exclusions_student_id_students_id_fk"
-		}),
+		columns: [table.studentId],
+		foreignColumns: [students.id],
+		name: "leave_exclusions_student_id_students_id_fk"
+	}),
 ]);
 
 // Fines - Types of fines

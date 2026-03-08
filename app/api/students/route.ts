@@ -26,6 +26,7 @@ function transformStudent(student: any) {
     class_name: student.className,
     roll_no: student.rollNo,
     special_pass: student.specialPass,
+    is_active: student.isActive ?? 'YES',
     created_at: student.createdAt,
   }
 }
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
       className: data.class_name ? String(data.class_name).trim() : null,
       rollNo: data.roll_no ? String(data.roll_no).trim() : null,
       specialPass: data.special_pass ? String(data.special_pass).trim() : "NO",
+      isActive: data.is_active ? String(data.is_active).trim() : "YES",
     }).returning()
 
     invalidateCache(STUDENTS_CACHE_KEY)
@@ -149,6 +151,7 @@ export async function PUT(request: NextRequest) {
         className: updateData.class_name !== undefined ? (updateData.class_name ? String(updateData.class_name).trim() : null) : undefined,
         rollNo: updateData.roll_no !== undefined ? (updateData.roll_no ? String(updateData.roll_no).trim() : null) : undefined,
         specialPass: updateData.special_pass !== undefined ? (updateData.special_pass ? String(updateData.special_pass).trim() : null) : undefined,
+        isActive: updateData.is_active !== undefined ? String(updateData.is_active).trim() : undefined,
       })
       .where(eq(students.id, Number(id)))
       .returning()

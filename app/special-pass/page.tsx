@@ -154,13 +154,14 @@ function SpecialPassContent() {
   }, [passes])
 
   const stats = useMemo(() => {
-    // Filter out students who don't have a phone registered
+    // Filter out students who are non-active (no phone OR is at home)
     const studentsWithPhones = students.filter((s: any) => {
       const hasNoPhone = !s.phone_name ||
         s.phone_name?.toLowerCase?.() === "nill" ||
         s.phone_name?.toLowerCase?.() === "nil" ||
         s.phone_name?.toLowerCase?.() === "none"
-      return !hasNoPhone
+      const isAtHome = s.is_active === 'NO'
+      return !hasNoPhone && !isAtHome
     })
 
     const totalStudents = studentsWithPhones.length
@@ -183,7 +184,8 @@ function SpecialPassContent() {
         student.phone_name?.toLowerCase?.() === "nill" ||
         student.phone_name?.toLowerCase?.() === "nil" ||
         student.phone_name?.toLowerCase?.() === "none"
-      return !hasNoPhone
+      const isAtHome = student.is_active === 'NO'
+      return !hasNoPhone && !isAtHome
     })
 
     return {
@@ -199,7 +201,7 @@ function SpecialPassContent() {
     let list: any[] = []
 
     if (activeTab === "phone-pass") {
-      // Filter out passes belonging to nill students 
+      // Filter out passes belonging to nill students or at-home students
       const validPasses = passes.filter((p: any) => {
         if (!p.purpose?.startsWith("PHONE:")) return false;
 
@@ -213,7 +215,8 @@ function SpecialPassContent() {
           student.phone_name?.toLowerCase?.() === "nill" ||
           student.phone_name?.toLowerCase?.() === "nil" ||
           student.phone_name?.toLowerCase?.() === "none"
-        return !hasNoPhone
+        const isAtHome = student.is_active === 'NO'
+        return !hasNoPhone && !isAtHome
       })
 
       list = validPasses.map((p: any) => ({ ...p, type: "pass", originalId: p.id }))
@@ -260,6 +263,9 @@ function SpecialPassContent() {
           s.phone_name?.toLowerCase?.() === "nill" ||
           s.phone_name?.toLowerCase?.() === "nil" ||
           s.phone_name?.toLowerCase?.() === "none"
+        const isAtHome = s.is_active === 'NO'
+        // A student is "non-active" if they have no phone OR are marked at home
+        const isNonActive = hasNoPhone || isAtHome
 
         // Find their active phone pass if they have one
         const activePass = passes.find((p: any) => p.studentId === s.id && p.status !== "COMPLETED")
@@ -280,7 +286,9 @@ function SpecialPassContent() {
           expectedReturnDate: activePass ? activePass.expectedReturnDate : null,
           expectedReturnTime: activePass ? activePass.expectedReturnTime : null,
           purpose: activePass ? activePass.purpose : "Registered Student",
-          hasNoPhone: hasNoPhone
+          hasNoPhone: isNonActive,
+          isAtHome: isAtHome,
+          hasRegisteredPhone: !hasNoPhone,
         }
       })
 
@@ -802,6 +810,11 @@ function SpecialPassContent() {
                     Late Mark
                   </div>
                 )}
+                {isStudent && item.isAtHome && (
+                  <div className="absolute top-0 left-0 bg-blue-500 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-br-xl shadow-sm z-10">
+                    At Home
+                  </div>
+                )}
                 <div className="flex justify-between items-start mb-6">
                   <h3 className="font-bold text-[#0ca643] text-lg uppercase tracking-tight pr-4">{item.studentName}</h3>
                   <div className={`px-3 py-0.5 rounded-full border text-xs font-semibold lowercase
@@ -926,15 +939,23 @@ function SpecialPassContent() {
                 )}
                 {isStudent && canGrantPass && item.hasNoPhone && activeTab === "nill" && (
                   <div className="flex gap-3 mt-6 pt-2 justify-end">
-                    <Button
-                      onClick={() => {
-                        setActivatingStudent(item)
-                        setActivatePhoneModel("")
-                      }}
-                      className="px-6 py-2.5 h-auto rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
-                    >
-                      Activate Phone
-                    </Button>
+                    {item.isAtHome ? (
+                      // At-home student with phone: button to move back to hostel (done from student management)
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-full">
+                        <span className="text-xs font-bold text-blue-700">📱 Has phone at home</span>
+                      </div>
+                    ) : (
+                      // Student with no phone: can activate a phone
+                      <Button
+                        onClick={() => {
+                          setActivatingStudent(item)
+                          setActivatePhoneModel("")
+                        }}
+                        className="px-6 py-2.5 h-auto rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
+                      >
+                        Activate Phone
+                      </Button>
+                    )}
                   </div>
                 )}
 
