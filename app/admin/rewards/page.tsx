@@ -1,0 +1,99 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChevronLeft, LogOut, Star } from "lucide-react"
+import { handleLogout } from "@/lib/auth-utils"
+import { BackToDashboard } from "@/components/back-to-dashboard"
+
+export default function RewardsPage() {
+  const router = useRouter()
+  const [staffName, setStaffName] = useState("")
+  const [isAuthorized, setIsAuthorized] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    const name = localStorage.getItem("staffName")
+    const storedRole = localStorage.getItem("role")
+    const perms: string[] = JSON.parse(localStorage.getItem("permissions") || "[]")
+
+    if (!token) {
+      document.cookie="auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax;"; window.location.href="/login"
+      return
+    }
+
+    const isAdmin = storedRole === "admin"
+    const hasPerm = ["manage_rewards", "manage_stars"].some(p => perms.includes(p))
+
+    if (!isAdmin && !hasPerm) {
+      router.replace("/dashboard")
+      return
+    }
+
+    setIsAuthorized(true)
+    setStaffName(name || "Staff")
+  }, [router])
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white sticky top-0 z-10">
+        <div className="w-full px-4 md:px-6 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => router.push("/dashboard")}
+                className="flex-shrink-0"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+              <BackToDashboard />
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Rewards &amp; Achievements</h1>
+                <p className="text-xs sm:text-sm text-gray-600 truncate">{staffName}</p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={handleLogout} className="gap-2 w-auto text-sm">
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="w-full px-4 md:px-6 py-6 md:py-8">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 max-w-md">
+          {/* Star Management Card */}
+          <Link href="/admin/rewards/stars">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow h-full">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Star className="w-8 h-8 text-amber-600" />
+                  <CardTitle>Stars</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">Manage student stars, add stars, and view activity logs</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </main>
+    </div>
+  )
+}
