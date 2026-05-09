@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
-import { students, phoneStatus, userActivityLogs, phoneHistory, specialPassGrants, studentFines, leaveExclusions } from "@/db/schema"
+import { students, phoneStatus, userActivityLogs, phoneHistory, specialPassGrants, studentFines, leaveExclusions, studentTallies, studentStars, starHistory } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { getCached, setCache, invalidateCache, STUDENTS_CACHE_KEY } from "@/lib/student-cache"
 
@@ -196,7 +196,16 @@ export async function DELETE(request: NextRequest) {
     // 5. Delete special pass grants
     await db.delete(specialPassGrants).where(eq(specialPassGrants.studentId, studentId))
 
-    // 6. Finally delete the student
+    // 6. Delete student tallies
+    await db.delete(studentTallies).where(eq(studentTallies.studentId, studentId))
+
+    // 7. Delete student stars
+    await db.delete(studentStars).where(eq(studentStars.studentId, studentId))
+
+    // 8. Delete star history
+    await db.delete(starHistory).where(eq(starHistory.studentId, studentId))
+
+    // 9. Finally delete the student
     const deleted = await db.delete(students).where(eq(students.id, studentId)).returning()
 
     if (deleted.length === 0) {
@@ -234,7 +243,16 @@ export async function PATCH(request: NextRequest) {
       // 5. Delete special pass grants (depends on students)
       await db.delete(specialPassGrants)
 
-      // 6. Finally delete all students
+      // 6. Delete student tallies
+      await db.delete(studentTallies)
+
+      // 7. Delete student stars
+      await db.delete(studentStars)
+
+      // 8. Delete star history
+      await db.delete(starHistory)
+
+      // 9. Finally delete all students
       await db.delete(students)
 
       invalidateCache(STUDENTS_CACHE_KEY)
