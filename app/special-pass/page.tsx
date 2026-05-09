@@ -840,12 +840,12 @@ function SpecialPassContent() {
                 )}
                 <div className="flex justify-between items-start mb-6">
                   <h3 className="font-bold text-[#0ca643] text-lg uppercase tracking-tight pr-4">{item.studentName}</h3>
-                  <div className={`px-3 py-0.5 rounded-full border text-xs font-semibold lowercase
-                       ${isNotIssued ? 'border-orange-500 text-orange-500' :
-                      (isActive ? 'border-amber-500 text-amber-500' :
-                        (isOut ? 'border-red-500 text-red-500' :
-                          (isCompleted ? 'border-gray-300 text-gray-500' : 'border-gray-400 text-gray-600')))}`}>
-                    {isNotIssued ? "not issued" : (isStudent ? (isOut ? "out" : (isActive ? "active" : "in")) : (isCompleted ? "returned" : (isOut ? "out" : (isActive ? "active" : "active"))))}
+                  <div className={`px-3 py-0.5 rounded-full border text-xs font-bold uppercase tracking-wide
+                       ${isNotIssued ? 'border-orange-400 text-orange-500 bg-orange-50' :
+                      (isActive ? 'border-green-400 text-green-600 bg-green-50' :
+                        (isOut ? 'border-red-400 text-red-600 bg-red-50' :
+                          (isCompleted ? 'bg-[#0ca643] border-[#0ca643] text-white' : 'border-gray-400 text-gray-600')))}`}>
+                    {isNotIssued ? "not issued" : (isStudent ? (isOut ? "out" : "in") : (isCompleted ? "in" : (isOut ? "out" : "in")))}
                   </div>
                 </div>
 
@@ -903,8 +903,8 @@ function SpecialPassContent() {
                   <div className="flex justify-end items-center gap-3 mt-6 pt-2">
                     <div className="flex gap-3">
                       <div className={`px-6 py-2.5 rounded-full border-2 font-bold text-sm uppercase tracking-wide
-                             ${isOut ? 'border-red-400 text-red-500' : (isActive ? 'border-amber-400 text-amber-500' : 'border-green-400 text-green-600')}`}>
-                        {isOut ? "OUT" : (isActive ? "ACTIVE" : "IN")}
+                             ${isOut ? 'border-red-400 text-red-500' : 'border-green-400 text-green-600'}`}>
+                        {isOut ? "OUT" : "IN"}
                       </div>
                       <Button
                         onClick={() => isOut ? handleSubmitIn(item.originalId) : handleSubmitOut(item.originalId)}
@@ -917,7 +917,34 @@ function SpecialPassContent() {
                 )}
 
                 {isStudent && canGrantPass && !item.hasNoPhone && (
-                  <div className="flex gap-3 mt-6 pt-2 justify-end">
+                  <div className="flex gap-3 mt-6 pt-2 justify-end flex-wrap">
+                    {item.isAtHome && (
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/students`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ id: item.originalId, is_active: "YES" })
+                            })
+                            const data = await res.json()
+                            if (!res.ok) {
+                              console.error("Move to hostel failed:", data)
+                              toast.error(`Failed: ${data?.error || res.status}`)
+                              return
+                            }
+                            toast.success(`${item.studentName} moved back to hostel`)
+                            mutate("/api/students")
+                          } catch (e: any) {
+                            console.error("Move to hostel error:", e)
+                            toast.error(`Error: ${e?.message || "Unknown error"}`)
+                          }
+                        }}
+                        className="px-4 py-2.5 h-auto rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
+                      >
+                        Move to Hostel
+                      </Button>
+                    )}
                     {isOut ? (
                       <Button
                         variant="outline"
@@ -957,12 +984,39 @@ function SpecialPassContent() {
                     )}
                   </div>
                 )}
-                {isStudent && canGrantPass && item.hasNoPhone && activeTab === "nill" && (
+                {isStudent && canGrantPass && item.hasNoPhone && (
                   <div className="flex gap-3 mt-6 pt-2 justify-end">
                     {item.isAtHome ? (
-                      // At-home student with phone: button to move back to hostel (done from student management)
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-full">
-                        <span className="text-xs font-bold text-blue-700">📱 Has phone at home</span>
+                      // At-home student with phone: button to move back to hostel
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-full">
+                          <span className="text-xs font-bold text-blue-700">📱 Has phone at home</span>
+                        </div>
+                        <Button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/students`, {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ id: item.originalId, is_active: "YES" })
+                              })
+                              const data = await res.json()
+                              if (!res.ok) {
+                                console.error("Move to hostel failed:", data)
+                                toast.error(`Failed: ${data?.error || res.status}`)
+                                return
+                              }
+                              toast.success(`${item.studentName} moved back to hostel`)
+                              mutate("/api/students")
+                            } catch (e: any) {
+                              console.error("Move to hostel error:", e)
+                              toast.error(`Error: ${e?.message || "Unknown error"}`)
+                            }
+                          }}
+                          className="px-4 py-2.5 h-auto rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm shadow-none transition-transform active:scale-95 border-none"
+                        >
+                          Move to Hostel
+                        </Button>
                       </div>
                     ) : (
                       // Student with no phone: can activate a phone

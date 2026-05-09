@@ -609,11 +609,11 @@ function GatePassContent() {
                 {/* Top Status Badge */}
                 <div className="flex justify-between items-start mb-6">
                   <h3 className="font-bold text-[#0ca643] text-lg uppercase tracking-tight pr-4">{item.studentName}</h3>
-                  <div className={`px-3 py-0.5 rounded-full border text-xs font-semibold lowercase
-                       ${isNotIssued ? 'border-orange-500 text-orange-500' :
-                      (!isCompleted && isOut ? 'border-red-500 text-red-500' :
-                        (isCompleted ? 'border-gray-300 text-gray-500' : 'border-gray-400 text-gray-600'))}`}>
-                    {isNotIssued ? "not issued" : (isStudent ? (isOut ? "out" : "in") : (isCompleted ? "returned" : (isOut ? "out" : "active")))}
+                  <div className={`px-3 py-0.5 rounded-full border text-xs font-bold uppercase tracking-wide
+                       ${isNotIssued ? 'border-orange-400 text-orange-500 bg-orange-50' :
+                      (!isCompleted && isOut ? 'border-red-400 text-red-600 bg-red-50' :
+                        (isCompleted ? 'bg-[#0ca643] border-[#0ca643] text-white' : 'border-gray-400 text-gray-600'))}`}>
+                    {isNotIssued ? "not issued" : (isStudent ? (isOut ? "out" : "in") : (isCompleted ? "in" : (isOut ? "out" : "in")))}
                   </div>
                 </div>
 
